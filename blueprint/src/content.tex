@@ -6,6 +6,261 @@
 % the current file can be a simple sequence of \input. Otherwise It
 % can start with a \section or \chapter for instance.
 
+\section{Resolutions of the identity}
+
+\begin{definition}[12.17]
+  Let $\mathfrak{M}$ be a $\sigma$-algebra in a set $\Omega$, and let $H$ be a Hilbert space.
+  In this setting, a \emph{resolution of the identity} (on $\mathfrak{M}$) is a mapping
+
+  \[
+    E: \mathfrak{M} \to \mathfrak{M}(H)
+  \]
+  with the following properties:
+
+  \begin{enumerate}
+    \item \label{itm:Ra} \( E(\emptyset) = 0\), \(E(\Omega) = I\).
+    \item \label{itm:Rb}  Each \( E(\omega) \) is a self-adjoint projection.
+    \item \label{itm:Rc} \( E(\omega' \cap \omega'') = E(\omega')E(\omega'')\).
+    \item \label{itm:Rd}  If \( \omega' \cap \omega'' = \emptyset \), then \( E(\omega' \cup \omega'') = E(\omega') + E(\omega'') \).
+    \item \label{itm:Re}  For every \( x \in H \) and \( y \in H \), the set function \( E_{x,y} \) defined by:
+          \[
+            E_{x,y}(\omega) = (E(\omega)x, y)
+          \]
+          is a complex measure on \( \mathcal{M} \).
+  \end{enumerate}
+\end{definition}
+
+When \( \mathfrak{M} \) is the \( \sigma \)-algebra of all Borel sets on a compact or locally compact Hausdorff space, it is customary to add another requirement to (\ref{itm:Re}):
+Each \( E_{x,y} \) should be a regular Borel measure.
+(This is automatically satisfied on compact metric spaces, for instance. See [23].)
+
+Here are some immediate consequences of These Properties.
+
+Since each \( E(\omega) \) is a self-adjoint projection, we have:
+
+\[
+  E_{x,x}(\omega) = (E(\omega)x, x) = \|E(\omega)x\|^2, \quad (x \in H)
+\]
+
+so that each \( E_{x,x} \) is a positive measure on \( \mathfrak{M} \) whose total variation is:
+
+\[
+  \|E_{x,x}\| = E_{x,x}(\Omega) = \|x\|^2.
+\]
+
+By (\ref{itm:Rc}), any two of the projections \( E(\omega) \) commute with each other.
+
+If \( \omega' \cap \omega'' = \emptyset \), (\ref{itm:Ra}) and (\ref{itm:Rc}) show that the ranges of \( E(\omega') \) and \( E(\omega'') \) are orthogonal to each other (Theorem 12.14).
+
+By (\ref{itm:Rd}), \( E \) is finitely additive.
+The question arises whether \( E \) is countably additive, i.e., whether the series:
+
+\begin{equation}
+  \label{eq:R3}
+  \sum_{n=1}^{\infty} E(\omega_n)
+\end{equation}
+
+converges, in the norm topology of \( \mathcal{B}(H) \), to \( E(\omega) \), whenever \( \omega \) is the union of the disjoint sets \( \omega_n \in \mathfrak{M} \).
+Since the norm of any projection is either $0$ or at least $1$, the partial sums of the series \ref{eq:R3} cannot form a Cauchy sequence, unless all but finitely many of the \( E(\omega_n) \) are 0.
+Thus, \( E \) is not countably additive, except in some trivial situations.
+
+However, let \( \{\omega_n\} \) be as above, and fix \( x \in H \).
+Since \( E(\omega_n)E(\omega_m) = 0 \) when \( n \neq m \), the vectors \( E(\omega_n)x \) and \( E(\omega_m)x \) are orthogonal to each other (Theorem 12.14).
+By (\ref{itm:Re}),
+
+\begin{equation}
+  \label{eq:R5}
+  \sum_{n=1}^{\infty} (E(\omega_n)x, y) = (E(\omega)x, y)
+\end{equation}
+
+for every \( y \in H \).
+It now follows from Theorem 12.6 that:
+
+\[
+  \sum_{n=1}^{\infty} E(\omega_n)x = E(\omega)x.
+\]
+
+The series (\eqref{eq:R5}) converges in the norm topology of \( H \).
+We summarize the result just proved:
+
+\begin{proposition}[12.18]
+  If \( E \) is a resolution of the identity, and if \( x \in H \), then
+  \[
+    \omega \mapsto E(\omega)x
+  \]
+  is a countably additive \( H \)-valued measure on* \( \mathfrak{M} \).
+\end{proposition}
+
+Moreover, sets of measure zero can be handled in the usual way:
+
+\begin{proposition}[12.19]
+  Suppose \( E \) is a resolution of the identity.
+  If \( \omega_n \in \mathfrak{M} \) and \( E(\omega_n) = 0 \) for \( n = 1,2,3,\dots \), and if
+  \[
+    \omega = \bigcup_{n=1}^{\infty} \omega_n,
+  \]
+  then \( E(\omega) = 0 \).
+\end{proposition}
+
+\begin{proof}
+  Since \( E(\omega_n) = 0 \), \( E_{x,x}(\omega_n) = 0 \) for every \( x \in H \). Since \( E_{x,x} \) is countably additive, it follows that \( E_{x,x}(\omega) = 0 \). But
+  \[
+    \|E(\omega)x\|^2 = E_{x,x}(\omega).
+  \]
+  Hence, \( E(\omega) = 0 \).
+\end{proof}
+
+
+% **12.20 The algebra \( L^{\infty}(E) \)**
+% Let \( E \) be a resolution of the identity on \( \mathcal{M} \), as above. Let \( f \) be a complex \( \mathcal{M} \)-measurable function on \( \Omega \). There is a countable collection \( \{D_i\} \) of open discs that forms a base for the topology of \( \mathbb{C} \). Let \( V \) be the union of those \( D_i \) for which \( E(f^{-1}(D_i)) = 0 \). By Proposition 12.19, \( E(f^{-1}(V)) = 0 \). Also, \( V \) is the largest open subset of \( \mathbb{C} \) with this property.
+
+% The **essential range** of \( f \) is, by definition, the complement of \( V \). It is the smallest closed subset of \( \mathbb{C} \) that contains \( f(p) \) for almost all \( p \in \Omega \), that is, for all \( p \in \Omega \) except those that lie in some set \( \omega \in \mathcal{M} \) with \( E(\omega) = 0 \).
+
+% We say that \( f \) is **essentially bounded** if its essential range is bounded, hence compact. In that case, the largest value of \( |\lambda| \), as \( \lambda \) runs through the essential range of \( f \), is called the **essential supremum** \( \| f \|_{\infty} \) of \( f \).
+
+% Let \( B \) be the algebra of all bounded complex \( \mathcal{M} \)-measurable functions on \( \Omega \), with the norm:
+
+% \[
+%   \| f \| = \sup \{ | f(p) | : p \in \Omega \}.
+% \]
+
+% One sees easily that \( B \) is a Banach algebra and that:
+
+% \[
+%   N = \{ f \in B : \| f \|_{\infty} = 0 \}
+% \]
+
+% is an ideal of \( B \) which is **closed**, by Proposition 12.19. Hence, \( B/N \) is a Banach algebra, which we denote (in the usual manner) by \( L^{\infty}(E) \).
+
+% The norm of any coset \( [f] = f + N \) of \( L^{\infty}(E) \) is then equal to \( \| f \|_{\infty} \), and its spectrum \( \sigma([f]) \) is the essential range of \( f \). As is usually done in measure theory, the distinction between \( f \) and its equivalence class \( [f] \) will be ignored.
+
+% Our next concern will be the integration of functions with respect to the projection-valued measures described above. The resulting integrals
+% \(\int f \, dE\) turn out to be not only linear (as all good integrals ought to be) but also multiplicative!
+
+% **12.21 Theorem**
+% *If \( E \) is a resolution of the identity, as above, then there exists an isometric*-isomorphism* \( \Psi \) *of the Banach algebra* \( L^{\infty}(E) \) *onto a closed normal subalgebra* \( A \) *of* \( \mathcal{B}(H) \), *which is related to* \( E \) *by the formula.*
+
+% \[
+% (\Psi(f)x, y) = \int_{\Omega} f \, dE_{x,y} \quad \text{for } (x, y \in H, f \in L^{\infty}(E)).
+% \]
+
+% This justifies the notation
+
+% \[
+% \Psi(f) = \int_{\Omega} f \, dE.
+% \]
+
+% Moreover,
+
+% \[
+% \|\Psi(f)x\|^2 = \int_{\Omega} |f|^2 \, dE_{x,x} \quad \text{for } (x \in H, f \in L^{\infty}(E)).
+% \]
+
+% *And an operator* \( Q \in \mathcal{B}(H) \) *commutes with every* \( E(\omega) \) *if and only if* \( Q \) *commutes with every* \( \Psi(f) \).
+
+% ---
+
+% Recall that a **normal subalgebra** \( A \) of \( \mathcal{B}(H) \) is a commutative one which contains \( T^* \) for every \( T \in A \). To say that \( \Psi \) is a \( * \)-isomorphism means that \( \Psi \) is one-to-one, linear, and multiplicative and that
+
+% \[
+% \Psi(\bar{f}) = \Psi(f)^* \quad \text{for } (f \in L^{\infty}(E)).
+% \]
+
+% ---
+
+% **Proof**
+% To begin with, let \( \{\omega_1, \dots, \omega_n\} \) be a partition of \( \Omega \), with \( \omega_i \in \mathcal{M} \), and let \( s \) be a simple function, such that \( s = \alpha_i \) on \( \omega_i \). Define \( \Psi(s) \in \mathcal{B}(H) \) by
+
+% \[
+% \Psi(s) = \sum_{i=1}^{n} \alpha_i E(\omega_i).
+% \]
+
+% Since each \( E(\omega_i) \) is self-adjoint,
+
+% \[
+% \Psi(s)^* = \sum_{i=1}^{n} \bar{\alpha}_i E(\omega_i) = \Psi(\bar{s}).
+% \]
+
+% If \( \{\omega'_1, \dots, \omega'_m\} \) is another partition of this kind, and if \( t = \beta_j \) on \( \omega'_j \), then
+
+% \[
+% \Psi(s) \Psi(t) = \sum_{i,j} \alpha_i \beta_j E(\omega_i) E(\omega'_j) = \sum_{i,j} \alpha_i \beta_j E(\omega_i \cap \omega'_j).
+% \]
+
+% Since \( st \) is the simple function that equals \( \alpha_i \beta_j \) on \( \omega_i \cap \omega_j \), it follows that
+
+% \[
+% \Psi(s) \Psi(t) = \Psi(st).
+% \]
+
+% An entirely analogous argument shows that
+
+% \[
+% \Psi(\alpha s + \beta t) = \alpha \Psi(s) + \beta \Psi(t).
+% \]
+
+% If \( x \in H \) and \( y \in H \), (5) leads to
+
+% \[
+% (\Psi(s)x, y) = \sum_{i=1}^{n} \alpha_i (E(\omega_i)x, y) = \sum_{i=1}^{n} \alpha_i E_{x,y}(\omega_i) = \int_{\Omega} s \, dE_{x,y}.
+% \]
+
+% By (6) and (7),
+
+% \[
+% \Psi(s)^* \Psi(s) = \Psi(\bar{s}) \Psi(s) = \Psi(\bar{s} s) = \Psi(|s|^2).
+% \]
+
+% Hence (9) yields
+
+% \[
+% \|\Psi(s)x\|^2 = (\Psi(s)^* \Psi(s)x, x) = (\Psi(|s|^2)x, x) = \int_{\Omega} |s|^2 dE_{x,x},
+% \]
+
+% so that
+
+% \[
+% \|\Psi(s)x\| \leq \|s\|_{\infty} \|x\|,
+% \]
+
+% by formula (2) of Section 12.17. On the other hand, if \( x \in \mathcal{R}(E(\omega_j)) \), then
+
+% \[
+% \Psi(s)x = \alpha_j E(\omega_j)x = \alpha_j x,
+% \]
+
+% since the projections \( E(\omega_i) \) have mutually orthogonal ranges. If \( j \) is chosen so that \( |\alpha_j| = \|s\|_{\infty} \), it follows from (12) and (13) that
+
+% \[
+% \|\Psi(s)\| = \|s\|_{\infty}.
+% \]
+
+% Now suppose \( f \in L^{\infty}(E) \). There is a sequence of simple measurable functions \( s_k \) that converges to \( f \) in the norm of \( L^{\infty}(E) \). By (14), the corresponding operators \( \Psi(s_k) \) form a Cauchy sequence in \( \mathcal{B}(H) \) which is therefore norm-convergent to an operator that we call \( \Psi(f) \); it is easy to see that \( \Psi(f) \) does not depend on the particular choice of \( \{s_k\} \). Obviously (14) leads to
+
+% \[
+% \|\Psi(f)\| = \|f\|_{\infty}, \quad (f \in L^{\infty}(E)).
+% \]
+
+% Now (1) follows from (9) (with \( s_k \) in place of \( s \)), since each \( E_{x,x} \) is a finite measure; (2) and (3) follow from (6) and (11); and if bounded measurable functions \( f \) and \( g \) are approximated, in the norm of \( L^{\infty}(E) \), by simple measurable functions \( s \) and \( t \), we see that (7) and (8) hold with \( f \) and \( g \) in place of \( s \) and \( t \).
+
+% Thus Ψ is an isometric isomorphism of \( L^\infty(E) \) into \( \mathcal{B}(H) \). Since \( L^\infty(E) \) is complete, its image \( A = \Psi(L^\infty(E)) \) is closed in \( \mathcal{B}(H) \), because of (15).
+
+% Finally, if \( Q \) commutes with every \( E(\omega) \), then \( Q \) commutes with \( \Psi(s) \) whenever \( s \) is simple, and therefore the approximation process used above shows that \( Q \) commutes with every member of \( A \). \(\quad \////\)
+
+% It is perhaps worth mentioning that the equality
+
+% \[
+% (16) \quad \| f \|_\infty^2 = \sup \left\{ \int_\Omega |f|^2 \, dE_{x,x} : \| x \| \leq 1 \right\}
+% \]
+
+% holds for every \( f \in L^\infty(E) \), because of (3) and (15).
+
+
+
+
+
+
+
 
 \section{The Spectral Theorem}
 
