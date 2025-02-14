@@ -9,7 +9,6 @@ A large part of the theory of normal operators depends on this fact.
 
 The [Lean blueprint](https://oliver-butterley.github.io/SpectralThm/).
 
-
 ## Repository Layout
 
 The repository is organized as follows:
