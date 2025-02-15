@@ -6,6 +6,33 @@
 % the current file can be a simple sequence of \input. Otherwise It
 % can start with a \section or \chapter for instance.
 
+\section{Orthogonal projections}
+Let $H$ be a complex Hilbert space and $K$ be a closed subspace of $H$.
+We denote $K^\perp$ the orthogonal complement of $K$ in $H$.
+Any vector $x \in H$ can be written as $x = x_K + x_{K^\perp}$, where $x_K \in K, x_{K^\perp} \in K^\perp$.
+The map $p(K) : x \to x_K$ is called the orthogonal projection to $K$.
+\begin{lemma}
+ It holds that $p(K) = p(K)^2 = p(K)^*$.
+\end{lemma}
+\begin{proof}
+ The first equality follows by the uniqueness of the orthogonal decomposition.
+
+ The second equality follows because $\langle y, p(K)x \rangle = \langle y, x_K\rangle = \langle y_K, x \rangle = \langle p(K)y, x\rangle$
+ by orthogonality.
+\end{proof}
+
+\begin{lemma}
+ For $p \in B(H)$ such that $p = p^2 = p^*$,
+ there is a closed subspace $K$ such that $p = p(K)$.
+\end{lemma}
+\begin{proof}
+ By $p = p^2$, it is a projection. Let $K$ be the image of $p$.
+ Note that $x = (p + (1-p))x = px + (1-p)x$ for any $x \in H$
+ and $\langle px, (1-p)x\rangle = \rangle x, (p-p)x\rangle = 0$.
+ So this gives the orthogonal decomposition.
+\end{proof}
+
+
 \section{Resolutions of the identity}
 
 \begin{definition}[12.17]
