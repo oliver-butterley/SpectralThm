@@ -24,7 +24,7 @@ The map $p(K) : x \to x_K$ is called the orthogonal projection to $K$.
 \end{proof}
 
 \begin{lemma}
- For $p \in B(H)$ such that $p = p^2 = p^*$,
+ For $p \in \mathcal{B}(H)$ such that $p = p^2 = p^*$,
  there is a closed subspace $K$ such that $p = p(K)$.
 \end{lemma}
 \begin{proof}
@@ -34,17 +34,39 @@ The map $p(K) : x \to x_K$ is called the orthogonal projection to $K$.
  So this gives the orthogonal decomposition.
 \end{proof}
 
-\begin{lemma}[12.6]
+\begin{lemma}[12.6, part 1]
  Let $\{x_n\}$ be a sequence of pairwise orthogonal vectors in $H$.
  Then the following are equivalent.
  \begin{itemize}
   \item $\sum_{n=1}^\infty x_n$ converges in the norm topology of $H$.
-  \item $\sum_{n=1}^\infty \|x_n\| < \infty$.
+  \item $\sum_{n=1}^\infty \|x_n\|^2 < \infty$.
+ \end{itemize}
+\end{lemma}
+\begin{proof}
+ Note that, by orthogonality,
+ $\|\sum_{j=m}^n x_j\|^2 = \sum_{j=m}^n \|x_j\|^2$.
+ Therefore, the second condition implies that the sequence $\sum_{j=1}^n x_j$ is Cauchy.
+
+ Conversely, as $\sum_{j=1}^n x_j$ converges in norm, the square of its norm $\sum_{j=1}^n \|x_j\|^2$ converges.
+
+\end{proof}
+
+\begin{lemma}[12.6, part 2]
+ Let $\{x_n\}$ be a sequence of pairwise orthogonal vectors in $H$.
+ Then the following are equivalent.
+ \begin{itemize}
+  \item $\sum_{n=1}^\infty x_n$ converges in the norm topology of $H$.
   \item $\sum_{n=1}^\infty \langle x, y\rangle$ converges for all $y \in H$.
  \end{itemize}
 \end{lemma}
 \begin{proof}
- TODO
+ The first condition implies the second by Cauchy-Schwartz.
+
+ Assume that
+ $\sum_{n=1}^\infty \langle x, y\rangle$ converges for all $y \in H$.
+ Define $\Lambda_n y = \sum_{j=1}^n \langle y, x_j\rangle$.
+ As this converges for each $y$, by Banach-Steinhaus, $\{\|\Lambda_n\|\}$ is bounded.
+ As $\|\Lambda_n\| = \sqrt{\sum_{j=1}^n \|x_j\|}$, this gives the first condition.
 \end{proof}
 
 \section{Resolutions of the identity}
@@ -115,7 +137,7 @@ The map $p(K) : x \to x_K$ is called the orthogonal projection to $K$.
 \end{proof}
 
 \textbf{Remark:}
-$\sum_{n=1}^{\infty} E(\omega_n)$ does not converge in the norm topology of $B(H)$.
+$\sum_{n=1}^{\infty} E(\omega_n)$ does not converge in the norm topology of $\mathcal{B}(H)$.
 
 \begin{lemma}
  Let $x \in H$ and $\{\omega_j\}$ be a countable family of mutually disjoint Borel sets.
