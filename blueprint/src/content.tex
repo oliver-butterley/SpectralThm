@@ -7,6 +7,8 @@
 % can start with a \section or \chapter for instance.
 
 \section{Orthogonal projections}
+(The contents of this section should be added to Mathlib.Analysis.InnerProductSpace.Projection)
+
 Let $H$ be a complex Hilbert space and $K$ be a closed subspace of $H$.
 We denote $K^\perp$ the orthogonal complement of $K$ in $H$.
 Any vector $x \in H$ can be written as $x = x_K + x_{K^\perp}$, where $x_K \in K, x_{K^\perp} \in K^\perp$.
@@ -32,6 +34,18 @@ The map $p(K) : x \to x_K$ is called the orthogonal projection to $K$.
  So this gives the orthogonal decomposition.
 \end{proof}
 
+\begin{lemma}[12.6]
+ Let $\{x_n\}$ be a sequence of pairwise orthogonal vectors in $H$.
+ Then the following are equivalent.
+ \begin{itemize}
+  \item $\sum_{n=1}^\infty x_n$ converges in the norm topology of $H$.
+  \item $\sum_{n=1}^\infty \|x_n\| < \infty$.
+  \item $\sum_{n=1}^\infty \langle x, y\rangle$ converges for all $y \in H$.
+ \end{itemize}
+\end{lemma}
+\begin{proof}
+ TODO
+\end{proof}
 
 \section{Resolutions of the identity}
 
