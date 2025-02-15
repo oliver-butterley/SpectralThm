@@ -24,7 +24,7 @@ The map $p(K) : x \to x_K$ is called the orthogonal projection to $K$.
 \end{proof}
 
 \begin{lemma}
- For $p \in B(H)$ such that $p = p^2 = p^*$,
+ For $p \in \mathcal{B}(H)$ such that $p = p^2 = p^*$,
  there is a closed subspace $K$ such that $p = p(K)$.
 \end{lemma}
 \begin{proof}
@@ -34,23 +34,46 @@ The map $p(K) : x \to x_K$ is called the orthogonal projection to $K$.
  So this gives the orthogonal decomposition.
 \end{proof}
 
-\begin{lemma}[12.6]
+\begin{lemma}[12.6, part 1]
  Let $\{x_n\}$ be a sequence of pairwise orthogonal vectors in $H$.
  Then the following are equivalent.
  \begin{itemize}
   \item $\sum_{n=1}^\infty x_n$ converges in the norm topology of $H$.
-  \item $\sum_{n=1}^\infty \|x_n\| < \infty$.
+  \item $\sum_{n=1}^\infty \|x_n\|^2 < \infty$.
+ \end{itemize}
+\end{lemma}
+\begin{proof}
+ Note that, by orthogonality,
+ $\|\sum_{j=m}^n x_j\|^2 = \sum_{j=m}^n \|x_j\|^2$.
+ Therefore, the second condition implies that the sequence $\sum_{j=1}^n x_j$ is Cauchy.
+
+ Conversely, as $\sum_{j=1}^n x_j$ converges in norm, the square of its norm $\sum_{j=1}^n \|x_j\|^2$ converges.
+
+\end{proof}
+
+\begin{lemma}[12.6, part 2]
+ Let $\{x_n\}$ be a sequence of pairwise orthogonal vectors in $H$.
+ Then the following are equivalent.
+ \begin{itemize}
+  \item $\sum_{n=1}^\infty x_n$ converges in the norm topology of $H$.
   \item $\sum_{n=1}^\infty \langle x, y\rangle$ converges for all $y \in H$.
  \end{itemize}
 \end{lemma}
 \begin{proof}
- TODO
+ The first condition implies the second by Cauchy-Schwartz.
+
+ Assume that
+ $\sum_{n=1}^\infty \langle x, y\rangle$ converges for all $y \in H$.
+ Define $\Lambda_n y = \sum_{j=1}^n \langle y, x_j\rangle$.
+ As this converges for each $y$, by Banach-Steinhaus, $\{\|\Lambda_n\|\}$ is bounded.
+ As $\|\Lambda_n\| = \sqrt{\sum_{j=1}^n \|x_j\|}$, this gives the first condition.
 \end{proof}
 
 \section{Resolutions of the identity}
 
 \begin{definition}[12.17]
   Let $\mathfrak{M}$ be a $\sigma$-algebra in a set $\Omega$, and let $H$ be a Hilbert space.
+  For simplicity, we assume that $\Omega$ is a locally compact (Hausdorff) space.
   In this setting, a \emph{resolution of the identity} (on $\mathfrak{M}$) is a mapping
 
   \[
@@ -67,62 +90,75 @@ The map $p(K) : x \to x_K$ is called the orthogonal projection to $K$.
           \[
             E_{x,y}(\omega) = (E(\omega)x, y)
           \]
-          is a complex measure on \( \mathcal{M} \).
+          is a complex regular Borel measure on \( \mathcal{M} \).
   \end{enumerate}
 \end{definition}
 
-When \( \mathfrak{M} \) is the \( \sigma \)-algebra of all Borel sets on a compact or locally compact Hausdorff space, it is customary to add another requirement to (\ref{itm:Re}):
-Each \( E_{x,y} \) should be a regular Borel measure.
-(This is automatically satisfied on compact metric spaces, for instance. See [23].)
+% When \( \mathfrak{M} \) is the \( \sigma \)-algebra of all Borel sets on a compact or locally compact Hausdorff space, it is customary to add another requirement to (\ref{itm:Re}):
+% Each \( E_{x,y} \) should be a regular Borel measure.
+% (This is automatically satisfied on compact metric spaces, for instance. See [23].)
 
-Here are some immediate consequences of These Properties.
+\begin{lemma}
+ For any $x \in H$,
+ \[
+  E_{x,x}(\omega) = (E(\omega)x, x) = \|E(\omega)x\|^2.
+ \]
+\end{lemma}
 
-Since each \( E(\omega) \) is a self-adjoint projection, we have:
-
-\[
-  E_{x,x}(\omega) = (E(\omega)x, x) = \|E(\omega)x\|^2, \quad (x \in H)
-\]
-
-so that each \( E_{x,x} \) is a positive measure on \( \mathfrak{M} \) whose total variation is:
-
-\[
+\begin{lemma}
+ For any $x \in H$,
+ \( E_{x,x} \) is a positive measure on \( \mathfrak{M} \) whose total variation is:
+ \[
   \|E_{x,x}\| = E_{x,x}(\Omega) = \|x\|^2.
-\]
+ \]
+\end{lemma}
 
-By (\ref{itm:Rc}), any two of the projections \( E(\omega) \) commute with each other.
+\begin{lemma}
+ For two $\omega_1, \omega_2$, \( E(\omega_1), E(\omega_2) \) commute.
+\end{lemma}
+\begin{proof}
+ By (\ref{itm:Rc}), any two of the projections \( E(\omega) \) commute with each other.
+\end{proof}
 
-If \( \omega' \cap \omega'' = \emptyset \), (\ref{itm:Ra}) and (\ref{itm:Rc}) show that the ranges of \( E(\omega') \) and \( E(\omega'') \) are orthogonal to each other (Theorem 12.14).
+\begin{lemma}
+ If \( \omega' \cap \omega'' = \emptyset \),
+ then the ranges of \( E(\omega') \) and \( E(\omega'') \) are orthogonal to each other
+\end{lemma}
+\begin{proof}
+ By (\ref{itm:Ra}), (\ref{itm:Rc}) and Theorem 12.14.
+\end{proof}
 
-By (\ref{itm:Rd}), \( E \) is finitely additive.
-The question arises whether \( E \) is countably additive, i.e., whether the series:
+\begin{lemma}
+ If $\{\omega_j\}$ is a finite family of mutually disjoint Borel sets, then
+ $E(\bigcup_j \omega_j) = \sum_j E(\omega_j)$.
+\end{lemma}
+\begin{proof}
+ By (\ref{itm:Rd}) and induction.
+\end{proof}
 
-\begin{equation}
-  \label{eq:R3}
-  \sum_{n=1}^{\infty} E(\omega_n)
-\end{equation}
+\textbf{Remark:}
+$\sum_{n=1}^{\infty} E(\omega_n)$ does not converge in the norm topology of $\mathcal{B}(H)$.
 
-converges, in the norm topology of \( \mathcal{B}(H) \), to \( E(\omega) \), whenever \( \omega \) is the union of the disjoint sets \( \omega_n \in \mathfrak{M} \).
-Since the norm of any projection is either $0$ or at least $1$, the partial sums of the series \ref{eq:R3} cannot form a Cauchy sequence, unless all but finitely many of the \( E(\omega_n) \) are 0.
-Thus, \( E \) is not countably additive, except in some trivial situations.
-
-However, let \( \{\omega_n\} \) be as above, and fix \( x \in H \).
-Since \( E(\omega_n)E(\omega_m) = 0 \) when \( n \neq m \), the vectors \( E(\omega_n)x \) and \( E(\omega_m)x \) are orthogonal to each other (Theorem 12.14).
-By (\ref{itm:Re}),
-
-\begin{equation}
-  \label{eq:R5}
-  \sum_{n=1}^{\infty} (E(\omega_n)x, y) = (E(\omega)x, y)
-\end{equation}
-
-for every \( y \in H \).
-It now follows from Theorem 12.6 that:
-
-\[
+\begin{lemma}
+ Let $x \in H$ and $\{\omega_j\}$ be a countable family of mutually disjoint Borel sets.
+ Then $E(\bigcup_j \omega_j)x = \sum_j E(\omega_j)x$, where
+ the right-hand side converges in the norm topology of $H$.
+\end{lemma}
+\begin{proof}
+ Since \( E(\omega_n)E(\omega_m) = 0 \) when \( n \neq m \), the vectors \( E(\omega_n)x \) and \( E(\omega_m)x \)
+ are orthogonal to each other (Theorem 12.14).
+ By (\ref{itm:Re}),
+ \begin{equation}
+   \label{eq:R5}
+   \sum_{n=1}^{\infty} (E(\omega_n)x, y) = (E(\omega)x, y)
+ \end{equation}
+ for every \( y \in H \).
+ It now follows from Theorem 12.6 that:
+ \[
   \sum_{n=1}^{\infty} E(\omega_n)x = E(\omega)x.
-\]
-
-The series (\eqref{eq:R5}) converges in the norm topology of \( H \).
-We summarize the result just proved:
+ \]
+ The series (\eqref{eq:R5}) converges in the norm topology of \( H \).
+\end{proof}
 
 \begin{proposition}[12.18]
   If \( E \) is a resolution of the identity, and if \( x \in H \), then
