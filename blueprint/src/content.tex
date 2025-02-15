@@ -10,6 +10,7 @@
 
 \begin{definition}[12.17]
   Let $\mathfrak{M}$ be a $\sigma$-algebra in a set $\Omega$, and let $H$ be a Hilbert space.
+  For simplicity, we assume that $\Omega$ is a locally compact (Hausdorff) space.
   In this setting, a \emph{resolution of the identity} (on $\mathfrak{M}$) is a mapping
 
   \[
@@ -26,29 +27,36 @@
           \[
             E_{x,y}(\omega) = (E(\omega)x, y)
           \]
-          is a complex measure on \( \mathcal{M} \).
+          is a complex regular Borel measure on \( \mathcal{M} \).
   \end{enumerate}
 \end{definition}
 
-When \( \mathfrak{M} \) is the \( \sigma \)-algebra of all Borel sets on a compact or locally compact Hausdorff space, it is customary to add another requirement to (\ref{itm:Re}):
-Each \( E_{x,y} \) should be a regular Borel measure.
-(This is automatically satisfied on compact metric spaces, for instance. See [23].)
+% When \( \mathfrak{M} \) is the \( \sigma \)-algebra of all Borel sets on a compact or locally compact Hausdorff space, it is customary to add another requirement to (\ref{itm:Re}):
+% Each \( E_{x,y} \) should be a regular Borel measure.
+% (This is automatically satisfied on compact metric spaces, for instance. See [23].)
 
-Here are some immediate consequences of These Properties.
+\begin{lemma}
+ For any $x in H$,
+ \[
+  E_{x,x}(\omega) = (E(\omega)x, x) = \|E(\omega)x\|^2.
+ \]
+\end{lemma}
 
-Since each \( E(\omega) \) is a self-adjoint projection, we have:
-
-\[
-  E_{x,x}(\omega) = (E(\omega)x, x) = \|E(\omega)x\|^2, \quad (x \in H)
-\]
-
-so that each \( E_{x,x} \) is a positive measure on \( \mathfrak{M} \) whose total variation is:
-
-\[
+\begin{lemma}
+ For any $x in H$,
+ \( E_{x,x} \) is a positive measure on \( \mathfrak{M} \) whose total variation is:
+ \[
   \|E_{x,x}\| = E_{x,x}(\Omega) = \|x\|^2.
-\]
+ \]
+\end{lemma}
 
-By (\ref{itm:Rc}), any two of the projections \( E(\omega) \) commute with each other.
+\begin{lemma}
+ For two $\omega_1, \omega_2$, \( E(\omega_1), E(\omega_2) \) commute.
+\end{lemma}
+\begin{proof}
+ By (\ref{itm:Rc}), any two of the projections \( E(\omega) \) commute with each other.
+\end{proof}
+
 
 If \( \omega' \cap \omega'' = \emptyset \), (\ref{itm:Ra}) and (\ref{itm:Rc}) show that the ranges of \( E(\omega') \) and \( E(\omega'') \) are orthogonal to each other (Theorem 12.14).
 
