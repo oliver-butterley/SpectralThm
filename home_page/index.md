@@ -14,7 +14,7 @@ A large part of the theory of normal operators depends on this fact.
 
 ## Information about the project
 
-An ongoing multi-author open source project to formalise a proof of The Spectral Theorem in the Lean theorem prover.
+An ongoing multi-author open source project to formalise a proof of The Spectral Theorem in Lean 4.
 
 <!--
 Useful links:
