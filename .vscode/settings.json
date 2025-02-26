@@ -7,6 +7,12 @@
     "[lean4]": {
         "editor.rulers": [100]
     },
+    "[markdown]": {
+        "editor.wordWrap": "on",
+    },
+    "[tex]": {
+        "editor.wordWrap": "on",
+    },
     // Set the default file encoding to UTF-8
     "files.encoding": "utf8",
     // Use Unix-style line endings ('\n') by default
