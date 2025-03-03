@@ -32,18 +32,14 @@ Once you are assigned to an issue, begin working on the corresponding task. You 
 - When you are ready to submit your solution, create a PR from your working branch to the project’s `main` branch.
 - After submitting the PR, comment `propose #PR_NUMBER` on the original issue. This links your PR to the task, and the task will move to the `In Progress` column on the dashboard.
 - A task can only move to `In Progress` if it has been claimed by the user proposing the PR.
+- A PR is by default considered to be awaiting review unless it is tagged as a draft of wip.
 
 ### 5. Withdrawing or Updating a PR
 
 - If you need to withdraw your PR, comment the single phrase `withdraw #PR_NUMBER` on the issue. The task will return to the `Claimed` column, but you will remain assigned to the issue.
 - To submit an updated PR after withdrawal, comment `propose #NEW_PR_NUMBER` following the same process outlined in step 4.
 
-### 6. Review Process
-
-- After finishing the task and ensuring your PR is ready for review, comment `awaiting-review` on the PR. This will add the `awaiting-review` label to your PR and move the task from `In Progress` to the `In Review` column of the dashboard.
-- The project maintainers will review the PR. They may request changes, approve the PR, or provide feedback.
-
-### 7. Task Completion
+### 6. Task Completion
 
 - Once the PR is approved and merged, the task will automatically move to the `Completed` column.
 - If further adjustments are needed after merging, a new issue will be created to track additional work.
