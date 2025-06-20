@@ -1,5 +1,7 @@
-import Mathlib
-import SpectralThm.toMathlib.Variation.Lemmas
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Lebesgue
+import Mathlib.Topology.ContinuousMap.CompactlySupported
+import SpectralThm.toMathlib.Variation.Defs
 
 /-!
 # Riesz–Markov–Kakutani representation theorem for complex linear functionals
@@ -194,6 +196,5 @@ theorem Complex.integral_rieszMeasure (f : C₀(X, ℂ)) :
   -- Thus `d|μ| = |g| dλ = dλ`, by *Theorem 6.13*,
   -- and `|μ|(X) = λ(X) = 1 = ‖Φ‖`,
   sorry
-
 
 end ComplexRMK
