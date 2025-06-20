@@ -1,3 +1,113 @@
 \chapter{The Reisz Theorem}
 
 I.e., ComplexRMK
+
+Principal reference is: Theorem 6.19 of [Walter Rudin, Real and Complex Analysis.][Rud87].
+
+\begin{theorem}[Rudin 6.19]
+  \lean{Complex.integral_rieszMeasure}
+  If $X$ is a locally compact Hausdorff space, then every bounded linear functional $\Phi$ on $C_0(X)$ is represented by a unique regular complex Borel measure $\mu$, in the sense that
+  \begin{equation}
+  \Phi f = \int_X f \, d\mu \tag{1}
+  \end{equation}
+  for every $f \in C_0(X)$. Moreover, the norm of $\Phi$ is the total variation of $\mu$:
+  \begin{equation}
+  \|\Phi\| = |\mu|(X). \tag{2}
+  \end{equation}
+\end{theorem}
+
+\begin{proof}
+We first settle the uniqueness question. Suppose $\mu$ is a regular complex Borel measure on $X$ and $\int f \, d\mu = 0$ for all $f \in C_0(X)$. By Theorem 6.12 there is a Borel function $h$, with $|h| = 1$, such that $d\mu = h \, d|\mu|$. For any sequence $\{f_n\}$ in $C_0(X)$ we then have
+\begin{equation}
+|\mu|(X) = \int_X (\bar{h} - f_n)h \, d|\mu| \leq \int_X |\bar{h} - f_n| \, d|\mu|, \tag{3}
+\end{equation}
+and since $C_c(X)$ is dense in $L^1(|\mu|)$ (Theorem 3.14), $\{f_n\}$ can be so chosen that the last expression in (3) tends to 0 as $n \to \infty$. Thus $|\mu|(X) = 0$, and $\mu = 0$. It is easy to see that the difference of two regular complex Borel measures on $X$ is regular. This shows that at most one $\mu$ corresponds to each $\Phi$.
+
+Now consider a given bounded linear functional $\Phi$ on $C_0(X)$. Assume $\|\Phi\| = 1$, without loss of generality. We shall construct a positive linear functional $\Lambda$ on $C_c(X)$, such that
+\begin{equation}
+|\Phi(f)| \leq \Lambda(|f|) \leq \|f\| \quad (f \in C_c(X)), \tag{4}
+\end{equation}
+where $\|f\|$ denotes the supremum norm.
+
+Once we have this $\Lambda$, we associate with it a positive Borel measure $\lambda$, as in Theorem 2.14. The conclusion of Theorem 2.14 shows that $\lambda$ is regular if $\lambda(X) < \infty$. Since
+\begin{equation}
+\lambda(X) = \sup \{\Lambda f : 0 \leq f \leq 1, f \in C_c(X)\}
+\end{equation}
+and since $|\Lambda f| \leq 1$ if $\|f\| \leq 1$, we see that actually $\lambda(X) \leq 1$.
+
+We also deduce from (4) that
+\begin{equation}
+|\Phi(f)| \leq \Lambda(|f|) = \int_X |f| \, d\lambda = \|f\|_1 \quad (f \in C_c(X)). \tag{5}
+\end{equation}
+
+The last norm refers to the space $L^1(\lambda)$. Thus $\Phi$ is a linear functional on $C_c(X)$ of norm at most 1, with respect to the $L^1(\lambda)$-norm on $C_c(X)$. There is a norm-preserving extension of $\Phi$ to a linear functional on $L^1(\lambda)$, and therefore Theorem 6.16 (the case $p = 1$) gives a Borel function $g$, with $|g| \leq 1$, such that
+\begin{equation}
+\Phi(f) = \int_X fg \, d\lambda \quad (f \in C_c(X)). \tag{6}
+\end{equation}
+
+Each side of (6) is a continuous functional on $C_0(X)$, and $C_c(X)$ is dense in $C_0(X)$. Hence (6) holds for all $f \in C_0(X)$, and we obtain the representation (1) with $d\mu = g \, d\lambda$.
+
+Since $\|\Phi\| = 1$, (6) shows that
+\begin{equation}
+\int_X |g| \, d\lambda \geq \sup \{|\Phi(f)| : f \in C_0(X), \|f\| \leq 1\} = 1. \tag{7}
+\end{equation}
+
+We also know that $\lambda(X) \leq 1$ and $|g| \leq 1$. These facts are compatible only if $\lambda(X) = 1$ and $|g| = 1$ a.e. $[\lambda]$. Thus $d|\mu| = |g| \, d\lambda = d\lambda$, by Theorem 6.13, and
+\begin{equation}
+|\mu|(X) = \lambda(X) = 1 = \|\Phi\|, \tag{8}
+\end{equation}
+which proves (2).
+
+So all depends on finding a positive linear functional $\Lambda$ that satisfies (4). If $f \in C_c^+(X)$ [the class of all nonnegative real members of $C_c(X)$], define
+\begin{equation}
+\Lambda f = \sup \{|\Phi(h)| : h \in C_c(X), |h| \leq f\}. \tag{9}
+\end{equation}
+
+Then $\Lambda f \geq 0$, $\Lambda$ satisfies (4), $0 \leq f_1 \leq f_2$ implies $\Lambda f_1 \leq \Lambda f_2$, and $\Lambda(cf) = c\Lambda f$ if $c$ is a positive constant. We have to show that
+\begin{equation}
+\Lambda(f + g) = \Lambda f + \Lambda g \quad (f \text{ and } g \in C_c^+(X)), \tag{10}
+\end{equation}
+and we then have to extend $\Lambda$ to a linear functional on $C_c(X)$.
+
+Fix $f$ and $g \in C_c^+(X)$. If $\varepsilon > 0$, there exist $h_1$ and $h_2 \in C_c(X)$ such that $|h_1| \leq f$, $|h_2| \leq g$, and
+\begin{equation}
+\Lambda f \leq |\Phi(h_1)| + \varepsilon, \quad \Lambda g \leq |\Phi(h_2)| + \varepsilon. \tag{11}
+\end{equation}
+
+There are complex numbers $\alpha_i$, $|\alpha_i| = 1$, so that $\alpha_i \Phi(h_i) = |\Phi(h_i)|$, $i = 1, 2$. Then
+\begin{align}
+\Lambda f + \Lambda g &\leq |\Phi(h_1)| + |\Phi(h_2)| + 2\varepsilon\\
+&= \Phi(\alpha_1 h_1 + \alpha_2 h_2) + 2\varepsilon\\
+&\leq \Lambda(|h_1| + |h_2|) + 2\varepsilon\\
+&\leq \Lambda(f + g) + 2\varepsilon,
+\end{align}
+so that the inequality $\geq$ holds in (10).
+
+Next, choose $h \in C_c(X)$, subject only to the condition $|h| \leq f + g$, let $V = \{x : f(x) + g(x) > 0\}$, and define
+\begin{align}
+h_1(x) &= \frac{f(x)h(x)}{f(x) + g(x)}, \quad h_2(x) = \frac{g(x)h(x)}{f(x) + g(x)} \quad (x \in V), \tag{12}\\
+h_1(x) &= h_2(x) = 0 \quad (x \notin V).
+\end{align}
+
+It is clear that $h_1$ is continuous at every point of $V$. If $x_0 \notin V$, then $h(x_0) = 0$; since $h$ is continuous and since $|h_1(x)| \leq |h(x)|$ for all $x \in X$, it follows that $x_0$ is a point of continuity of $h_1$. Thus $h_1 \in C_c(X)$, and the same holds for $h_2$.
+
+Since $h_1 + h_2 = h$ and $|h_1| \leq f$, $|h_2| \leq g$, we have
+\begin{equation}
+|\Phi(h)| = |\Phi(h_1) + \Phi(h_2)| \leq |\Phi(h_1)| + |\Phi(h_2)| \leq \Lambda f + \Lambda g.
+\end{equation}
+
+Hence $\Lambda(f + g) \leq \Lambda f + \Lambda g$, and we have proved (10).
+
+If $f$ is now a real function, $f \in C_c(X)$, then $2f^+ = |f| + f$, so that $f^+ \in C_c^+(X)$; likewise, $f^- \in C_c^+(X)$; and since $f = f^+ - f^-$, it is natural to define
+\begin{equation}
+\Lambda f = \Lambda f^+ - \Lambda f^- \quad (f \in C_c(X), f \text{ real}) \tag{13}
+\end{equation}
+and
+\begin{equation}
+\Lambda(u + iv) = \Lambda u + i\Lambda v. \tag{14}
+\end{equation}
+
+Simple algebraic manipulations, just like those which occur in the proof of Theorem 1.32, show now that our extended functional $\Lambda$ is linear on $C_c(X)$.
+
+This completes the proof. \qed
+\end{proof}
