@@ -5,20 +5,18 @@
   \item Principal reference: Theorem 6.19 of [Walter Rudin, Real and Complex Analysis.][Rud87].
 \end{itemize}
 
-Informally the main statement is:
-\begin{quotation}
-  If $X$ is a locally compact Hausdorff space, then every bounded linear functional $\Phi$ on $C_0(X)$ is represented by a unique regular complex Borel measure $\mu$, in the sense that
-  \begin{equation}
-    \Phi f = \int_X f \, d\mu
-  \end{equation}
-  for every $f \in C_0(X)$.
-  Moreover, the norm of $\Phi$ is the total variation of $\mu$:
-  \begin{equation}
-    \|\Phi\| = |\mu|(X).
-  \end{equation}
-\end{quotation}
-
-In order to give the main statement of the Reisz Theorem we need the variation of a complex measure.
+\noindent
+\fbox{\parbox{\linewidth}{
+    If $X$ is a locally compact Hausdorff space, then every bounded linear functional $\Phi$ on $C_0(X)$ is represented by a unique regular complex Borel measure $\mu$, in the sense that
+    \begin{equation*}
+      \Phi f = \int_X f \, d\mu
+    \end{equation*}
+    for every $f \in C_0(X)$.
+    Moreover, the norm of $\Phi$ is the total variation of $\mu$:
+    \begin{equation*}
+      \|\Phi\| = |\mu|(X).
+    \end{equation*}
+  }}
 
 \begin{definition}[Variation of a Vector-Valued Measure]
   \label{def:variation}
@@ -43,13 +41,14 @@ Equivalently, the above definition can be written as:
   Let $X$ be a locally compact Hausdorff space.
   Associated to every bounded linear functional $\Phi$ on $C_0(X)$ we define a regular complex Borel measure $\mu$ which we call the Riesz Measure associated to $\Phi$.
 
-  TO DO: insert details of the exact definition.
+  TO DO: insert details from the proof of the exact definition.
 \end{definition}
 
 In order to prove the main result we divide the result into several smaller results.
 
 \begin{lemma}
-  \label{lem:unique}
+  \label{lem:rieszMeasure_unique}
+  \lean{ComplexRMK.rieszMeasure_unique}
   Let $X$ be a locally compact Hausdorff space, and let $\Phi$ be a bounded linear functional on $C_0(X)$.
   Suppose that $\mu$, $\nu$ are regular complex Borel measure such that
   \begin{equation*}
@@ -59,12 +58,14 @@ In order to prove the main result we divide the result into several smaller resu
 \end{lemma}
 
 \begin{proof}
-  Suppose $\mu$ is a regular complex Borel measure on $X$ and $\int f \, d\mu = 0$ for all $f \in C_0(X)$. By Theorem 6.12 there is a Borel function $h$, with $|h| = 1$, such that $d\mu = h \, d|\mu|$.
+  Suppose $\mu$ is a regular complex Borel measure on $X$ and $\int f \, d\mu = 0$ for all $f \in C_0(X)$.
+  By Theorem 6.12 there is a Borel function $h$, with $|h| = 1$, such that $d\mu = h \, d|\mu|$.
   For any sequence $\{f_n\}$ in $C_0(X)$ we then have
   \begin{equation}
     |\mu|(X) = \int_X (\bar{h} - f_n)h \, d|\mu| \leq \int_X |\bar{h} - f_n| \, d|\mu|, \tag{3}
   \end{equation}
-  and since $C_c(X)$ is dense in $L^1(|\mu|)$ (Theorem 3.14), $\{f_n\}$ can be so chosen that the last expression in (3) tends to 0 as $n \to \infty$. Thus $|\mu|(X) = 0$, and $\mu = 0$.
+  and since $C_c(X)$ is dense in $L^1(|\mu|)$ (Theorem 3.14), $\{f_n\}$ can be so chosen that the last expression in (3) tends to 0 as $n \to \infty$.
+  Thus $|\mu|(X) = 0$, and $\mu = 0$.
   It is easy to see that the difference of two regular complex Borel measures on $X$ is regular.
   This shows that at most one $\mu$ corresponds to each $\Phi$.
 \end{proof}
@@ -138,6 +139,7 @@ In order to prove the main result we divide the result into several smaller resu
 \end{proof}
 
 \begin{theorem}[Rudin 6.19]
+  \label{integral_rieszMeasure}
   \lean{ComplexRMK.integral_rieszMeasure}
   If $X$ is a locally compact Hausdorff space, then every bounded linear functional $\Phi$ on $C_0(X)$ is represented by a regular complex Borel measure $\mu$, in the sense that
   \begin{equation}
@@ -147,6 +149,7 @@ In order to prove the main result we divide the result into several smaller resu
 \end{theorem}
 
 \begin{proof}
+  \uses{lem:exists_pos_lin_func}
   Once we have the $\Lambda$ from Lemma~\ref{lem:exists_pos_lin_func}, we associate with it a positive Borel measure $\lambda$, as in Theorem 2.14.
   The conclusion of Theorem 2.14 shows that $\lambda$ is regular if $\lambda(X) < \infty$.
   Since
@@ -172,7 +175,7 @@ In order to prove the main result we divide the result into several smaller resu
 \end{proof}
 
 \begin{lemma}[Rudin 6.19]
-  \ref{lem:norm_eq_variation}
+  \label{lem:norm_eq_variation}
   \lean{ComplexRMK.norm_eq_variation}
   Moreover, the norm of $\Phi$ is the total variation of $\mu$:
   \begin{equation}

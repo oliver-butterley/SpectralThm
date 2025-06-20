@@ -27,11 +27,15 @@ proof which depends on 6.12)
 - 6.16: Duality of `L^1` and `L^∞` (not in Mathlib [https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025])
 -/
 
+open NNReal ENNReal
+open ZeroAtInfty MeasureTheory CompactlySupported CompactlySupportedContinuousMap
+
+namespace ComplexRMK
 
 /-- **Theorem**
 Let `Φ` be a linear functional on `C_0(X, ℂ)`. Suppsoe that `μ`, `μ'` are complex Borel measures
 such that, `∀ f : C_0(X, ℂ)`, `Φ f = ∫ x, f x ∂μ` and `Φ f = ∫ x, f x ∂μ'`. Then `μ = μ'`. -/
-theorem uniqueness : True := sorry
+theorem rieszMeasure_unique : True := sorry
 
 -- **Proof** [Rudin 87, Theorem 6.19]
 -- Suppose `μ` is a regular complex Borel measure on `X`
@@ -44,10 +48,7 @@ theorem uniqueness : True := sorry
 -- Thus `|μ|(X) = 0`, and `μ = 0`.
 -- It is easy to see that the difference of two regular complex Borel measures on `X` is regular.
 
-open NNReal ENNReal
-open ZeroAtInfty MeasureTheory CompactlySupported CompactlySupportedContinuousMap
 
-namespace ComplexRMK
 
 
 variable {X : Type*} [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
