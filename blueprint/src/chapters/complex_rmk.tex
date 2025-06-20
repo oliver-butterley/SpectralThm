@@ -9,6 +9,7 @@ In order to give the main statement of the Reisz Theorem we need the variation o
 \begin{definition}[Variation of a Vector-Valued Measure]
   \label{def:variation}
   \lean{MeasureTheory.VectorMeasure.variation}
+  \leanok
   Let $(X, \mathcal{A})$ be a measurable space and let $Y$ be a Banach space. For a vector-valued measure $\mu: \mathcal{A} \to Y$, the \textbf{variation} of $\mu$ is the set function $|\mu|: \mathcal{A} \to [0, +\infty]$ defined by
   \begin{equation*}
     |\mu|(E) = \sup \left\{ \sum_{i=1}^n \|\mu(E_i)\|_Y : \{E_1, E_2, \ldots, E_n\} \text{ is a finite partition of } E \text{ in } \mathcal{A} \right\}
@@ -21,6 +22,14 @@ Equivalently, the above definition can be written as:
   |\mu|(E) = \sup \left\{ \sum_{i=1}^n \|\mu(E_i)\|_Y : E_i \in \mathcal{A}, \, E_i \cap E_j = \emptyset \text{ for } i \neq j, \, \bigcup_{i=1}^n E_i \subseteq E \right\}
 \end{equation*}
 
+\begin{definition}
+  \label{def:riesz_measure}
+  \lean{ComplexRMK.rieszMeasure}
+  Let $X$ be a locally compact Hausdorff space.
+  Associated to every bounded linear functional $\Phi$ on $C_0(X)$ we define a regular complex Borel measure $\mu$ which we call the Riesz Measure associated to $\Phi$.
+
+  TO DO: insert details of the exact definition.
+\end{definition}
 
 \begin{theorem}[Rudin 6.19]
   \lean{ComplexRMK.integral_rieszMeasure}
