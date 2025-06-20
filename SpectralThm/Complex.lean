@@ -164,7 +164,7 @@ noncomputable def rieszMeasure (Φ : C₀(X, ℂ) →L[ℂ] ℂ) : ComplexMeasur
 /-- **Theorem**
 Let `Φ` be a bounded linear functional on `C₀(X, ℂ)`. Then there exists a complex Borel measure
 `μ` such that, `∀ f : C₀(X, ℂ)`, `Φ f = ∫ x, f x ∂μ`, (2) `‖Φ‖ = |μ|(X)`. -/
-theorem Complex.integral_rieszMeasure (f : C₀(X, ℂ)) :
+theorem integral_rieszMeasure (f : C₀(X, ℂ)) :
      Φ f = (rieszMeasure Φ).integral (f ·) ∧
     ENNReal.ofReal ‖Φ‖ = (rieszMeasure Φ).variation Set.univ := by
   -- **Proof** [Rudin 87, Theorem 6.19]
