@@ -1,7 +1,9 @@
-import Mathlib.Analysis.InnerProductSpace.Projection
+import Mathlib
 
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
 local notation "⟪" x ", " y "⟫" => @inner 𝕜 _ _ x y
+
+open Submodule
 
 /-- Projecting on `U` and then on `U` again is the same as projecting on `U` once. -/
 example {K : Submodule 𝕜 E} [HasOrthogonalProjection K] (v : E) :
