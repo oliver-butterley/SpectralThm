@@ -1,2 +1,5 @@
 MeasureTheory.VectorMeasure.variation
+ComplexRMK.rieszMeasure
+ComplexRMK.exists_pos_lin_func
 ComplexRMK.integral_rieszMeasure
+ComplexRMK.norm_eq_variation
