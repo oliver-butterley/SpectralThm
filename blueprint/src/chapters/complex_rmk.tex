@@ -63,16 +63,6 @@ Equivalently, the above definition can be written as:
 
 In order to prove the main result we divide the result into several smaller results.
 
-\begin{lemma}
-  \label{lem:rieszMeasure_unique}
-  \lean{ComplexRMK.rieszMeasure_unique}
-  Let $X$ be a locally compact Hausdorff space, and let $\Phi$ be a bounded linear functional on $C_0(X)$.
-  Suppose that $\mu$, $\nu$ are regular complex Borel measure such that
-  \begin{equation*}
-    \Phi f = \int_X f \, d\mu = \int_X f \, d\nu.
-  \end{equation*}
-  Then \(\mu = \nu\).
-\end{lemma}
 
 \begin{theorem}[Rudin 3.14]
   \label{thm:Cc_dense_Lp}
@@ -123,13 +113,26 @@ In order to prove the main result we divide the result into several smaller resu
 
   In other words, $L^q(\mu)$ is isometrically isomorphic to the dual space of $L^p(\mu)$, under the stated conditions.
 \end{theorem}
-6.16: Duality of $L^1$ and $L^∞$ (not in Mathlib
-\url{https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025}
 
 \begin{proof}
-  \uses{def:riesz_measure}
-  \uses{thm:polar_rep}
-  \uses{thm:Cc_dense_Lp}
+  Rudin 6.16: Duality of $L^1$ and $L^∞$ (not in Mathlib
+  \url{https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025})
+\end{proof}
+
+
+\begin{lemma}
+  \label{lem:rieszMeasure_unique}
+  \lean{ComplexRMK.rieszMeasure_unique}
+  Let $X$ be a locally compact Hausdorff space, and let $\Phi$ be a bounded linear functional on $C_0(X)$.
+  Suppose that $\mu$, $\nu$ are regular complex Borel measure such that
+  \begin{equation*}
+    \Phi f = \int_X f \, d\mu = \int_X f \, d\nu.
+  \end{equation*}
+  Then \(\mu = \nu\).
+\end{lemma}
+
+\begin{proof}
+  \uses{def:riesz_measure, thm:polar_rep, thm:Cc_dense_Lp}
   Suppose $\mu$ is a regular complex Borel measure on $X$ and $\int f \, d\mu = 0$ for all $f \in C_0(X)$.
   By Theorem \ref{thm:polar_rep} there is a Borel function $h$, with $|h| = 1$, such that $d\mu = h \, d|\mu|$.
   For any sequence $\{f_n\}$ in $C_0(X)$ we then have
@@ -158,23 +161,27 @@ In order to prove the main result we divide the result into several smaller resu
 \begin{proof}
   Assume $\|\Phi\| = 1$, without loss of generality.
 
-  So all depends on finding a positive linear functional $\Lambda$ that satisfies (4). If $f \in C_c^+(X)$ [the class of all nonnegative real members of $C_c(X)$], define
+  So all depends on finding a positive linear functional $\Lambda$ that satisfies (4).
+  If $f \in C_c^+(X)$ [the class of all nonnegative real members of $C_c(X)$], define
   \begin{equation}
     \Lambda f = \sup \{|\Phi(h)| : h \in C_c(X), |h| \leq f\}. \tag{9}
   \end{equation}
 
-  Then $\Lambda f \geq 0$, $\Lambda$ satisfies (4), $0 \leq f_1 \leq f_2$ implies $\Lambda f_1 \leq \Lambda f_2$, and $\Lambda(cf) = c\Lambda f$ if $c$ is a positive constant. We have to show that
+  Then $\Lambda f \geq 0$, $\Lambda$ satisfies (4), $0 \leq f_1 \leq f_2$ implies $\Lambda f_1 \leq \Lambda f_2$, and $\Lambda(cf) = c\Lambda f$ if $c$ is a positive constant.
+  We have to show that
   \begin{equation}
     \Lambda(f + g) = \Lambda f + \Lambda g \quad (f \text{ and } g \in C_c^+(X)), \tag{10}
   \end{equation}
   and we then have to extend $\Lambda$ to a linear functional on $C_c(X)$.
 
-  Fix $f$ and $g \in C_c^+(X)$. If $\varepsilon > 0$, there exist $h_1$ and $h_2 \in C_c(X)$ such that $|h_1| \leq f$, $|h_2| \leq g$, and
+  Fix $f$ and $g \in C_c^+(X)$.
+  If $\varepsilon > 0$, there exist $h_1$ and $h_2 \in C_c(X)$ such that $|h_1| \leq f$, $|h_2| \leq g$, and
   \begin{equation}
     \Lambda f \leq |\Phi(h_1)| + \varepsilon, \quad \Lambda g \leq |\Phi(h_2)| + \varepsilon. \tag{11}
   \end{equation}
 
-  There are complex numbers $\alpha_i$, $|\alpha_i| = 1$, so that $\alpha_i \Phi(h_i) = |\Phi(h_i)|$, $i = 1, 2$. Then
+  There are complex numbers $\alpha_i$, $|\alpha_i| = 1$, so that $\alpha_i \Phi(h_i) = |\Phi(h_i)|$, $i = 1, 2$.
+  Then
   \begin{align}
     \Lambda f + \Lambda g & \leq |\Phi(h_1)| + |\Phi(h_2)| + 2\varepsilon      \\
                           & = \Phi(\alpha_1 h_1 + \alpha_2 h_2) + 2\varepsilon \\
@@ -223,8 +230,7 @@ In order to prove the main result we divide the result into several smaller resu
 \end{theorem}
 
 \begin{proof}
-  \uses{lem:exists_pos_lin_func}
-  \uses{thm:Lp_duality}
+  \uses{lem:exists_pos_lin_func, thm:Lp_duality, def:riesz_measure}
   Once we have the $\Lambda$ from Lemma~\ref{lem:exists_pos_lin_func}, we associate with it a positive Borel measure $\lambda$, as in Theorem 2.14.
   The conclusion of Theorem 2.14 shows that $\lambda$ is regular if $\lambda(X) < \infty$.
   Since
@@ -259,8 +265,7 @@ In order to prove the main result we divide the result into several smaller resu
 \end{lemma}
 
 \begin{proof}
-  \uses{def:variation}
-  \uses{thm:abs_integral}
+  \uses{def:variation, thm:abs_integral, def:riesz_measure}
   Since $\|\Phi\| = 1$, (6) shows that
   \begin{equation}
     \int_X |g| \, d\lambda \geq \sup \{|\Phi(f)| : f \in C_0(X), \|f\| \leq 1\} = 1. \tag{7}
