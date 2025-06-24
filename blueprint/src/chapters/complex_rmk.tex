@@ -5,6 +5,8 @@
   \item Principal reference: Theorem 6.19 of [Walter Rudin, Real and Complex Analysis.][Rud87].
 \end{itemize}
 
+The main statement is:
+
 \noindent
 \fbox{\parbox{\linewidth}{
     If $X$ is a locally compact Hausdorff space, then every bounded linear functional $\Phi$ on $C_0(X)$ is represented by a unique regular complex Borel measure $\mu$, in the sense that
@@ -34,6 +36,21 @@ Equivalently, the above definition can be written as:
   |\mu|(E) = \sup \left\{ \sum_{i=1}^n \|\mu(E_i)\|_Y : E_i \in \mathcal{A}, \, E_i \cap E_j = \emptyset \text{ for } i \neq j, \, \bigcup_{i=1}^n E_i \subseteq E \right\}
 \end{equation*}
 
+\begin{theorem}[Rudin 6.12 (polar representation of a complex measure)]
+  \label{thm:polar_rep}
+  Let $\mu$ be a complex measure on a $\sigma$-algebra $\mathfrak{M}$ in $X$. Then there is a measurable function $h$ such that $|h(x)| = 1$ for all $x \in X$ and such that
+  \begin{equation}
+    d\mu = h \, d|\mu|.
+  \end{equation}
+\end{theorem}
+
+\begin{proof}
+  \uses{def:variation}
+  This rather depends on how the integral with respect to a complex measure is defined.
+  See [Rudin, Theorem 6.12] for details.
+\end{proof}
+
+
 \begin{definition}
   \label{def:riesz_measure}
   \lean{ComplexRMK.rieszMeasure}
@@ -57,14 +74,69 @@ In order to prove the main result we divide the result into several smaller resu
   Then \(\mu = \nu\).
 \end{lemma}
 
+\begin{theorem}[Rudin 3.14]
+  \label{thm:Cc_dense_Lp}
+  For $1 \leq p < \infty$, $C_c(X)$ is dense in $L^p(\mu)$.
+\end{theorem}
+
 \begin{proof}
+  Define $S$ as in Theorem 3.13. If $s \in S$ and $\varepsilon > 0$, there exists a $g \in C_c(X)$ such that $g(x) = s(x)$ except on a set of measure $< \varepsilon$, and $|g| \leq \|s\|_\infty$ (Lusin's theorem).
+  Hence
+  \begin{equation}
+    \|g - s\|_p \leq 2\varepsilon^{1/p}\|s\|_\infty.
+  \end{equation}
+  Since $S$ is dense in $L^p(\mu)$, this completes the proof.
+\end{proof}
+
+\begin{theorem}[Rudin 6.13]
+  \label{thm:abs_integral}
+  Suppose $\mu$ is a positive measure on $\mathfrak{M}$, $g \in L^1(\mu)$, and
+  \begin{equation}
+    \lambda(E) = \int_E g \, d\mu \quad (E \in \mathfrak{M}).
+  \end{equation}
+  Then
+  \begin{equation}
+    |\lambda|(E) = \int_E |g| \, d\mu \quad (E \in \mathfrak{M}).
+  \end{equation}
+\end{theorem}
+
+\begin{proof}
+  \uses{thm:polar_rep}
+  By Theorem \ref{thm:polar_rep}, there is a function $h$, of absolute value 1, such that $d\lambda = h \, d|\lambda|$. By hypothesis, $d\lambda = g \, d\mu$. Hence
+  \[
+    h \, d|\lambda| = g \, d\mu.
+  \]
+  This gives $d|\lambda| = \bar{h}g \, d\mu$. (Compare with Theorem 1.29.)
+  Since $|\lambda| \geq 0$ and $\mu \geq 0$, it follows that $\bar{h}g \geq 0$ a.e. $[\mu]$, so that $\bar{h}g = |g|$ a.e. $[\mu]$. \qed
+\end{proof}
+
+\begin{theorem}[Rudin 6.16]
+  \label{thm:Lp_duality}
+  Suppose $1 \leq p < \infty$, $\mu$ is a $\sigma$-finite positive measure on $X$, and $\Phi$ is a bounded linear functional on $L^p(\mu)$. Then there is a unique $g \in L^q(\mu)$, where $q$ is the exponent conjugate to $p$, such that
+  \begin{equation}
+    \Phi(f) = \int_X fg \, d\mu \quad (f \in L^p(\mu)).
+  \end{equation}
+  Moreover, if $\Phi$ and $g$ are related as in (1), we have
+  \begin{equation}
+    \|\Phi\| = \|g\|_q.
+  \end{equation}
+
+  In other words, $L^q(\mu)$ is isometrically isomorphic to the dual space of $L^p(\mu)$, under the stated conditions.
+\end{theorem}
+6.16: Duality of $L^1$ and $L^∞$ (not in Mathlib
+\url{https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025}
+
+\begin{proof}
+  \uses{def:riesz_measure}
+  \uses{thm:polar_rep}
+  \uses{thm:Cc_dense_Lp}
   Suppose $\mu$ is a regular complex Borel measure on $X$ and $\int f \, d\mu = 0$ for all $f \in C_0(X)$.
-  By Theorem 6.12 there is a Borel function $h$, with $|h| = 1$, such that $d\mu = h \, d|\mu|$.
+  By Theorem \ref{thm:polar_rep} there is a Borel function $h$, with $|h| = 1$, such that $d\mu = h \, d|\mu|$.
   For any sequence $\{f_n\}$ in $C_0(X)$ we then have
   \begin{equation}
     |\mu|(X) = \int_X (\bar{h} - f_n)h \, d|\mu| \leq \int_X |\bar{h} - f_n| \, d|\mu|, \tag{3}
   \end{equation}
-  and since $C_c(X)$ is dense in $L^1(|\mu|)$ (Theorem 3.14), $\{f_n\}$ can be so chosen that the last expression in (3) tends to 0 as $n \to \infty$.
+  and since $C_c(X)$ is dense in $L^1(|\mu|)$ (Theorem \ref{thm:Cc_dense_Lp}), $\{f_n\}$ can be so chosen that the last expression in (3) tends to 0 as $n \to \infty$.
   Thus $|\mu|(X) = 0$, and $\mu = 0$.
   It is easy to see that the difference of two regular complex Borel measures on $X$ is regular.
   This shows that at most one $\mu$ corresponds to each $\Phi$.
@@ -117,7 +189,9 @@ In order to prove the main result we divide the result into several smaller resu
     h_1(x) & = h_2(x) = 0 \quad (x \notin V).
   \end{align}
 
-  It is clear that $h_1$ is continuous at every point of $V$. If $x_0 \notin V$, then $h(x_0) = 0$; since $h$ is continuous and since $|h_1(x)| \leq |h(x)|$ for all $x \in X$, it follows that $x_0$ is a point of continuity of $h_1$. Thus $h_1 \in C_c(X)$, and the same holds for $h_2$.
+  It is clear that $h_1$ is continuous at every point of $V$.
+  If $x_0 \notin V$, then $h(x_0) = 0$; since $h$ is continuous and since $|h_1(x)| \leq |h(x)|$ for all $x \in X$, it follows that $x_0$ is a point of continuity of $h_1$.
+  Thus $h_1 \in C_c(X)$, and the same holds for $h_2$.
 
   Since $h_1 + h_2 = h$ and $|h_1| \leq f$, $|h_2| \leq g$, we have
   \begin{equation}
@@ -150,6 +224,7 @@ In order to prove the main result we divide the result into several smaller resu
 
 \begin{proof}
   \uses{lem:exists_pos_lin_func}
+  \uses{thm:Lp_duality}
   Once we have the $\Lambda$ from Lemma~\ref{lem:exists_pos_lin_func}, we associate with it a positive Borel measure $\lambda$, as in Theorem 2.14.
   The conclusion of Theorem 2.14 shows that $\lambda$ is regular if $\lambda(X) < \infty$.
   Since
@@ -165,7 +240,7 @@ In order to prove the main result we divide the result into several smaller resu
 
   The last norm refers to the space $L^1(\lambda)$.
   Thus $\Phi$ is a linear functional on $C_c(X)$ of norm at most 1, with respect to the $L^1(\lambda)$-norm on $C_c(X)$.
-  There is a norm-preserving extension of $\Phi$ to a linear functional on $L^1(\lambda)$, and therefore Theorem 6.16 (the case $p = 1$) gives a Borel function $g$, with $|g| \leq 1$, such that
+  There is a norm-preserving extension of $\Phi$ to a linear functional on $L^1(\lambda)$, and therefore Theorem \ref{thm:Lp_duality} (the case $p = 1$) gives a Borel function $g$, with $|g| \leq 1$, such that
   \begin{equation}
     \Phi(f) = \int_X fg \, d\lambda \quad (f \in C_c(X)). \tag{6}
   \end{equation}
@@ -185,13 +260,14 @@ In order to prove the main result we divide the result into several smaller resu
 
 \begin{proof}
   \uses{def:variation}
+  \uses{thm:abs_integral}
   Since $\|\Phi\| = 1$, (6) shows that
   \begin{equation}
     \int_X |g| \, d\lambda \geq \sup \{|\Phi(f)| : f \in C_0(X), \|f\| \leq 1\} = 1. \tag{7}
   \end{equation}
   We also know that $\lambda(X) \leq 1$ and $|g| \leq 1$.
   These facts are compatible only if $\lambda(X) = 1$ and $|g| = 1$ a.e. $[\lambda]$.
-  Thus $d|\mu| = |g| \, d\lambda = d\lambda$, by Theorem 6.13, and
+  Thus $d|\mu| = |g| \, d\lambda = d\lambda$, by Theorem \ref{thm:abs_integral}, and
   \begin{equation}
     |\mu|(X) = \lambda(X) = 1 = \|\Phi\|, \tag{8}
   \end{equation}
