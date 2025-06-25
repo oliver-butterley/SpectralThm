@@ -1,6 +1,11 @@
 \chapter{Resolutions of the identity}
 
-\begin{definition}[12.17]
+\begin{itemize}
+  \item Destination: ?
+  \item Principal reference: Chapter 12 of [Walter Rudin, Functional Analysis.][Rud87].
+\end{itemize}
+
+\begin{definition}[Rudin 12.17]
   \label{def:resId}
   Let $\mathfrak{M}$ be a $\sigma$-algebra in a set $\Omega$, and let $H$ be a Hilbert space.
   For simplicity, we assume that $\Omega$ is a locally compact (Hausdorff) space.
@@ -29,71 +34,90 @@
 % (This is automatically satisfied on compact metric spaces, for instance. See [23].)
 
 \begin{lemma}
- For any $x \in H$,
- \[
-  E_{x,x}(\omega) = (E(\omega)x, x) = \|E(\omega)x\|^2.
- \]
+  \label{lem:resId_x_x}
+  For any $x \in H$,
+  \[
+    E_{x,x}(\omega) = (E(\omega)x, x) = \|E(\omega)x\|^2.
+  \]
 \end{lemma}
+
 \begin{proof}
   \uses{def:resId}
 \end{proof}
 
 \begin{lemma}
- For any $x \in H$,
- \( E_{x,x} \) is a positive measure on \( \mathfrak{M} \) whose total variation is:
- \[
-  \|E_{x,x}\| = E_{x,x}(\Omega) = \|x\|^2.
- \]
+  \label{lem:resId_measure}
+  For any $x \in H$,
+  \( E_{x,x} \) is a positive measure on \( \mathfrak{M} \) whose total variation is:
+  \[
+    \|E_{x,x}\| = E_{x,x}(\Omega) = \|x\|^2.
+  \]
 \end{lemma}
 
-\begin{lemma}
- For two $\omega_1, \omega_2$, \( E(\omega_1), E(\omega_2) \) commute.
-\end{lemma}
 \begin{proof}
- By (\ref{itm:Rc}), any two of the projections \( E(\omega) \) commute with each other.
+  \uses{def:resId}
+
 \end{proof}
 
 \begin{lemma}
- If \( \omega' \cap \omega'' = \emptyset \),
- then the ranges of \( E(\omega') \) and \( E(\omega'') \) are orthogonal to each other
+  \label{lem:resId_comm}
+  For two $\omega_1, \omega_2$, \( E(\omega_1), E(\omega_2) \) commute.
 \end{lemma}
+
 \begin{proof}
- By (\ref{itm:Ra}), (\ref{itm:Rc}) and Theorem 12.14.
+  \uses{def:resId}
+  By (\ref{itm:Rc}), any two of the projections \( E(\omega) \) commute with each other.
 \end{proof}
 
 \begin{lemma}
- If $\{\omega_j\}$ is a finite family of mutually disjoint Borel sets, then
- $E(\bigcup_j \omega_j) = \sum_j E(\omega_j)$.
+  If \( \omega' \cap \omega'' = \emptyset \),
+  then the ranges of \( E(\omega') \) and \( E(\omega'') \) are orthogonal to each other
 \end{lemma}
+
 \begin{proof}
- By (\ref{itm:Rd}) and induction.
+  \uses{def:resId}
+  By (\ref{itm:Ra}), (\ref{itm:Rc}) and Theorem 12.14.
+\end{proof}
+
+\begin{lemma}
+  If $\{\omega_j\}$ is a finite family of mutually disjoint Borel sets, then
+  $E(\bigcup_j \omega_j) = \sum_j E(\omega_j)$.
+\end{lemma}
+
+\begin{proof}
+  \uses{def:resId}
+  By (\ref{itm:Rd}) and induction.
 \end{proof}
 
 \textbf{Remark:}
 $\sum_{n=1}^{\infty} E(\omega_n)$ does not converge in the norm topology of $\mathcal{B}(H)$.
 
 \begin{lemma}
- Let $x \in H$ and $\{\omega_j\}$ be a countable family of mutually disjoint Borel sets.
- Then $E(\bigcup_j \omega_j)x = \sum_j E(\omega_j)x$, where
- the right-hand side converges in the norm topology of $H$.
+  \label{lem:resId_iSum}
+  Let $x \in H$ and $\{\omega_j\}$ be a countable family of mutually disjoint Borel sets.
+  Then $E(\bigcup_j \omega_j)x = \sum_j E(\omega_j)x$, where
+  the right-hand side converges in the norm topology of $H$.
 \end{lemma}
+
 \begin{proof}
- Since \( E(\omega_n)E(\omega_m) = 0 \) when \( n \neq m \), the vectors \( E(\omega_n)x \) and \( E(\omega_m)x \)
- are orthogonal to each other (Theorem 12.14).
- By (\ref{itm:Re}),
- \begin{equation}
-   \label{eq:R5}
-   \sum_{n=1}^{\infty} (E(\omega_n)x, y) = (E(\omega)x, y)
- \end{equation}
- for every \( y \in H \).
- It now follows from Theorem 12.6 that:
- \[
-  \sum_{n=1}^{\infty} E(\omega_n)x = E(\omega)x.
- \]
- The series (\eqref{eq:R5}) converges in the norm topology of \( H \).
+  \uses{def:resId}
+  Since \( E(\omega_n)E(\omega_m) = 0 \) when \( n \neq m \), the vectors \( E(\omega_n)x \) and \( E(\omega_m)x \)
+  are orthogonal to each other (Theorem 12.14).
+  By (\ref{itm:Re}),
+  \begin{equation}
+    \label{eq:R5}
+    \sum_{n=1}^{\infty} (E(\omega_n)x, y) = (E(\omega)x, y)
+  \end{equation}
+  for every \( y \in H \).
+  It now follows from Theorem 12.6 that:
+  \[
+    \sum_{n=1}^{\infty} E(\omega_n)x = E(\omega)x.
+  \]
+  The series (\eqref{eq:R5}) converges in the norm topology of \( H \).
 \end{proof}
 
-\begin{proposition}[12.18]
+\begin{proposition}[Rudin 12.18]
+  \label{thm:resId_vectorMeasure}
   If \( E \) is a resolution of the identity, and if \( x \in H \), then
   \[
     \omega \mapsto E(\omega)x
@@ -101,9 +125,15 @@ $\sum_{n=1}^{\infty} E(\omega_n)$ does not converge in the norm topology of $\ma
   is a countably additive \( H \)-valued measure on* \( \mathfrak{M} \).
 \end{proposition}
 
+\begin{proof}
+  \uses{def:resId}
+  This is the summary of what is proved above.
+\end{proof}
+
 Moreover, sets of measure zero can be handled in the usual way:
 
-\begin{proposition}[12.19]
+\begin{proposition}[Rudin 12.19]
+  \label{thm:resId_of_zero}
   Suppose \( E \) is a resolution of the identity.
   If \( \omega_n \in \mathfrak{M} \) and \( E(\omega_n) = 0 \) for \( n = 1,2,3,\dots \), and if
   \[
@@ -113,7 +143,10 @@ Moreover, sets of measure zero can be handled in the usual way:
 \end{proposition}
 
 \begin{proof}
-  Since \( E(\omega_n) = 0 \), \( E_{x,x}(\omega_n) = 0 \) for every \( x \in H \). Since \( E_{x,x} \) is countably additive, it follows that \( E_{x,x}(\omega) = 0 \). But
+  \uses{def:resId}
+  Since \( E(\omega_n) = 0 \), \( E_{x,x}(\omega_n) = 0 \) for every \( x \in H \).
+  Since \( E_{x,x} \) is countably additive, it follows that \( E_{x,x}(\omega) = 0 \).
+  But
   \[
     \|E(\omega)x\|^2 = E_{x,x}(\omega).
   \]
