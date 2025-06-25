@@ -20,6 +20,7 @@ Thus $T$ has the same spectrum relative to all closed *-algebras in $\mathcal{B}
 Theorem 12.23 will be obtained as a special case of the following result, which deals with normal algebras of operators rather than with individual ones.
 
 \begin{theorem}[12.22]
+  \label{thm:spectralThm}
 
   If $A$ is a closed normal subalgebra of $\mathcal{B}(H)$ which contains the identity operator $I$ and if $\Delta$ is the maximal ideal space of $A$, then the following assertions are true:
 
@@ -46,6 +47,7 @@ Theorem 12.23 will be obtained as a special case of the following result, which 
 \end{theorem}
 
 \begin{proof}
+  \uses{thm:ComplexRMK}
   Recall that \eqref{eq:1} is an abbreviation for
   \begin{equation}
     \label{eq:4}
@@ -56,7 +58,7 @@ Theorem 12.23 will be obtained as a special case of the following result, which 
 
   This leads to an easy proof of the uniqueness of $E$.
   Suppose $E$ satisfies \eqref{eq:4}.
-  Since $\widehat{T}$ ranges over all of $C(\Delta)$, the assumed regularity of the complex Borel measures $E_{x,y}$ shows that each $E_{x,y}$ is uniquely determined by \eqref{eq:4}; this follows from the uniqueness assertion that is part of the Riesz representation theorem ([23], Th. 6.19).
+  Since $\widehat{T}$ ranges over all of $C(\Delta)$, the assumed regularity of the complex Borel measures $E_{x,y}$ shows that each $E_{x,y}$ is uniquely determined by \eqref{eq:4}; this follows from the uniqueness assertion that is part of the Riesz representation theorem ([23], Th. 6.19) \ref{thm:ComplexRMK}.
   Since, by definition, $(E(\omega)x, y) = E_{x,y}(\omega)$, each projection $E(\omega))$ is also uniquely determined by \eqref{eq:4}.
 
   This uniqueness proof motivates the following proof of the existence of $E$.
@@ -197,5 +199,4 @@ Theorem 12.23 will be obtained as a special case of the following result, which 
   If \( ST = TS \) for every \( T \in A \), the measures in \eqref{eq:10} and \eqref{eq:11} are
   equal, so that \( SE(\omega) = E(\omega)S \).
   The same argument establishes the converse.
-  This completes the proof.
 \end{proof}

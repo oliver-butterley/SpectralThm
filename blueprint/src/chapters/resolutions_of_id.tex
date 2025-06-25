@@ -70,6 +70,7 @@
 \end{proof}
 
 \begin{lemma}
+  \label{lem:orthogonal_of_emptyset}
   If \( \omega' \cap \omega'' = \emptyset \),
   then the ranges of \( E(\omega') \) and \( E(\omega'') \) are orthogonal to each other
 \end{lemma}
@@ -80,6 +81,7 @@
 \end{proof}
 
 \begin{lemma}
+  \label{lem:resId_iUnion}
   If $\{\omega_j\}$ is a finite family of mutually disjoint Borel sets, then
   $E(\bigcup_j \omega_j) = \sum_j E(\omega_j)$.
 \end{lemma}
@@ -100,7 +102,7 @@ $\sum_{n=1}^{\infty} E(\omega_n)$ does not converge in the norm topology of $\ma
 \end{lemma}
 
 \begin{proof}
-  \uses{def:resId}
+  \uses{def:resId, lem:sum_orthogonal, lem:sum_orthogonal'}
   Since \( E(\omega_n)E(\omega_m) = 0 \) when \( n \neq m \), the vectors \( E(\omega_n)x \) and \( E(\omega_m)x \)
   are orthogonal to each other (Theorem 12.14).
   By (\ref{itm:Re}),
@@ -109,7 +111,7 @@ $\sum_{n=1}^{\infty} E(\omega_n)$ does not converge in the norm topology of $\ma
     \sum_{n=1}^{\infty} (E(\omega_n)x, y) = (E(\omega)x, y)
   \end{equation}
   for every \( y \in H \).
-  It now follows from Theorem 12.6 that:
+  It now follows from Theorem \ref{lem:sum_orthogonal} that:
   \[
     \sum_{n=1}^{\infty} E(\omega_n)x = E(\omega)x.
   \]
