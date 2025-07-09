@@ -185,12 +185,11 @@ lemma le_signedMeasure_totalVariation (μ : SignedMeasure X) (r : Set X) (hr : M
     _ = ∑ p ∈ P, (‖μ p‖ₑ).toReal := by
       simp [toReal_sum]
     _ = ∑ p ∈ P, |μ p| := by
-      simp [Finset.sum_congr]
+      simp
     _ ≤ ∑ p ∈ P, (μ (s ∩ p) - μ (sᶜ ∩ p)) := by
       gcongr with p hp
       exact abs_le p hp
-    _ = ∑ p ∈ P, μ (s ∩ p) - ∑ p ∈ P, μ (sᶜ ∩ p) :=
-      Finset.sum_sub_distrib
+    _ = ∑ p ∈ P, μ (s ∩ p) - ∑ p ∈ P, μ (sᶜ ∩ p) := by simp
     _ ≤ μ (s ∩ r) - μ (sᶜ ∩ r) := by
       gcongr
     _ = (μ.totalVariation r).toReal := by
