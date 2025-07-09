@@ -58,6 +58,7 @@ lemma variation_zero : (0 : VectorMeasure X V).variation = 0 := by
   ext _ _
   simp [variation, var_aux_zero]
 
+@[simp]
 lemma variation_neg
     (μ : MeasureTheory.ComplexMeasure X) : (-μ).variation = μ.variation := by
   simp [variation]

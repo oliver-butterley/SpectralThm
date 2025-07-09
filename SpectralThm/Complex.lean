@@ -1,7 +1,10 @@
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Lebesgue
-import Mathlib.Topology.ContinuousMap.CompactlySupported
+import Mathlib
+
+-- import Mathlib.Analysis.CStarAlgebra.Classes
+-- import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Lebesgue
+-- import Mathlib.Topology.ContinuousMap.CompactlySupported
 import SpectralThm.toMathlib.Variation.Defs
+import SpectralThm.toMathlib.Variation.Lemmas
 
 /-!
 # Riesz–Markov–Kakutani representation theorem for complex linear functionals
@@ -30,28 +33,93 @@ proof which depends on 6.12)
 open NNReal ENNReal
 open ZeroAtInfty MeasureTheory CompactlySupported CompactlySupportedContinuousMap
 
+
+namespace MeasureTheory.ComplexMeasure
+
+variable {X : Type*} [MeasurableSpace X]
+
+/-- The variation measure part in the polar decomposition of a complex measure. -/
+noncomputable def var (μ : ComplexMeasure X) := μ.variation.ennrealToMeasure
+
+@[simp]
+lemma var_neg (μ : ComplexMeasure X) : (-μ).var = μ.var := by
+  simp [var]
+
+/-- The angular part (density function) in the polar decomposition of a complex measure. -/
+noncomputable def ang
+     (μ : ComplexMeasure X) := μ.rnDeriv μ.var
+
+@[simp]
+lemma ang_neg (μ : ComplexMeasure X) : (-μ).ang = -μ.ang := by
+  -- This might just hold a.e.
+  sorry
+
+/- We define, following Rudin, the integral with respect to a complex measure using the polar
+decomposition of the complex measure and the integral with respect to the total variation.
+
+It is likely that a different definition of integral is better. Maybe separating real and imaginary
+parts, maybe defining integration from scratch. -/
+
+noncomputable def integral (μ : ComplexMeasure X) (f : X → ℂ) :=
+  ∫ x, f x * μ.ang x ∂(μ.var)
+
+-- Would be good to have the notation `∫ x, f x ∂μ`.
+
+lemma integral_add (μ₁ μ₂  : ComplexMeasure X) (f : X → ℂ) :
+    (μ₁ + μ₂).integral f = μ₁.integral f + μ₂.integral f := by
+  sorry
+
+lemma integral_neg (μ  : ComplexMeasure X) (f : X → ℂ) :
+    (-μ).integral f = -μ.integral f := by
+  simp [ComplexMeasure.integral, MeasureTheory.integral_neg]
+
+lemma integral_sub (μ₁ μ₂  : ComplexMeasure X) (f : X → ℂ) :
+    (μ₁ - μ₂).integral f = μ₁.integral f - μ₂.integral f := by
+  calc
+    _ = (μ₁ + (-μ₂)).integral f := by rfl
+    _ = μ₁.integral f + (-μ₂).integral f := by exact integral_add μ₁ (-μ₂) _
+    _ = _ := by grind [ComplexMeasure.integral_neg]
+
+end MeasureTheory.ComplexMeasure
+
 namespace ComplexRMK
 
-/-- **Theorem**
-Let `Φ` be a linear functional on `C_0(X, ℂ)`. Suppsoe that `μ`, `μ'` are complex Borel measures
-such that, `∀ f : C_0(X, ℂ)`, `Φ f = ∫ x, f x ∂μ` and `Φ f = ∫ x, f x ∂μ'`. Then `μ = μ'`. -/
-theorem rieszMeasure_unique : True := sorry
+variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
 
--- **Proof** [Rudin 87, Theorem 6.19]
--- Suppose `μ` is a regular complex Borel measure on `X`
--- and that `∫ f dμ = 0` for all `f \in C_0(X)`.
--- *Theorem 6.12* gives a Borel function `h`, such that `|h| = 1` and `dμ = h d|μ|`.
--- For any sequence `{f_n}` in `C_0(X)` we then have
--- `|μ|(X) = \int_X (\bar{h} - f_n) h`, `d|μ| ≤ \int_X |\bar{h} - f_n| \, d|μ|`.
--- Since `C_c(X)` is dense in `L^1(|μ|)` (*Theorem 3.14*), `\{f_n\}` can be
--- so chosen that the last expression in the above tends to 0 as `n → \infty`.
--- Thus `|μ|(X) = 0`, and `μ = 0`.
--- It is easy to see that the difference of two regular complex Borel measures on `X` is regular.
+lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
+    μ = 0 := by
+
+  -- [Rudin 87, Theorem 6.19]
+  -- Suppose `μ` is a regular complex Borel measure on `X`
+  -- and that `∫ f dμ = 0` for all `f \in C_0(X)`.
+  -- *Theorem 6.12* gives a Borel function `h`, such that `|h| = 1` and `dμ = h d|μ|`.
+  -- For any sequence `{f_n}` in `C_0(X)` we then have
+  -- `|μ|(X) = \int_X (\bar{h} - f_n) h`, `d|μ| ≤ \int_X |\bar{h} - f_n| \, d|μ|`.
+  -- Since `C_c(X)` is dense in `L^1(|μ|)` (*Theorem 3.14*), `\{f_n\}` can be
+  -- so chosen that the last expression in the above tends to 0 as `n → \infty`.
+  -- Thus `|μ|(X) = 0`, and `μ = 0`.
+  -- It is easy to see that the difference of two regular complex Borel measures on `X` is regular.
+
+  sorry
+
+/-- Uniqueness of `ComplexRMK.rieszMeasure`: Let `Φ` be a linear functional on `C_0(X, ℂ)`. Suppose
+that `μ`, `μ'` are complex Borel measures such that, `∀ f : C_0(X, ℂ)`, `Φ f = ∫ x, f x ∂μ` and
+`Φ f = ∫ x, f x ∂μ'`. Then `μ = μ'`. -/
+theorem rieszMeasure_unique {μ₁ μ₂ : ComplexMeasure X} (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
+    (h₁ : ∀ f : C₀(X, ℂ), μ₁.integral f = Φ f) (h₂ : ∀ f : C₀(X, ℂ), μ₂.integral f = Φ f):
+    μ₁ = μ₂ := by
+  let μ := μ₁ - μ₂
+  suffices μ = 0 by exact eq_of_sub_eq_zero this
+  refine eq_zero_of_integral_eq_zero (fun f ↦ ?_)
+  calc μ.integral f
+    _ = (μ₁ - μ₂).integral f := by rfl
+    _ = μ₁.integral f - μ₂.integral f := by exact ComplexMeasure.integral_sub _ _ _
+    _ = Φ f - Φ f := by rw [h₁, h₂]
+    _ = 0 := by exact sub_self _
 
 
 
 
-variable {X : Type*} [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
 variable (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
 
 -- TO DO: define `norm` as a `ContinuousMap` and use `norm ∘ f` in the following instead of the
@@ -131,25 +199,6 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
 
 end ComplexRMK
 
-namespace MeasureTheory.ComplexMeasure
-
-variable {X : Type*} [MeasurableSpace X]
-
-
-/-- The variation measure part in the polar decomposition of a complex measure. -/
-noncomputable def var
-     (μ : ComplexMeasure X) := μ.variation.ennrealToMeasure
-
-/-- The angular part (density function) in the polar decomposition of a complex measure. -/
-noncomputable def ang
-     (μ : ComplexMeasure X) := μ.rnDeriv μ.var
-
-noncomputable def integral (μ : ComplexMeasure X) (f : X → ℂ) :=
-  ∫ x, f x * μ.ang x ∂(μ.var)
-
--- Would be good to have the notation `∫ x, f x ∂μ`.
-
-end MeasureTheory.ComplexMeasure
 
 namespace ComplexRMK
 
