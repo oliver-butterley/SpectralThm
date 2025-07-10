@@ -16,19 +16,19 @@ variable {H: Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSp
 
 def IsOrthogonalProjection (p : H →L[ℂ] H) : Prop := p = p ^ 2 ∧ p = p.adjoint
 
-lemma IsOrthogonalProjection_iff (p : H →L[ℂ] H) : IsOrthogonalProjection p ↔ ∃ (K : Submodule ℂ H),
+lemma IsStarProjection_iff (p : H →L[ℂ] H) : IsStarProjection p ↔ ∃ (K : Submodule ℂ H),
     ∃ (kH : K.HasOrthogonalProjection), p = K.subtypeL.comp (@K.orthogonalProjection _ _ _ _ _ kH)
-  := by sorry
+  := by sorry -- waiting for #25958
 
 -- the subspace corresponding to the orthogonal projection
-noncomputable def toSubmodule (p : H →L[ℂ] H) (hp : IsOrthogonalProjection p) :
-  Submodule ℂ H := Classical.choose ((IsOrthogonalProjection_iff p).mp hp)
+noncomputable def toSubmodule (p : H →L[ℂ] H) (hp : IsStarProjection p) :
+  Submodule ℂ H := Classical.choose ((IsStarProjection_iff p).mp hp)
 
 -- the projection as `orthogonalProjection`
-noncomputable def toOrthogonalProjection (p : H →L[ℂ] H) (hp : IsOrthogonalProjection p) :
+noncomputable def toOrthogonalProjection (p : H →L[ℂ] H) (hp : IsStarProjection p) :
   H →L[ℂ] (toSubmodule p hp) :=
   (@(toSubmodule p hp).orthogonalProjection _ _ _ _ _ (Classical.choose (Classical.choose_spec
-    ((IsOrthogonalProjection_iff p).mp hp))))
+    ((IsStarProjection_iff p).mp hp))))
 
 structure ResolutionOfIdentity (α : Type*) [MeasurableSpace α] (H: Type*) [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] [CompleteSpace H] where
