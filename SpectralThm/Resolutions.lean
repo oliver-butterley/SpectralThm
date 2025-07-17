@@ -1,4 +1,5 @@
 import Mathlib
+import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
 /-!
 # Resoltuions of the identity
@@ -127,3 +128,19 @@ noncomputable def SumMeasure {ι : Type*} (μ : ι → Measure α) : Measure α 
 noncomputable def ofUnitBall : {x : H // ‖x‖ ≤ 1} → Measure α := fun x => toMeasure E x
 
 noncomputable def Linfty (E : ResolutionOfIdentity α H) := MeasureTheory.Lp ℂ ⊤ (SumMeasure α (ofUnitBall α E))
+
+/- TODO
+
+- From a self-adjoint operator `a`, by `IsStarNormal.instContinuousFunctionalCalculus` you can do
+the continuous functional calculus: it is a *-isomorphism from the space of continuous functions
+on the spectrum to B(H). This is denoted by `cfcHom` (in Rudin it is the map from \hat T to T in
+Theorem 12.22).
+- Applying vectors `x y` we get bounded complex linear functionals, and by ComplexRMK we get
+measures `E_{x, y}`. So the linear functionals can be extended to Borel functions, and it is still
+bounded.
+- Theorem 12.8 which gives an operator from a bounded sesquilinear form is already there
+`InnerProductSpace.continuousLinearMapOfBilin`, and this, combined with ComplexRMK, should give the
+resolution of identity from a operator.
+- From a resolution of identity, we should define \Psi(f) by Theorem 12.21
+- Finally we should prove that \Psi equals the extension of cfcHom. This is the spectral theorem
+.-/

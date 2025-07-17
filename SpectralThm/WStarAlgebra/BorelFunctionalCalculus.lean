@@ -4,7 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Bannon, Jireh Loreaux
 -/
 
-import Mathlib
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.MeasureTheory.Function.Holder
 
 /-!
 # Borel Functional Calculus Class
@@ -404,7 +405,7 @@ noncomputable instance : NormedRing (Lp R ∞ μ) where
 
 section NormedAlgebra
 
-variable {𝕜 : Type u_6} [NormedField 𝕜] [NormedAlgebra 𝕜 R]
+variable {𝕜 : Type*} [NormedField 𝕜] [NormedAlgebra 𝕜 R]
 
 instance : IsScalarTower 𝕜 (Lp R ∞ μ) (Lp R ∞ μ) where
   smul_assoc := Lp.smul_assoc
@@ -436,7 +437,7 @@ end CStarRing
 
 section StarModule
 
-variable {𝕜 : Type u_6} [NormedField 𝕜] [NormedAlgebra 𝕜 R] [Star 𝕜]
+variable {𝕜 : Type*} [NormedField 𝕜] [NormedAlgebra 𝕜 R] [Star 𝕜]
 variable [StarRing R] [NormedStarGroup R] [StarModule 𝕜 R]
 
 noncomputable instance : StarModule 𝕜 (α →ₘ[μ] R) where
