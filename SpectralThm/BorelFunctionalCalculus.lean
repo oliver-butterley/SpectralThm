@@ -3,24 +3,20 @@ import SpectralThm.Complex
 import SpectralThm.Resolutions
 import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
-open InnerProductSpace ContinuousLinearMap ZeroAtInftyContinuousMap
+open InnerProductSpace ContinuousLinearMap ZeroAtInfty ZeroAtInftyContinuousMap
 
 noncomputable section
 
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-  (a : H →L[ℂ] H) (ha : IsSelfAdjoint a)
+  {a : H →L[ℂ] H} (ha : IsSelfAdjoint a)
 
 variable (f : C((spectrum ℂ a), ℂ))
-
-
-#check (cfcHom ha.isStarNormal)
-
 
 def toLinearFunctional (x y : H) : (H →L[ℂ] H) →L[ℂ] ℂ
     := compSL (H →L[ℂ] H) _ _ _ _ (innerSL ℂ x) (apply' H _ y)
 
 @[simp]
-lemma toLinearFunctional_apply (a : H →L[ℂ] H) (x y : H) :
+lemma toLinearFunctional_apply (x y : H) :
     toLinearFunctional x y a = ⟪x ,(a y)⟫_ℂ := rfl
 
 lemma toLinearFunctional_bounded (x y : H) : ‖toLinearFunctional x y‖ ≤ ‖x‖ * ‖y‖ := by
@@ -40,16 +36,19 @@ def cfc_toLinearFunctional (x y : H) : C((spectrum ℂ a), ℂ) →L[ℂ] ℂ
 
 @[simp]
 lemma cfc_toLinearFunctional_apply {a : H →L[ℂ] H} (ha : IsSelfAdjoint a) (f : C((spectrum ℂ a), ℂ))
-    (x y : H) : cfc_toLinearFunctional a ha x y f = ⟪x, (cfcHom ha.isStarNormal f y)⟫_ℂ := rfl
+    (x y : H) : cfc_toLinearFunctional ha x y f = ⟪x, (cfcHom ha.isStarNormal f y)⟫_ℂ := rfl
 
-#check f.liftZeroAtInfty
+def cfc_toComplexMeasure (x y : H) := ComplexRMK.rieszMeasure (compSL C₀((spectrum ℂ a), ℂ)
+  C((spectrum ℂ a), ℂ) ℂ _ _ (cfc_toLinearFunctional ha x y)
+  (@ZeroAtInftyContinuousMap.ContinuousMap.liftZeroAtInftyCLE
+  (spectrum ℂ a) ℂ ℂ _ _ _ _ _ _).symm.toContinuousLinearMap)
 
-example : ‖f‖ = ‖f.liftZeroAtInfty‖ := rfl
+lemma cfc_toComplexMeasure_bounded (x y : H) (f : C((spectrum ℂ a), ℂ)) :
+    ‖(cfc_toComplexMeasure ha x y).integral f‖ ≤ ‖x‖ * ‖y‖ * ‖f‖ := by
+  sorry
+
 
 /- TODO
-- compose it with `toLinearFunctional`, obtaining a complex linear functional on
-`C((spectrum ℂ a), ℂ)`
-- define `toComplexMeasure` using ComplexRMK
 - define Borel functional calculus using `InnerProductSpace.continuousLinearMapOfBilin`
-
+- define a resolution of identity
 -/

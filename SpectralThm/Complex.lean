@@ -251,3 +251,38 @@ theorem norm_eq_variation (f : C₀(X, ℂ)) :
   sorry
 
 end ComplexRMK
+
+
+open ZeroAtInftyContinuousMap
+
+namespace ZeroAtInftyContinuousMap
+
+section NormedAddGroupHom
+
+variable {α : Type*} {β : Type*} [TopologicalSpace α] [CompactSpace α]
+  [SeminormedAddCommGroup β]
+
+def ContinuousMap.liftZeroAtInftyNAGH : NormedAddGroupHom C(α, β) C₀(α, β) where
+  toFun := ContinuousMap.liftZeroAtInfty
+  map_add' x y := rfl
+  bound' := ⟨1, by intro v; simp; apply le_of_eq; rfl⟩
+
+@[simp]
+lemma liftZeroAtInftyNAGH_apply (f : C(α, β)) : f.liftZeroAtInftyNAGH = f.liftZeroAtInfty := rfl
+
+end NormedAddGroupHom
+
+section ContinuousLinearEquiv
+
+variable {α : Type*} {β : Type*} {R : Type*} [TopologicalSpace α] [CompactSpace α]
+  [SeminormedAddCommGroup β] [Semiring R] [Module R β] [ContinuousConstSMul R β]
+
+noncomputable def ContinuousMap.liftZeroAtInftyCLE : C(α, β) ≃L[R] C₀(α, β) :=
+  { toFun := ContinuousMap.liftZeroAtInftyNAGH
+    map_add' x y := rfl
+    map_smul' c x := rfl
+    invFun f := f
+    continuous_invFun := Isometry.continuous fun _ ↦ congrFun rfl
+  }
+
+end ContinuousLinearEquiv
