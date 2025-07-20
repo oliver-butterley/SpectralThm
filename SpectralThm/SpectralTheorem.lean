@@ -93,7 +93,10 @@ def toResolutionOfIdentity : ResolutionOfIdentity (spectrum ℂ a) H where
   measureOf' s := InnerProductSpace.continuousLinearMapOfBilin
     (@toBoundedBilin _ _ _ _ _ ha 1 (Set.indicator s (1 : (spectrum ℂ a) → ℂ)))
   isOrthogonalProjection' := sorry
-  empty' := sorry
+  empty' := by
+    ext
+    simp [continuousLinearMapOfBilin, toBoundedBilin, cfc_toComplexMeasure, ComplexMeasure.integral]
+    rfl
   not_measurable' := sorry
   m_Union' := sorry
   m_Inter' := sorry
