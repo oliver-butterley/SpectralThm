@@ -15,7 +15,7 @@ Current maintainers:
 We aren't so wise to know for sure how big a task it will be to formalize this theorem but we believe we can make some good progress so we are trying.
 We also want to practice using the blueprint and github project way of collaborating as projects become larger.
 
-See the [project home page and Lean blueprint][blueprint] and [Github project board][ghproject].
+See the [project home page and Lean blueprint][blueprint].
 
 ## Collaborating
 
