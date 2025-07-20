@@ -21,8 +21,6 @@ See the [project home page and Lean blueprint][blueprint] and [Github project bo
 
 We welcome anyone who wants to be part of this.
 
-In order to coordinate efficiently, we use the  [Github project board][ghproject]. In summary, writing `claim` as a message in one of the open issues automatically gives ownership of that issue. When one has opened a PR, then write `propose #PR_NUMBER` in the original issue and the project will keep track of the connection. (See the [full details][contrib].)
-
 [ghproject]: https://github.com/users/oliver-butterley/projects/3
 [blueprint]: https://oliver-butterley.github.io/SpectralThm/
 [contrib]: CONTRIBUTING.md
