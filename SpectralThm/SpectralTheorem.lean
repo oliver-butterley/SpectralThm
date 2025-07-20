@@ -27,7 +27,14 @@ lemma toLinearFunctional_apply (x y : H) {b : H →L[ℂ] H}:
 
 /-- The linear functional `b => ⟪x, b y⟫_ℂ` is bounded by `‖x‖ * ‖y‖`. -/
 lemma toLinearFunctional_bounded (x y : H) : ‖toLinearFunctional x y‖ ≤ ‖x‖ * ‖y‖ := by
-  sorry
+  rw [toLinearFunctional]
+  grw [ContinuousLinearMap.opNorm_le_bound]
+  . positivity
+  . intro a
+    simp only [compSL_apply, coe_comp', innerSL_apply_coe, Function.comp_apply, apply_apply']
+    grw [norm_inner_le_norm, ContinuousLinearMap.le_opNorm]
+    group
+    rfl
 
 /-- Let `a` a normal bounded operator. By the continuous functional calculus, there is an injective
 homomorphism from `C((spectrum ℂ a), ℂ)` to  `H →L[ℂ] H`, informally denoted by `f => f(a)`. This
