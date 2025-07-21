@@ -1,7 +1,4 @@
 import Mathlib
--- import Mathlib.Analysis.CStarAlgebra.Classes
--- import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Lebesgue
--- import Mathlib.Topology.ContinuousMap.CompactlySupported
 import SpectralThm.toMathlib.Variation.Defs
 import SpectralThm.toMathlib.Variation.Lemmas
 import SpectralThm.ComplexMeasure.Integral
@@ -9,7 +6,8 @@ import SpectralThm.ComplexMeasure.Integral
 /-!
 # Riesz–Markov–Kakutani representation theorem for complex linear functionals
 
-File destination: Mathlib/MeasureTheory/Integral/RieszMarkovKakutani/Complex.lean
+File destination: `Mathlib/MeasureTheory/Integral/RieszMarkovKakutani/Complex.lean`
+
 
 ## References
 
