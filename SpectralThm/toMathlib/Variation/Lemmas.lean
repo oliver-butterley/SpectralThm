@@ -35,7 +35,7 @@ lemma le_variation (μ : VectorMeasure X V) {s : Set X} (hs : MeasurableSet s) {
   have h : ∑ p ∈ P, ‖μ p‖ₑ = ∑ q ∈ Q, ‖μ q‖ₑ := by
     refine Eq.symm (sum_filter_of_ne fun p hp h ↦ ?_)
     by_contra! hc
-    simp_all [hc]
+    simp_all
   have hQ : IsInnerPart s Q := by
     refine ⟨fun p hp ↦ ?_, fun p hp ↦ ?_, fun p hp q hq hpq  ↦ ?_, fun p hp ↦ ?_⟩
     · exact hP₁ p (mem_filter.mp hp).1
@@ -49,7 +49,7 @@ theorem norm_measure_le_variation (μ : VectorMeasure X V) (E : Set X) : ‖μ E
   wlog hE' : E ≠ ∅
   · simp [not_ne_iff.mp hE']
   wlog hE : MeasurableSet E
-  · simp [hE, μ.not_measurable' hE]
+  · simp [μ.not_measurable' hE]
   have h : {E} ∈ {P | IsInnerPart E P} := by simpa using isInnerPart_self hE hE'
   have := le_biSup (fun P ↦ ∑ p ∈ P, ‖μ p‖ₑ) h
   simp_all [variation, var_aux]
@@ -93,7 +93,7 @@ lemma biUnion_Finset (μ : VectorMeasure X ℝ≥0∞) {S : Finset (Set X)}
 lemma variation_of_ENNReal (μ : VectorMeasure X ℝ≥0∞) : variation μ = μ := by
   ext s hs
   simp only [variation, var_aux, hs, reduceIte]
-  apply eq_of_le_of_le
+  apply eq_of_le_of_ge
   · simp only [enorm_eq_self, iSup_le_iff]
     intro P hP
     have : ∑ x ∈ P, μ x  =  μ (⋃ p ∈ P, p) := by

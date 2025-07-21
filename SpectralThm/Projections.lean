@@ -9,12 +9,12 @@ open Submodule
 /-- Projecting on `U` and then on `U` again is the same as projecting on `U` once. -/
 lemma A {K : Submodule 𝕜 E} [HasOrthogonalProjection K] (v : E) :
     (orthogonalProjection K) ↑((orthogonalProjection K) v) = (orthogonalProjection K) v :=
-  orthogonalProjection_orthogonalProjection_of_le (show K ≤ K by rfl) v
+  orthogonalProjection_starProjection_of_le (show K ≤ K by rfl) v
 
 /- The projection and its adjoint are equal. -/
 lemma B (K : Submodule 𝕜 E) [HasOrthogonalProjection K] (u v : E) :
     ⟪↑(orthogonalProjection K u), v⟫ = ⟪u, orthogonalProjection K v⟫ :=
-  inner_orthogonalProjection_left_eq_right K u v
+  inner_starProjection_left_eq_right K u v
 
 -- variable (K : Submodule 𝕜 E) [HasOrthogonalProjection K]
 -- #check orthogonalProjection K
