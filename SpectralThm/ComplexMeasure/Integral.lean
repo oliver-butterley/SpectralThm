@@ -63,7 +63,7 @@ noncomputable def ang (μ : ComplexMeasure α) := μ.rnDeriv μ.var
 
 @[simp]
 lemma ang_neg (μ : ComplexMeasure α) : (-μ).ang = -μ.ang := by
-  -- This might just hold a.e.
+  -- To do: adjust this statement to the `μ`-a.e. version.
   sorry
 
 /-! ## Definition of the integral. -/
