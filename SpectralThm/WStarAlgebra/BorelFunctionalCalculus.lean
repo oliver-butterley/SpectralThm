@@ -244,7 +244,7 @@ theorem Linfty.smul_one (f : Lp R ∞ μ) : f • (1 : Lp R ∞ μ) = f := by
   ext
   filter_upwards [Linfty.coeFn_one (R := R) ..,
     Linfty.coeFn_mul f (1 : Lp R ∞ μ)] with x hx1 hx2
-  simp_all [Pi.one_apply, Pi.mul_apply, mul_one, smul_eq_mul]
+  simp_all [Pi.mul_apply, mul_one, smul_eq_mul]
 
 end One
 
@@ -303,7 +303,7 @@ noncomputable instance : MulZeroClass (Lp R ∞ μ) where
     ext
     filter_upwards [Lp.coeFn_zero (E := R) (p := ∞) ..,
       Linfty.coeFn_mul f 0] with x h1 h2
-    simp_all [ZeroMemClass.coe_zero, Pi.zero_apply, Pi.mul_apply, mul_zero]
+    simp_all [ZeroMemClass.coe_zero, Pi.mul_apply, mul_zero]
 
 end MulZeroClass
 

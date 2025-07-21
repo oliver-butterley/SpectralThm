@@ -71,7 +71,7 @@ def toOuterMeasure {α : Type*} [MeasurableSpace α] (E : ResolutionOfIdentity �
   measureOf w := ENNReal.ofReal ‖E.measureOf' w x‖
   empty := by
     rw [E.empty']
-    simp only [ContinuousLinearMap.zero_apply, inner_zero_right, norm_zero, ofReal_zero]
+    simp only [ContinuousLinearMap.zero_apply, norm_zero, ofReal_zero]
   mono {w₁ w₂} h := by
     rw [ENNReal.ofReal_le_ofReal_iff (norm_nonneg _)]
     sorry

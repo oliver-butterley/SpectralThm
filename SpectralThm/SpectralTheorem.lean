@@ -1,5 +1,5 @@
 import Mathlib
-import SpectralThm.Complex
+import SpectralThm.RieszMarkovKakutani.Complex
 import SpectralThm.Resolutions
 import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 

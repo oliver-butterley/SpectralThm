@@ -206,7 +206,7 @@ defined as a sup. -/
 lemma signedMeasure_totalVariation_eq (μ : SignedMeasure X) :
     totalVariation μ = μ.variation.ennrealToMeasure := by
   ext r hr
-  refine eq_of_le_of_le ?_ ?_
+  refine eq_of_le_of_ge ?_ ?_
   · exact signedMeasure_totalVariation_le μ r hr
   · exact le_signedMeasure_totalVariation μ r hr
 
