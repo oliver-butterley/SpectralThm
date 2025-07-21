@@ -100,13 +100,13 @@ lemma integral_add (μ ν : ComplexMeasure α) (f : α → ℂ) :
 
 lemma integral_neg (μ  : ComplexMeasure α) (f : α → ℂ) :
     (-μ).integral f = -μ.integral f := by
-  simp [ComplexMeasure.integral, MeasureTheory.integral_neg]
+  simp [integral, MeasureTheory.integral_neg]
 
 lemma integral_sub (μ₁ μ₂  : ComplexMeasure α) (f : α → ℂ) :
     (μ₁ - μ₂).integral f = μ₁.integral f - μ₂.integral f := by
   calc
     _ = (μ₁ + (-μ₂)).integral f := by rfl
     _ = μ₁.integral f + (-μ₂).integral f := by exact integral_add μ₁ (-μ₂) _
-    _ = _ := by grind [ComplexMeasure.integral_neg]
+    _ = _ := by grind [integral_neg]
 
 end MeasureTheory.ComplexMeasure
