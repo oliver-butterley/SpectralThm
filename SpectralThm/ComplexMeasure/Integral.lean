@@ -1,5 +1,5 @@
 /-
-Copyright (c) 2024 Oliver Butterley. All rights reserved.
+Copyright (c) 2025 Oliver Butterley. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Oliver Butterley, Yoh Tanimoto
 -/
@@ -40,6 +40,10 @@ into their own files.
 ## Notation
 
 * `∫ a, f a ∂μ` : integral of `f` with respect to a `ComplexMeasure` `μ`
+
+## To do
+
+* Add many other relevant results.
 
 -/
 

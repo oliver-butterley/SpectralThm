@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2025 Oliver Butterley. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Oliver Butterley, Yoh Tanimoto
+-/
 import Mathlib
 import SpectralThm.toMathlib.Variation.Defs
 import SpectralThm.toMathlib.Variation.Lemmas
@@ -6,26 +11,38 @@ import SpectralThm.ComplexMeasure.Integral
 /-!
 # Riesz–Markov–Kakutani representation theorem for complex linear functionals
 
-File destination: `Mathlib/MeasureTheory/Integral/RieszMarkovKakutani/Complex.lean`
+This file contains the proof of the **Riesz Representations Theorem** a.k.a.
+**Riesz–Markov–Kakutani theorem** (complex case).
 
+## Main definition
+
+* `ComplexRMK.rieszMeasure (Φ : C₀(X, ℂ) →L[ℂ] ℂ)` the `ComplexMeasure` associated to the linear
+functional`Φ`.
+
+## Main results
+
+* `rieszMeasure_unique`: uniqueness of  `ComplexRMK.rieszMeasure`.
+* `integral_rieszMeasure`: that integration with respect to `ComplexRMK.rieszMeasure` is equal to
+the action of the linear functional.
+
+## Overview
+
+Firstly the uniqueness of measures satisfying the represenation equation is proven.
+
+The proof of existence of such a measures takes advantage of the corresponding statement for ℝ-valued linear functionals and signed measures (see `Mathlib/MeasureTheory/Integral/RieszMarkovKakutani/Real.lean`). As such, a major part of the argument is to reduce the complex situation to the case of a ℝ-valued linear functional. Moreover the required measure can be defined using the measure obtained in the ℝ-valued linear functional case.
+
+
+## Notes
+
+* File destination: `Mathlib/MeasureTheory/Integral/RieszMarkovKakutani/Complex.lean`
 
 ## References
 
-* [Walter Rudin, Real and Complex Analysis.][Rud87]
+* Section 6 of [Walter Rudin, Real and Complex Analysis.][Rud87]
 
 ## To do
 
-Availability of other theorems used in the proof:
-- 3.14: compactly supported continuous functions are dense in `L^p`
-(depends on 3.13 `MeasureTheory.Lp.simpleFunc.isDenseEmbedding`, this is written only for
-`NormalSpace α` and approximation given by bounded functions)
-- 6.12: polar decomposition of a complex measure
-(the Jordan decomposition `MeasureTheory.SignedMeasure.toSignedMeasure_toJordanDecomposition` is
-available for `SignedMeasure`. need to write it as a `rnDeriv`, and make it also for
-`ComplexMeasure`)
-- 6.13: total variation (`MeasureTheory.SignedMeasure.totalVariation`) is equal to integral (short
-proof which depends on 6.12)
-- 6.16: Duality of `L^1` and `L^∞` (not in Mathlib [https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025])
+- Rudin 6.16: Duality of `L^1` and `L^∞` (not in Mathlib [https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025])
 -/
 
 open NNReal ENNReal
@@ -37,7 +54,6 @@ variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpa
 
 lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
     μ = 0 := by
-
   -- [Rudin 87, Theorem 6.19]
   -- Suppose `μ` is a regular complex Borel measure on `X`
   -- and that `∫ f dμ = 0` for all `f \in C_0(X)`.
@@ -47,8 +63,10 @@ lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, �
   -- Since `C_c(X)` is dense in `L^1(|μ|)` (*Theorem 3.14*), `\{f_n\}` can be
   -- so chosen that the last expression in the above tends to 0 as `n → \infty`.
   -- Thus `|μ|(X) = 0`, and `μ = 0`.
+  -- (Theorem 3.14: compactly supported continuous functions are dense in `L^p`,
+  -- depends on 3.13 `MeasureTheory.Lp.simpleFunc.isDenseEmbedding`, this is written only for
+  -- `NormalSpace α` and approximation given by bounded functions)
   -- It is easy to see that the difference of two regular complex Borel measures on `X` is regular.
-
   sorry
 
 /-- Uniqueness of `ComplexRMK.rieszMeasure`: Let `Φ` be a linear functional on `C_0(X, ℂ)`. Suppose
@@ -66,7 +84,6 @@ theorem rieszMeasure_unique {μ₁ μ₂ : ComplexMeasure X} (Φ : C₀(X, ℂ) 
     _ = Φ f - Φ f := by rw [h₁, h₂]
     _ = 0 := by exact sub_self _
 
-
 variable (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
 
 -- TO DO: define `norm` as a `ContinuousMap` and use `norm ∘ f` in the following instead of the
@@ -83,7 +100,6 @@ noncomputable def identity : C_c(X, ℝ≥0) → C_c(X, ℝ) := CompactlySupport
 -- TO DO: define the identity between the ℝ and ℂ spaces of continuous functions,
 -- similar to `CompactlySupportedContinuousMap.toReal`.
 def toComplex : C_c(X, ℝ) → C_c(X, ℂ) := by sorry
-
 
 /-- Let `Φ` be a bounded linear functional on `C₀(X, ℂ)`. There exists a positive linear functional
 `Λ` on `C₀(X, ℝ)` such that, `∀ f : C₀(X, ℂ)`, `|Φ f| ≤ Λ |f|` and `Λ |f| ≤ ‖f‖` (`‖⬝‖` denotes
@@ -141,11 +157,9 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
   -- `Λ(u + iv) = Λ u + i Λ v`.
   -- Simple algebraic manipulations, just like those which occur in the proof of
   -- Theorem 1.32, show now that our extended functional `Λ` is linear on `C_c(X)`.
-
   sorry
 
 end ComplexRMK
-
 
 namespace ComplexRMK
 
@@ -155,7 +169,7 @@ variable [MeasurableSpace X] [BorelSpace X]
 
 /-- The measure induced by a `ℂ`-linear positive functional `Λ`. -/
 noncomputable def rieszMeasure (Φ : C₀(X, ℂ) →L[ℂ] ℂ) : ComplexMeasure X :=
-  -- To be defined according to the construction of the proof.
+  -- To be defined according to the construction of the proof, using `RealRMK.rieszMeasure`.
   sorry
 
 /-- **Theorem**
