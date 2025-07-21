@@ -79,7 +79,7 @@ notation3 "∫ "(...)", "r:60:(scoped f => f)" ∂"μ:70 => integral μ r
 
 /-- For complex measures `μ`, `ν` and integrable function `f`: `∫ f d(μ + ν) = ∫ f dμ + ∫ f dν` -/
 lemma integral_add (μ ν : ComplexMeasure α) (f : α → ℂ) :
-    (μ + ν).integral f = μ.integral f + ν.integral f := by
+    ∫ a, f a ∂(μ + ν) = ∫ a, f a ∂μ + ∫ a, f a ∂ν := by
   dsimp [integral]
   /- **Proof outline**:
   - Every complex measure `μ` has polar decomposition `μ = h · |μ|` where `|μ|` is
@@ -99,14 +99,14 @@ lemma integral_add (μ ν : ComplexMeasure α) (f : α → ℂ) :
   sorry
 
 lemma integral_neg (μ  : ComplexMeasure α) (f : α → ℂ) :
-    (-μ).integral f = -μ.integral f := by
+    ∫ a, f a ∂(-μ) = -∫ a, f a ∂μ := by
   simp [integral, MeasureTheory.integral_neg]
 
 lemma integral_sub (μ₁ μ₂  : ComplexMeasure α) (f : α → ℂ) :
-    (μ₁ - μ₂).integral f = μ₁.integral f - μ₂.integral f := by
+    ∫ a, f a ∂(μ₁ - μ₂) = ∫ a, f a ∂μ₁ - ∫ a, f a ∂μ₂ := by
   calc
     _ = (μ₁ + (-μ₂)).integral f := by rfl
     _ = μ₁.integral f + (-μ₂).integral f := by exact integral_add μ₁ (-μ₂) _
-    _ = _ := by grind [integral_neg]
+    _ = _ := by rw [integral_neg, sub_eq_add_neg]
 
 end MeasureTheory.ComplexMeasure
