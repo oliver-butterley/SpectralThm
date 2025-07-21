@@ -1,10 +1,10 @@
 import Mathlib
-
 -- import Mathlib.Analysis.CStarAlgebra.Classes
 -- import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Lebesgue
 -- import Mathlib.Topology.ContinuousMap.CompactlySupported
 import SpectralThm.toMathlib.Variation.Defs
 import SpectralThm.toMathlib.Variation.Lemmas
+import SpectralThm.ComplexMeasure.Integral
 
 /-!
 # Riesz–Markov–Kakutani representation theorem for complex linear functionals
@@ -32,55 +32,6 @@ proof which depends on 6.12)
 
 open NNReal ENNReal
 open ZeroAtInfty MeasureTheory CompactlySupported CompactlySupportedContinuousMap
-
-
-namespace MeasureTheory.ComplexMeasure
-
-variable {X : Type*} [MeasurableSpace X]
-
-/-- The variation measure part in the polar decomposition of a complex measure. -/
-noncomputable def var (μ : ComplexMeasure X) := μ.variation.ennrealToMeasure
-
-@[simp]
-lemma var_neg (μ : ComplexMeasure X) : (-μ).var = μ.var := by
-  simp [var]
-
-/-- The angular part (density function) in the polar decomposition of a complex measure. -/
-noncomputable def ang
-     (μ : ComplexMeasure X) := μ.rnDeriv μ.var
-
-@[simp]
-lemma ang_neg (μ : ComplexMeasure X) : (-μ).ang = -μ.ang := by
-  -- This might just hold a.e.
-  sorry
-
-/- We define, following Rudin, the integral with respect to a complex measure using the polar
-decomposition of the complex measure and the integral with respect to the total variation.
-
-It is likely that a different definition of integral is better. Maybe separating real and imaginary
-parts, maybe defining integration from scratch. -/
-
-noncomputable def integral (μ : ComplexMeasure X) (f : X → ℂ) :=
-  ∫ x, f x * μ.ang x ∂(μ.var)
-
--- Would be good to have the notation `∫ x, f x ∂μ`.
-
-lemma integral_add (μ₁ μ₂  : ComplexMeasure X) (f : X → ℂ) :
-    (μ₁ + μ₂).integral f = μ₁.integral f + μ₂.integral f := by
-  sorry
-
-lemma integral_neg (μ  : ComplexMeasure X) (f : X → ℂ) :
-    (-μ).integral f = -μ.integral f := by
-  simp [ComplexMeasure.integral, MeasureTheory.integral_neg]
-
-lemma integral_sub (μ₁ μ₂  : ComplexMeasure X) (f : X → ℂ) :
-    (μ₁ - μ₂).integral f = μ₁.integral f - μ₂.integral f := by
-  calc
-    _ = (μ₁ + (-μ₂)).integral f := by rfl
-    _ = μ₁.integral f + (-μ₂).integral f := by exact integral_add μ₁ (-μ₂) _
-    _ = _ := by grind [ComplexMeasure.integral_neg]
-
-end MeasureTheory.ComplexMeasure
 
 namespace ComplexRMK
 
@@ -116,8 +67,6 @@ theorem rieszMeasure_unique {μ₁ μ₂ : ComplexMeasure X} (Φ : C₀(X, ℂ) 
     _ = μ₁.integral f - μ₂.integral f := by exact ComplexMeasure.integral_sub _ _ _
     _ = Φ f - Φ f := by rw [h₁, h₂]
     _ = 0 := by exact sub_self _
-
-
 
 
 variable (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
