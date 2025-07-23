@@ -68,13 +68,23 @@ def cfc_toLinearFunctional (x y : H) : C((spectrum ℂ a), ℂ) →L[ℂ] ℂ
 lemma cfc_toLinearFunctional_apply (f : C((spectrum ℂ a), ℂ)) (x y : H) :
     cfc_toLinearFunctional ha x y f = ⟪x, (cfcHom ha.isStarNormal f y)⟫_ℂ := rfl
 
-
 /-- For each pair `x y : H`, the linear map `f => ⟪x, f(a) y⟫_ℂ`has norm `‖x‖ * ‖y‖`.
 This follows from the bound `toLinearFunctional_bounded` and the fact that
-`f => f(a)` is an isometry, `norm_cfcHom`.
--/
-lemma cfc_toLinearFunctional_bound (f : C((spectrum ℂ a), ℂ)) (x y : H) :
-    ‖cfc_toLinearFunctional ha x y‖ ≤ ‖x‖ * ‖y‖ := by sorry
+`f => f(a)` is an isometry, `norm_cfcHom`. -/
+lemma cfc_toLinearFunctional_bound (x y : H) : ‖cfc_toLinearFunctional ha x y‖ ≤ ‖x‖ * ‖y‖ := by
+  apply ContinuousLinearMap.opNorm_le_bound
+  · positivity
+  · intro f
+    simp only [cfc_toLinearFunctional_apply]
+    calc
+      ‖⟪x, ((cfcHom (IsSelfAdjoint.isStarNormal ha)) f) y⟫_ℂ‖
+        ≤ ‖x‖ * ‖((cfcHom (IsSelfAdjoint.isStarNormal ha)) f) y‖ := norm_inner_le_norm x
+          (((cfcHom (IsSelfAdjoint.isStarNormal ha)) f) y)
+      _ ≤ ‖x‖ * (‖((cfcHom (IsSelfAdjoint.isStarNormal ha)) f)‖ * ‖y‖) :=
+        mul_le_mul_of_nonneg_left (le_opNorm ((cfcHom (IsSelfAdjoint.isStarNormal ha)) f) y)
+          (norm_nonneg x)
+      _ = ‖x‖ * ‖y‖ * ‖((cfcHom (IsSelfAdjoint.isStarNormal ha)) f)‖ := by ring
+      _ = ‖x‖ * ‖y‖ * ‖f‖ := by rw [norm_cfcHom a f]
 
 /-- For each pair `x y : H`, one obtains a complex measure `E_{a, x ,y}` from the continuous linear
 functional `f => ⟪x, f(a) y⟫_ℂ` by the Riesz-Markov-Kakutani theorem.
@@ -85,14 +95,14 @@ def cfc_toComplexMeasure (x y : H) := ComplexRMK.rieszMeasure (compSL C₀((spec
   (@ZeroAtInftyContinuousMap.ContinuousMap.liftZeroAtInftyCLE
   (spectrum ℂ a) ℂ ℂ _ _ _ _ _ _).symm.toContinuousLinearMap)
 
-/-- The total variation of `E_{a, x,y}` is bounded by `‖x‖ * ‖y‖`.
-Rudin "Real and complex analysis" Theorem 6.19 (2), combined with the bound by
-`cfc_toLinearFunctional_bound`. -/
+/-- The integral of `f` against `E_{a, x,y}` is bounded by `‖x‖ * ‖y‖ * ‖f‖`. -/
 lemma cfc_toComplexMeasure_bounded (x y : H) (f : C((spectrum ℂ a), ℂ)) :
     ‖(cfc_toComplexMeasure ha x y).integral f‖ ≤ ‖x‖ * ‖y‖ * ‖f‖ := by
   sorry
 
-/-- The complex measure `E_{a, x,y}` is has the total variation bounded by `‖x‖ * ‖y‖`. -/
+/-- The complex measure `E_{a, x,y}` has the total variation bounded by `‖x‖ * ‖y‖`.
+Rudin "Real and complex analysis" Theorem 6.19 (2), combined with the bound by
+`cfc_toLinearFunctional_bound`.-/
 lemma cfc_variation_toComplexMeasure_bounded (x y : H) :
     (cfc_toComplexMeasure ha x y).variation Set.univ ≤ ‖x‖ₑ * ‖y‖ₑ := by
   sorry
