@@ -90,7 +90,13 @@ variable (E : ResolutionOfIdentity α H)
 
 lemma ResolutionOfIdentity.zero_iff (w : Set α) (h : MeasurableSet w) : E w  = 0 ↔
     ∀ x, (toMeasure E x) w = 0 := by
-  sorry
+  simp_rw [toMeasure, ← MeasureTheory.Measure.toOuterMeasure_apply, MeasureTheory.OuterMeasure.trim_eq _ h, toOuterMeasure, DFunLike.coe]
+  refine ⟨?_, ?_⟩
+  . intro hw
+    simp [hw]
+  . intro hw
+    ext a
+    simpa using hw a
 
 noncomputable def SumOuterMeasure {ι : Type*} (μ : ι → Measure α) : OuterMeasure α where
   measureOf w := ∑' i, μ i w
