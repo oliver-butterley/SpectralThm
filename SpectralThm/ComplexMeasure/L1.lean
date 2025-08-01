@@ -60,42 +60,42 @@ noncomputable section
 open Filter ENNReal Set MeasureTheory VectorMeasure ContinuousLinearMap
 open scoped NNReal ENNReal MeasureTheory
 
-variable {α E F 𝕜 : Type*}
+variable {α E F G R S 𝕜 : Type*}
 
 namespace VectorMeasure
 
 section WeightedSMul
 
 
-variable [MeasurableSpace α] {M : Type*} [AddCommMonoid M] [TopologicalSpace M]
-  (μ : VectorMeasure α M)
-variable {R : Type*} [Ring R] [TopologicalSpace R] [m : Module R M] [ContinuousSMul R M]
+variable [MeasurableSpace α] [AddCommGroup F] [TopologicalSpace F] [AddCommGroup G]
+  [TopologicalSpace G] [NormedField R] [NormedField S] {σ : R →+* S}
+  [Module R F] [ContinuousSMul R F] [IsTopologicalAddGroup G]
+  [Module S G] [ContinuousConstSMul S G]
+  (μ : VectorMeasure α (F →SL[σ] G))
 
-/-- Given a set `s`, return the continuous linear map `fun x => x • (μ s)`. The extension
+/-- Given a set `s`, return the continuous linear map `fun x => (μ s) x`. The extension
 of that set function through `setToL1` gives the Bochner integral of L1 functions. -/
-def weightedSMul (s : Set α) : R →L[R] M where
-  toFun c := c • (μ s)
-  map_add' _ _ := m.add_smul _ _ (μ s)
-  map_smul' _ _ := IsScalarTower.smul_assoc _ _ (μ s)
+def weightedSMul (s : Set α) : F →SL[σ] G where
+  toFun x := (μ s) x
+  map_add' := (μ s).map_add
+  map_smul' := (μ s).map_smulₛₗ
 
 @[simp]
-theorem weightedSMul_apply (s : Set α) (c : R) : weightedSMul μ s c = c • (μ s) := rfl
+theorem weightedSMul_apply (s : Set α) (x : F) : weightedSMul μ s x = (μ s) x:= rfl
 
 @[simp]
 theorem weightedSMul_zero_measure :
-    weightedSMul (0 : VectorMeasure α M) = (0 : Set α → R →L[R] M) := by ext s; simp
+    weightedSMul (0 : VectorMeasure α (F →SL[σ] G)) = (0 : Set α → F →SL[σ] G) := by ext; simp
 
 @[simp]
 theorem weightedSMul_empty :
-    weightedSMul μ ∅ = (0 : R →L[R] M) := by ext; simp
+    weightedSMul μ ∅ = (0 : F →SL[σ] G) := by ext; simp
 
-theorem weightedSMul_smul_vectorMeasure (c : R) (x : R) {s : Set α} :
-    (weightedSMul (c • μ) s) x = x • (weightedSMul μ s) c := by simp
+theorem weightedSMul_smul_vectorMeasure (c : S) (x : F) {s : Set α} :
+    (weightedSMul (c • μ) s) x = c • (weightedSMul μ s) x := by simp
 
-variable [ContinuousAdd M]
-
-theorem weightedSMul_add_vectorMeasure (ν : VectorMeasure α M) {s : Set α} :
-    (weightedSMul (μ + ν) s : R →L[R] M) = weightedSMul μ s + weightedSMul ν s := by ext; simp
+theorem weightedSMul_add_vectorMeasure (ν : VectorMeasure α (F →SL[σ] G)) {s : Set α} :
+    (weightedSMul (μ + ν) s : (F →SL[σ] G)) = weightedSMul μ s + weightedSMul ν s := by ext; simp
 
 -- theorem weightedSMul_congr (s t : Set α) (hst : μ s = μ t) :
 --     (weightedSMul μ s : F →L[ℝ] F) = weightedSMul μ t := by
