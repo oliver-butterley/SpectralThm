@@ -60,12 +60,11 @@ noncomputable section
 open Filter ENNReal Set MeasureTheory VectorMeasure ContinuousLinearMap
 open scoped NNReal ENNReal MeasureTheory
 
-variable {α M R : Type*}
+variable {α M R S : Type*}
 
 namespace VectorMeasure
 
 section WeightedSMul
-
 
 variable [MeasurableSpace α] [AddCommMonoid M] [TopologicalSpace M] [Semiring R]
   [TopologicalSpace R] [m : Module R M] [ContinuousSMul R M]
@@ -77,7 +76,6 @@ def weightedSMul (s : Set α) : R →L[R] M where
   toFun c := c • (μ s)
   map_add' _ _ := m.add_smul _ _ (μ s)
   map_smul' _ _ := smul_assoc _ _ (μ s)
-
 
 @[simp]
 theorem weightedSMul_apply (s : Set α) (c : R) : weightedSMul μ s c = c • (μ s) := rfl
@@ -93,53 +91,57 @@ theorem weightedSMul_empty :
 theorem weightedSMul_smul_vectorMeasure (a b : R) {s : Set α} :
     (weightedSMul (a • μ) s) b = b • (weightedSMul μ s a) := by simp
 
+theorem weightedSMul_congr (s t : Set α) (hst : μ s = μ t) :
+    (weightedSMul μ s : R →L[R] M) = weightedSMul μ t := by
+  ext
+  simp only [weightedSMul_apply, one_smul]
+  exact hst
+
+theorem weightedSMul_null {s : Set α} (h_zero : μ s = 0) : (weightedSMul μ s : R →L[R] M) = 0 := by
+  ext
+  simp only [weightedSMul_apply, one_smul, ContinuousLinearMap.zero_apply]
+  exact h_zero
+
+theorem weightedSMul_nonneg [PartialOrder M] [PartialOrder R] [OrderedSMul R M]
+    {s : Set α} {c : R} (hs : 0 ≤ μ s) (hc : 0 ≤ c) : 0 ≤ weightedSMul μ s c := by
+  simp only [weightedSMul_apply]
+  exact smul_nonneg hc hs
+
 variable [ContinuousAdd M]
 
 theorem weightedSMul_add_vectorMeasure (ν : VectorMeasure α M) {s : Set α} :
     (weightedSMul (μ + ν) s : R →L[R] M) = weightedSMul μ s + weightedSMul ν s := by ext; simp
 
--- theorem weightedSMul_congr (s t : Set α) (hst : μ s = μ t) :
---     (weightedSMul μ s : F →L[ℝ] F) = weightedSMul μ t := by
---   ext1 x; simp_rw [weightedSMul_apply, measureReal_def]; congr 2
+variable [T2Space M]
 
--- theorem weightedSMul_null {s : Set α} (h_zero : μ s = 0) : (weightedSMul μ s : F →L[ℝ] F) = 0 := by
---   ext1 x; rw [weightedSMul_apply, measureReal_def, h_zero]; simp
+theorem weightedSMul_union {s t : Set α} (ht : MeasurableSet t) (hs : MeasurableSet s)
+    (hdisj : Disjoint s t) :
+    (weightedSMul μ (s ∪ t) : R →L[R] M) = weightedSMul μ s + weightedSMul μ t := by
+  ext
+  simp only [weightedSMul_apply, one_smul, ContinuousLinearMap.add_apply]
+  exact of_union hdisj hs ht
 
--- theorem weightedSMul_union' (s t : Set α) (ht : MeasurableSet t) (hs_finite : μ s ≠ ∞)
---     (ht_finite : μ t ≠ ∞) (hdisj : Disjoint s t) :
---     (weightedSMul μ (s ∪ t) : F →L[ℝ] F) = weightedSMul μ s + weightedSMul μ t := by
---   ext1 x
---   simp_rw [add_apply, weightedSMul_apply, measureReal_union hdisj ht,add_smul]
+-- theorem weightedSMul_smul (c : R) (s : Set α) (x : M) : weightedSMul μ s c x = c • weightedSMul μ s x := by
 
--- @[nolint unusedArguments]
--- theorem weightedSMul_union (s t : Set α) (_hs : MeasurableSet s) (ht : MeasurableSet t)
---     (hs_finite : μ s ≠ ∞) (ht_finite : μ t ≠ ∞) (hdisj : Disjoint s t) :
---     (weightedSMul μ (s ∪ t) : F →L[ℝ] F) = weightedSMul μ s + weightedSMul μ t :=
---   weightedSMul_union' s t ht hs_finite ht_finite hdisj
+end WeightedSMul
 
--- theorem weightedSMul_smul [SMul 𝕜 F] [SMulCommClass ℝ 𝕜 F] (c : 𝕜)
---     (s : Set α) (x : F) : weightedSMul μ s (c • x) = c • weightedSMul μ s x := by
---   simp_rw [weightedSMul_apply, smul_comm]
+section NormedWeightedSMul
 
--- theorem norm_weightedSMul_le (s : Set α) : ‖(weightedSMul μ s : F →L[ℝ] F)‖ ≤ μ.real s :=
---   calc
---     ‖(weightedSMul μ s : F →L[ℝ] F)‖ = ‖μ.real s‖ * ‖ContinuousLinearMap.id ℝ F‖ :=
---       norm_smul (μ.real s) (ContinuousLinearMap.id ℝ F)
---     _ ≤ ‖μ.real s‖ :=
---       ((mul_le_mul_of_nonneg_left norm_id_le (norm_nonneg _)).trans (mul_one _).le)
---     _ = abs μ.real s := Real.norm_eq_abs _
---     _ = μ.real s := abs_eq_self.mpr ENNReal.toReal_nonneg
+variable [MeasurableSpace α] [SeminormedAddCommGroup M] [NontriviallyNormedField R]
+  [NormedSpace R M] (μ : VectorMeasure α M)
 
--- theorem dominatedFinMeasAdditive_weightedSMul {_ : MeasurableSpace α} (μ : Measure α) :
---     DominatedFinMeasAdditive μ (weightedSMul μ : Set α → F →L[ℝ] F) 1 :=
+-- theorem dominatedFinMeasAdditive_weightedSMul {_ : MeasurableSpace α} :
+--     DominatedFinMeasAdditive μ (weightedSMul μ : Set α → R →L[R] M) 1 :=
 --   ⟨weightedSMul_union, fun s _ _ => (norm_weightedSMul_le s).trans (one_mul _).symm.le⟩
 
--- theorem weightedSMul_nonneg [PartialOrder F] [OrderedSMul ℝ F]
---     (s : Set α) (x : F) (hx : 0 ≤ x) : 0 ≤ weightedSMul μ s x := by
---   simp only [weightedSMul, coe_smul', _root_.id, coe_id', Pi.smul_apply]
---   exact smul_nonneg toReal_nonneg hx
+theorem norm_weightedSMul_le (s : Set α) : ‖(weightedSMul μ s : R →L[R] M)‖ ≤ ‖μ s‖ := by
+  rw [ContinuousLinearMap.opNorm_le_iff (norm_nonneg (μ s))]
+  intro c
+  simp only [weightedSMul_apply, mul_comm]
+  exact norm_smul_le _ _
 
--- end WeightedSMul
+end NormedWeightedSMul
+
 
 -- local infixr:25 " →ₛ " => SimpleFunc
 
