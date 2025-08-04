@@ -54,6 +54,13 @@ theorem norm_measure_le_variation (μ : VectorMeasure X V) (E : Set X) : ‖μ E
   have := le_biSup (fun P ↦ ∑ p ∈ P, ‖μ p‖ₑ) h
   simp_all [variation, var_aux]
 
+theorem measure_eq_zero_of_variation_eq_zero (μ : VectorMeasure X V) (E : Set X)
+    (h : μ.variation.ennrealToMeasure E = 0) : μ E = 0 := by
+  wlog hE : MeasurableSet E
+  · simp [μ.not_measurable' hE]
+  rw [← enorm_eq_zero, ← nonpos_iff_eq_zero, ← h, ennrealToMeasure_apply hE]
+  exact norm_measure_le_variation μ E
+
 lemma variation_zero : (0 : VectorMeasure X V).variation = 0 := by
   ext _ _
   simp [variation, var_aux_zero]

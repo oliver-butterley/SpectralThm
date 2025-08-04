@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zhouhang Zhou, Yury Kudryashov, Sébastien Gouëzel, Rémy Degenne
 -/
 import Mathlib
+import SpectralThm.toMathlib.Variation.Lemmas
 
 /-!
 # Additivity on measurable sets with finite measure
@@ -289,68 +290,66 @@ theorem map_setToVectorSimpleFunc {S : Type*} [NormedAddCommGroup S] (T : Set α
     rw [← hx.1, ← hx.2] at hij
     exact absurd rfl hij
 
--- theorem setToSimpleFunc_congr' (T : Set α → E →L[ℝ] F) (h_add : FinMeasAdditive μ T) {f g : α →ₛ E}
---     (hf : Integrable f μ) (hg : Integrable g μ)
---     (h : Pairwise fun x y => T (f ⁻¹' {x} ∩ g ⁻¹' {y}) = 0) :
---     f.setToSimpleFunc T = g.setToSimpleFunc T :=
---   show ((pair f g).map Prod.fst).setToSimpleFunc T = ((pair f g).map Prod.snd).setToSimpleFunc T by
---     have h_pair : Integrable (f.pair g) μ := integrable_pair hf hg
---     rw [map_setToSimpleFunc T h_add h_pair Prod.fst_zero]
---     rw [map_setToSimpleFunc T h_add h_pair Prod.snd_zero]
---     refine Finset.sum_congr rfl fun p hp => ?_
---     rcases mem_range.1 hp with ⟨a, rfl⟩
---     by_cases eq : f a = g a
---     · dsimp only [pair_apply]; rw [eq]
---     · have : T (pair f g ⁻¹' {(f a, g a)}) = 0 := by
---         have h_eq : T ((⇑(f.pair g)) ⁻¹' {(f a, g a)}) = T (f ⁻¹' {f a} ∩ g ⁻¹' {g a}) := by
---           congr; rw [pair_preimage_singleton f g]
---         rw [h_eq]
---         exact h eq
---       simp only [this, ContinuousLinearMap.zero_apply, pair_apply]
+theorem setToVectorSimpleFunc_congr' (T : Set α → R →L[R] M)
+    (h_add : ∀ s t, MeasurableSet s → MeasurableSet t → Disjoint s t → T (s ∪ t) = T s + T t)
+    {f g : α →ₛ R} (h : Pairwise fun x y => T (f ⁻¹' {x} ∩ g ⁻¹' {y}) = 0) :
+    f.setToVectorSimpleFunc T = g.setToVectorSimpleFunc T :=
+  show ((pair f g).map Prod.fst).setToVectorSimpleFunc T
+      = ((pair f g).map Prod.snd).setToVectorSimpleFunc T by
+    rw [map_setToVectorSimpleFunc T h_add Prod.fst_zero]
+    rw [map_setToVectorSimpleFunc T h_add Prod.snd_zero]
+    refine Finset.sum_congr rfl fun p hp => ?_
+    rcases mem_range.1 hp with ⟨a, rfl⟩
+    by_cases eq : f a = g a
+    · dsimp only [pair_apply]; rw [eq]
+    · have : T (pair f g ⁻¹' {(f a, g a)}) = 0 := by
+        have h_eq : T ((⇑(f.pair g)) ⁻¹' {(f a, g a)}) = T (f ⁻¹' {f a} ∩ g ⁻¹' {g a}) := by
+          congr; rw [pair_preimage_singleton f g]
+        rw [h_eq]
+        exact h eq
+      simp only [this, ContinuousLinearMap.zero_apply, pair_apply]
 
--- theorem setToSimpleFunc_congr (T : Set α → E →L[ℝ] F)
---     (h_zero : ∀ s, MeasurableSet s → μ s = 0 → T s = 0) (h_add : FinMeasAdditive μ T) {f g : α →ₛ E}
---     (hf : Integrable f μ) (h : f =ᵐ[μ] g) : f.setToSimpleFunc T = g.setToSimpleFunc T := by
---   refine setToSimpleFunc_congr' T h_add hf ((integrable_congr h).mp hf) ?_
---   refine fun x y hxy => h_zero _ ((measurableSet_fiber f x).inter (measurableSet_fiber g y)) ?_
---   rw [EventuallyEq, ae_iff] at h
---   refine measure_mono_null (fun z => ?_) h
---   simp_rw [Set.mem_inter_iff, Set.mem_setOf_eq, Set.mem_preimage, Set.mem_singleton_iff]
---   intro h
---   rwa [h.1, h.2]
+theorem setToVectorSimpleFunc_congr {μ : VectorMeasure α M} (T : Set α → R →L[R] M)
+    (h_zero : ∀ s, MeasurableSet s → μ.variation.ennrealToMeasure s = 0 → T s = 0)
+    (h_add : ∀ s t, MeasurableSet s → MeasurableSet t → Disjoint s t → T (s ∪ t) = T s + T t)
+    {f g : α →ₛ R} (h : f =ᵐ[μ.variation.ennrealToMeasure] g) :
+    f.setToVectorSimpleFunc T = g.setToVectorSimpleFunc T := by
+  refine setToVectorSimpleFunc_congr' T h_add ?_
+  refine fun x y hxy => h_zero _ ((measurableSet_fiber f x).inter (measurableSet_fiber g y)) ?_
+  rw [EventuallyEq, ae_iff] at h
+  refine measure_mono_null (fun z => ?_) h
+  simp_rw [Set.mem_inter_iff, Set.mem_setOf_eq, Set.mem_preimage, Set.mem_singleton_iff]
+  intro h
+  rwa [h.1, h.2]
 
--- theorem setToSimpleFunc_congr_left (T T' : Set α → E →L[ℝ] F)
---     (h : ∀ s, MeasurableSet s → μ s < ∞ → T s = T' s) (f : α →ₛ E) (hf : Integrable f μ) :
---     setToSimpleFunc T f = setToSimpleFunc T' f := by
---   simp_rw [setToSimpleFunc]
---   refine sum_congr rfl fun x _ => ?_
---   by_cases hx0 : x = 0
---   · simp [hx0]
---   · rw [h (f ⁻¹' {x}) (SimpleFunc.measurableSet_fiber _ _)
---         (SimpleFunc.measure_preimage_lt_top_of_integrable _ hf hx0)]
+theorem setToVectorSimpleFunc_congr_left (T T' : Set α → R →L[R] M)
+    (h : ∀ s, MeasurableSet s → T s = T' s) (f : α →ₛ R) :
+    setToVectorSimpleFunc T f = setToVectorSimpleFunc T' f := by
+  simp_rw [setToVectorSimpleFunc]
+  refine sum_congr rfl fun x _ => ?_
+  by_cases hx0 : x = 0
+  · simp [hx0]
+  · rw [h (f ⁻¹' {x}) (SimpleFunc.measurableSet_fiber _ _)]
 
--- theorem setToSimpleFunc_add_left {m : MeasurableSpace α} (T T' : Set α → F →L[ℝ] F') {f : α →ₛ F} :
---     setToSimpleFunc (T + T') f = setToSimpleFunc T f + setToSimpleFunc T' f := by
---   simp_rw [setToSimpleFunc, Pi.add_apply]
---   push_cast
---   simp_rw [Pi.add_apply, sum_add_distrib]
+theorem setToVectorSimpleFunc_add_left (T T' : Set α → R →L[R] M) {f : α →ₛ R} :
+    setToVectorSimpleFunc (T + T') f = setToVectorSimpleFunc T f + setToVectorSimpleFunc T' f := by
+  simp_rw [setToVectorSimpleFunc, Pi.add_apply]
+  push_cast
+  simp_rw [Pi.add_apply, sum_add_distrib]
 
--- theorem setToSimpleFunc_add_left' (T T' T'' : Set α → E →L[ℝ] F)
---     (h_add : ∀ s, MeasurableSet s → μ s < ∞ → T'' s = T s + T' s) {f : α →ₛ E}
---     (hf : Integrable f μ) : setToSimpleFunc T'' f = setToSimpleFunc T f + setToSimpleFunc T' f := by
---   classical
---   simp_rw [setToSimpleFunc_eq_sum_filter]
---   suffices ∀ x ∈ {x ∈ f.range | x ≠ 0}, T'' (f ⁻¹' {x}) = T (f ⁻¹' {x}) + T' (f ⁻¹' {x}) by
---     rw [← sum_add_distrib]
---     refine Finset.sum_congr rfl fun x hx => ?_
---     rw [this x hx]
---     push_cast
---     rw [Pi.add_apply]
---   intro x hx
---   refine
---     h_add (f ⁻¹' {x}) (measurableSet_preimage _ _) (measure_preimage_lt_top_of_integrable _ hf ?_)
---   rw [mem_filter] at hx
---   exact hx.2
+theorem setToVectorSimpleFunc_add_left' (T T' T'' : Set α → R →L[R] R)
+    (h_add : ∀ s, MeasurableSet s → T'' s = T s + T' s) {f : α →ₛ R} :
+    setToVectorSimpleFunc T'' f = setToVectorSimpleFunc T f + setToVectorSimpleFunc T' f := by
+  classical
+  simp_rw [setToVectorSimpleFunc_eq_sum_filter]
+  suffices ∀ x ∈ {x ∈ f.range | x ≠ 0}, T'' (f ⁻¹' {x}) = T (f ⁻¹' {x}) + T' (f ⁻¹' {x}) by
+    rw [← sum_add_distrib]
+    refine Finset.sum_congr rfl fun x hx => ?_
+    rw [this x hx]
+    push_cast
+    rw [Pi.add_apply]
+  intro x hx
+  exact h_add (f ⁻¹' {x}) (measurableSet_preimage _ _)
 
 -- theorem setToSimpleFunc_smul_left {m : MeasurableSpace α} (T : Set α → F →L[ℝ] F') (c : ℝ)
 --     (f : α →ₛ F) : setToSimpleFunc (fun s => c • T s) f = c • setToSimpleFunc T f := by

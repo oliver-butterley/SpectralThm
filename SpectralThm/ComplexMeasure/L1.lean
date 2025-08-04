@@ -265,9 +265,11 @@ theorem map_vectorIntegral [NormedAddCommGroup S] (f : α →ₛ S) (g : S → R
 
 -- variable [NormedSpace ℝ E]
 
--- theorem integral_congr {f g : α →ₛ E} (hf : Integrable f μ) (h : f =ᵐ[μ] g) :
---     f.integral μ = g.integral μ :=
---   setToSimpleFunc_congr (weightedSMul μ) (fun _ _ => weightedSMul_null) weightedSMul_union hf h
+
+theorem vectorIntegral_congr {f g : α →ₛ R} (h : f =ᵐ[μ.variation.ennrealToMeasure] g) :
+    f.vectorIntegral μ = g.vectorIntegral μ := setToVectorSimpleFunc_congr (weightedVectorSMul μ)
+      (fun s _ hsμ => (weightedVectorSMul_null μ (measure_eq_zero_of_variation_eq_zero μ s hsμ)))
+      (weightedVectorSMul_union μ) h
 
 -- /-- `SimpleFunc.bintegral` and `SimpleFunc.integral` agree when the integrand has type
 --     `α →ₛ ℝ≥0∞`. But since `ℝ≥0∞` is not a `NormedSpace`, we need some form of coercion. -/
