@@ -98,7 +98,8 @@ theorem weightedVectorSMul_congr (s t : Set α) (hst : μ s = μ t) :
   simp only [weightedVectorSMul_apply, one_smul]
   exact hst
 
-theorem weightedVectorSMul_null {s : Set α} (h_zero : μ s = 0) : (weightedVectorSMul μ s : R →L[R] M) = 0 := by
+theorem weightedVectorSMul_null {s : Set α} (h_zero : μ s = 0) :
+    (weightedVectorSMul μ s : R →L[R] M) = 0 := by
   ext
   simp only [weightedVectorSMul_apply, one_smul, ContinuousLinearMap.zero_apply]
   exact h_zero
@@ -107,6 +108,17 @@ theorem weightedVectorSMul_nonneg [PartialOrder M] [PartialOrder R] [OrderedSMul
     {s : Set α} {c : R} (hs : 0 ≤ μ s) (hc : 0 ≤ c) : 0 ≤ weightedVectorSMul μ s c := by
   simp only [weightedVectorSMul_apply]
   exact smul_nonneg hc hs
+
+theorem weightedVectorSMul_smul (c : R) (s : Set α) (x : R) :
+    weightedVectorSMul μ s (c • x) = c • weightedVectorSMul μ s x := by
+  simp only [weightedVectorSMul_apply]
+  exact smul_assoc c x (μ s)
+
+theorem weightedVectorSMul_smul' {𝕜 : Type*} [SMul 𝕜 M] [SMul 𝕜 R] [IsScalarTower 𝕜 R M]
+    (c : 𝕜) (s : Set α) (x : R) :
+    weightedVectorSMul μ s (c • x) = c • weightedVectorSMul μ s x := by
+  simp only [weightedVectorSMul_apply]
+  exact smul_assoc c x (μ s)
 
 variable [ContinuousAdd M]
 
@@ -122,8 +134,6 @@ theorem weightedVectorSMul_union (s t : Set α) (hs : MeasurableSet s) (ht : Mea
   simp only [weightedVectorSMul_apply, one_smul, ContinuousLinearMap.add_apply]
   exact of_union hdisj hs ht
 
--- theorem weightedSMul_smul (c : R) (s : Set α) (x : M) : weightedSMul μ s c x = c • weightedSMul μ s x := by
-
 end weightedVectorSMul
 
 section NormedWeightedVectorSMul
@@ -135,7 +145,8 @@ variable [MeasurableSpace α] [SeminormedAddCommGroup M] [NontriviallyNormedFiel
 --     DominatedFinMeasAdditive μ (weightedSMul μ : Set α → R →L[R] M) 1 :=
 --   ⟨weightedSMul_union, fun s _ _ => (norm_weightedSMul_le s).trans (one_mul _).symm.le⟩
 
-theorem norm_weightedVectorSMul_le (s : Set α) : ‖(weightedVectorSMul μ s : R →L[R] M)‖ ≤ ‖μ s‖ := by
+theorem norm_weightedVectorSMul_le (s : Set α) :
+    ‖(weightedVectorSMul μ s : R →L[R] M)‖ ≤ ‖μ s‖ := by
   rw [ContinuousLinearMap.opNorm_le_iff (norm_nonneg (μ s))]
   intro c
   simp only [weightedVectorSMul_apply, mul_comm]
@@ -156,7 +167,6 @@ section Integral
 -- Define the Bochner integral of simple functions of the type `α →ₛ β` where `β` is a normed group,
 -- and prove basic property of this integral.
 -- -/
-
 
 open Finset
 variable [m : MeasurableSpace α] [NormedAddCommGroup M] [NontriviallyNormedField R]
@@ -280,43 +290,46 @@ theorem vectorIntegral_congr {f g : α →ₛ R} (h : f =ᵐ[μ.variation.ennrea
 --   rw [← integral_eq_lintegral' hf]
 --   exacts [integral_congr hf this, ENNReal.ofReal_zero, fun b => ENNReal.ofReal_ne_top]
 
--- theorem integral_add {f g : α →ₛ E} (hf : Integrable f μ) (hg : Integrable g μ) :
---     integral μ (f + g) = integral μ f + integral μ g :=
---   setToSimpleFunc_add _ weightedSMul_union hf hg
+theorem vectorIntegral_add {f g : α →ₛ R} :
+    vectorIntegral μ (f + g) = vectorIntegral μ f + vectorIntegral μ g :=
+  setToVectorSimpleFunc_add _ (weightedVectorSMul_union μ)
 
--- theorem integral_neg {f : α →ₛ E} (hf : Integrable f μ) : integral μ (-f) = -integral μ f :=
---   setToSimpleFunc_neg _ weightedSMul_union hf
+theorem vectorIntegral_neg {f : α →ₛ R} : vectorIntegral μ (-f) = -vectorIntegral μ f :=
+  setToVectorSimpleFunc_neg _ (weightedVectorSMul_union μ)
 
--- theorem integral_sub {f g : α →ₛ E} (hf : Integrable f μ) (hg : Integrable g μ) :
---     integral μ (f - g) = integral μ f - integral μ g :=
---   setToSimpleFunc_sub _ weightedSMul_union hf hg
+theorem vectorIntegral_sub {f g : α →ₛ R} :
+    vectorIntegral μ (f - g) = vectorIntegral μ f - vectorIntegral μ g :=
+  setToVectorSimpleFunc_sub _ (weightedVectorSMul_union μ)
 
--- theorem integral_smul [DistribSMul 𝕜 E] [SMulCommClass ℝ 𝕜 E]
---     (c : 𝕜) {f : α →ₛ E} (hf : Integrable f μ) :
---     integral μ (c • f) = c • integral μ f :=
---   setToSimpleFunc_smul _ weightedSMul_union weightedSMul_smul c hf
+theorem vectorIntegral_smul (c : R) {f : α →ₛ R} :
+    vectorIntegral μ (c • f) = c • vectorIntegral μ f :=
+  setToVectorSimpleFunc_smul _ (weightedVectorSMul_union μ) c
 
--- theorem norm_setToSimpleFunc_le_integral_norm (T : Set α → E →L[ℝ] F) {C : ℝ}
+theorem vectorIntegral_smul' {𝕜 : Type*} [SMulZeroClass 𝕜 R] [DistribSMul 𝕜 M] [IsScalarTower 𝕜 R M]
+    (c : 𝕜) {f : α →ₛ R} : vectorIntegral μ (c • f) = c • vectorIntegral μ f := by
+  apply setToVectorSimpleFunc_smul' _ (weightedVectorSMul_union μ) (weightedVectorSMul_smul' μ) c
+
+-- theorem norm_setToVectorSimpleFunc_le_integral_norm (T : Set α → E →L[ℝ] F) {C : ℝ}
 --     (hT_norm : ∀ s, MeasurableSet s → μ s < ∞ → ‖T s‖ ≤ C * μ.real s) {f : α →ₛ E}
 --     (hf : Integrable f μ) : ‖f.setToSimpleFunc T‖ ≤ C * (f.map norm).integral μ :=
 --   calc
 --     ‖f.setToSimpleFunc T‖ ≤ C * ∑ x ∈ f.range, μ.real (f ⁻¹' {x}) * ‖x‖ :=
---       norm_setToSimpleFunc_le_sum_mul_norm_of_integrable T hT_norm f hf
+--       norm_setToVectorSimpleFunc_le_sum_mul_norm_of_integrable T hT_norm f hf
 --     _ = C * (f.map norm).integral μ := by
 --       rw [map_integral f norm hf norm_zero]; simp_rw [smul_eq_mul]
 
 -- theorem norm_integral_le_integral_norm (f : α →ₛ E) (hf : Integrable f μ) :
 --     ‖f.integral μ‖ ≤ (f.map norm).integral μ := by
---   refine (norm_setToSimpleFunc_le_integral_norm _ (fun s _ _ => ?_) hf).trans (one_mul _).le
---   exact (norm_weightedSMul_le s).trans (one_mul _).symm.le
+--   refine (norm_setToVectorSimpleFunc_le_integral_norm _ (fun s _ _ => ?_) hf).trans (one_mul _).le
+--   exact (norm_weightedVectorSMul_le s).trans (one_mul _).symm.le
 
 -- theorem integral_add_measure {ν} (f : α →ₛ E) (hf : Integrable f (μ + ν)) :
 --     f.integral (μ + ν) = f.integral μ + f.integral ν := by
 --   simp_rw [integral_def]
---   refine setToSimpleFunc_add_left'
+--   refine setToVectorSimpleFunc_add_left'
 --     (weightedSMul μ) (weightedSMul ν) (weightedSMul (μ + ν)) (fun s _ hμνs => ?_) hf
 --   rw [lt_top_iff_ne_top, Measure.coe_add, Pi.add_apply, ENNReal.add_ne_top] at hμνs
---   rw [weightedSMul_add_measure _ _ hμνs.1 hμνs.2]
+--   rw [weightedVectorSMul_add_measure _ _ hμνs.1 hμνs.2]
 
 -- section Order
 
