@@ -254,7 +254,7 @@ theorem vectorIntegral_piecewise_zero (f : α →ₛ R) {s : Set α} (hs : Measu
     and `g` is a function from `E` to `F`. We require `g 0 = 0` so that `g ∘ f` is integrable. -/
 theorem map_vectorIntegral [NormedAddCommGroup S] (f : α →ₛ S) (g : S → R) (hg : g 0 = 0) :
     (f.map g).vectorIntegral μ = ∑ x ∈ f.range, g x • (μ (f ⁻¹' {x})) :=
-  map_setToVectorSimpleFunc _ (weightedVectorSMul_union μ) hg
+  map_setToVectorSimpleFunc _ (weightedVectorSMul_union μ)
 
 -- /-- `SimpleFunc.integral` and `SimpleFunc.lintegral` agree when the integrand has type
 --     `α →ₛ ℝ≥0∞`. But since `ℝ≥0∞` is not a `NormedSpace`, we need some form of coercion.
@@ -331,55 +331,66 @@ theorem vectorIntegral_smul' {𝕜 : Type*} [SMulZeroClass 𝕜 R] [DistribSMul 
 --   rw [lt_top_iff_ne_top, Measure.coe_add, Pi.add_apply, ENNReal.add_ne_top] at hμνs
 --   rw [weightedVectorSMul_add_measure _ _ hμνs.1 hμνs.2]
 
--- section Order
+section Order
 
--- variable [PartialOrder F] [IsOrderedAddMonoid F] [OrderedSMul ℝ F]
+variable [PartialOrder R] [PartialOrder M] [IsOrderedAddMonoid M]
+  [PosSMulMono R M]
 
--- lemma integral_nonneg {f : α →ₛ F} (hf : 0 ≤ᵐ[μ] f) :
---     0 ≤ f.integral μ := by
---   rw [integral_eq]
---   apply Finset.sum_nonneg
---   rw [forall_mem_range]
---   intro y
---   by_cases hy : 0 ≤ f y
---   · positivity
---   · suffices μ (f ⁻¹' {f y}) = 0 by simp [this, measureReal_def]
---     rw [← nonpos_iff_eq_zero]
---     refine le_of_le_of_eq (measure_mono fun x hx ↦ ?_) (ae_iff.mp hf)
---     simp only [Set.mem_preimage, mem_singleton_iff, mem_setOf_eq] at hx ⊢
---     exact hx ▸ hy
+lemma vectorIntegral_nonneg {f : α →ₛ R} (hf : 0 ≤ᵐ[μ.variation.ennrealToMeasure] f)
+    (hμ : 0 ≤ μ) : 0 ≤ f.vectorIntegral μ := by
+  rw [vectorIntegral_eq]
+  apply Finset.sum_nonneg
+  rw [forall_mem_range]
+  intro y
+  by_cases hy : 0 ≤ f y
+  · apply smul_nonneg hy
+    apply hμ
+    exact measurableSet_fiber f (f y)
+  · suffices hμ : μ.variation.ennrealToMeasure (f ⁻¹' {f y}) = 0 by
+      have : μ (f ⁻¹' {f y}) = 0 := by
+        exact measure_eq_zero_of_variation_eq_zero μ (⇑f ⁻¹' {f y}) hμ
+      rw [this]
+      simp
+    rw [Filter.EventuallyLE, Filter.eventually_iff, mem_ae_iff] at hf
+    rw [← nonpos_iff_eq_zero]
+    apply le_trans _ (le_of_eq hf)
+    apply measure_mono
+    simp only [Pi.zero_apply]
+    intro z hz
+    simp only [Set.mem_preimage, mem_singleton_iff] at hz
+    rw [← hz] at hy
+    exact hy
 
--- lemma integral_mono {f g : α →ₛ F} (h : f ≤ᵐ[μ] g) (hf : Integrable f μ) (hg : Integrable g μ) :
---     f.integral μ ≤ g.integral μ := by
---   rw [← sub_nonneg, ← integral_sub hg hf]
---   rw [← sub_nonneg_ae] at h
---   exact integral_nonneg h
+lemma vectorIntegral_mono [IsOrderedAddMonoid R] {f g : α →ₛ R}
+    (h : f ≤ᵐ[μ.variation.ennrealToMeasure] g) (hμ : 0 ≤ μ) : f.vectorIntegral μ ≤ g.vectorIntegral μ := by
+  rw [← sub_nonneg, ← vectorIntegral_sub]
+  rw [← sub_nonneg_ae] at h
+  exact vectorIntegral_nonneg μ h hμ
 
--- lemma integral_mono_measure {ν} {f : α →ₛ F} (hf : 0 ≤ᵐ[ν] f) (hμν : μ ≤ ν) (hfν : Integrable f ν) :
---     f.integral μ ≤ f.integral ν := by
---   simp only [integral_eq]
+-- lemma vectorIntegral_mono_measure {ν} {f : α →ₛ R} (hf : 0 ≤ᵐ[ν.variation.ennrealToMeasure] f)
+--     (hμν : μ ≤ ν) : f.vectorIntegral μ ≤ f.vectorIntegral ν := by
+--   simp only [vectorIntegral_eq]
 --   apply Finset.sum_le_sum
 --   simp only [forall_mem_range]
 --   intro x
 --   by_cases hx : 0 ≤ f x
 --   · obtain (hx | hx) := hx.eq_or_lt
 --     · simp [← hx]
---     simp only [measureReal_def]
 --     gcongr
---     · exact integrable_iff.mp hfν (f x) hx.ne' |>.ne
---     · exact hμν _
+--     · apply hμν
+--       exact measurableSet_fiber f (f x)
 --   · suffices ν (f ⁻¹' {f x}) = 0 by
 --       have A : μ (f ⁻¹' {f x}) = 0 := by simpa using (hμν _ |>.trans_eq this)
---       simp [measureReal_def, A, this]
+--       simp [A, this]
 --     rw [← nonpos_iff_eq_zero, ← ae_iff.mp hf]
 --     refine measure_mono fun y hy ↦ ?_
 --     simp_all
 
--- end Order
+end Order
 
--- end Integral
+end Integral
 
--- end SimpleFunc
+end SimpleFunc
 
 -- namespace L1
 

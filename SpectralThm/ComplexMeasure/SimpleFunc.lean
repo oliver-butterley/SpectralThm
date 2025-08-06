@@ -419,59 +419,60 @@ theorem setToVectorSimpleFunc_smul' {𝕜} [SMulZeroClass 𝕜 R]
     _ = ∑ x ∈ f.range, c • T (f ⁻¹' {x}) x := Finset.sum_congr rfl fun b _ => by rw [h_smul]
     _ = c • setToVectorSimpleFunc T f := by simp only [setToVectorSimpleFunc, smul_sum]
 
--- section Order
+section Order
 
--- variable {G' G'' : Type*}
---   [NormedAddCommGroup G''] [PartialOrder G''] [IsOrderedAddMonoid G''] [NormedSpace ℝ G'']
---   [NormedAddCommGroup G'] [PartialOrder G'] [NormedSpace ℝ G']
+variable [PartialOrder M] [IsOrderedAddMonoid M]
 
--- theorem setToSimpleFunc_mono_left {m : MeasurableSpace α} (T T' : Set α → F →L[ℝ] G'')
---     (hTT' : ∀ s x, T s x ≤ T' s x) (f : α →ₛ F) : setToSimpleFunc T f ≤ setToSimpleFunc T' f := by
---   simp_rw [setToSimpleFunc]; exact sum_le_sum fun i _ => hTT' _ i
+theorem setToVectorSimpleFunc_mono_left (T T' : Set α → R →L[R] M)
+    (hTT' : ∀ s x, T s x ≤ T' s x) (f : α →ₛ R) :
+    setToVectorSimpleFunc T f ≤ setToVectorSimpleFunc T' f := by
+  simp_rw [setToVectorSimpleFunc]; exact sum_le_sum fun i _ => hTT' _ i
 
--- theorem setToSimpleFunc_mono_left' (T T' : Set α → E →L[ℝ] G'')
---     (hTT' : ∀ s, MeasurableSet s → μ s < ∞ → ∀ x, T s x ≤ T' s x) (f : α →ₛ E)
---     (hf : Integrable f μ) : setToSimpleFunc T f ≤ setToSimpleFunc T' f := by
---   refine sum_le_sum fun i _ => ?_
---   by_cases h0 : i = 0
---   · simp [h0]
---   · exact hTT' _ (measurableSet_fiber _ _) (measure_preimage_lt_top_of_integrable _ hf h0) i
+theorem setToVectorSimpleFunc_mono_left' (T T' : Set α → R →L[R] M)
+    (hTT' : ∀ s, MeasurableSet s → ∀ x, T s x ≤ T' s x) (f : α →ₛ R) :
+    setToVectorSimpleFunc T f ≤ setToVectorSimpleFunc T' f := by
+  refine sum_le_sum fun i _ => ?_
+  by_cases h0 : i = 0
+  · simp [h0]
+  · exact hTT' _ (measurableSet_fiber _ _) i
 
--- theorem setToSimpleFunc_nonneg {m : MeasurableSpace α} (T : Set α → G' →L[ℝ] G'')
---     (hT_nonneg : ∀ s x, 0 ≤ x → 0 ≤ T s x) (f : α →ₛ G') (hf : 0 ≤ f) :
---     0 ≤ setToSimpleFunc T f := by
---   refine sum_nonneg fun i hi => hT_nonneg _ i ?_
---   rw [mem_range] at hi
---   obtain ⟨y, hy⟩ := Set.mem_range.mp hi
---   rw [← hy]
---   refine le_trans ?_ (hf y)
---   simp
+variable [PartialOrder R]
 
--- theorem setToSimpleFunc_nonneg' (T : Set α → G' →L[ℝ] G'')
---     (hT_nonneg : ∀ s, MeasurableSet s → μ s < ∞ → ∀ x, 0 ≤ x → 0 ≤ T s x) (f : α →ₛ G') (hf : 0 ≤ f)
---     (hfi : Integrable f μ) : 0 ≤ setToSimpleFunc T f := by
---   refine sum_nonneg fun i hi => ?_
---   by_cases h0 : i = 0
---   · simp [h0]
---   refine
---     hT_nonneg _ (measurableSet_fiber _ _) (measure_preimage_lt_top_of_integrable _ hfi h0) i ?_
---   rw [mem_range] at hi
---   obtain ⟨y, hy⟩ := Set.mem_range.mp hi
---   rw [← hy]
---   convert hf y
+theorem setToVectorSimpleFunc_nonneg (T : Set α → R →L[R] M)
+    (hT_nonneg : ∀ s x, 0 ≤ x → 0 ≤ T s x) (f : α →ₛ R) (hf : 0 ≤ f) :
+    0 ≤ setToVectorSimpleFunc T f := by
+  refine sum_nonneg fun i hi => hT_nonneg _ i ?_
+  rw [mem_range] at hi
+  obtain ⟨y, hy⟩ := Set.mem_range.mp hi
+  rw [← hy]
+  refine le_trans ?_ (hf y)
+  simp
 
--- theorem setToSimpleFunc_mono [IsOrderedAddMonoid G']
---     {T : Set α → G' →L[ℝ] G''} (h_add : FinMeasAdditive μ T)
---     (hT_nonneg : ∀ s, MeasurableSet s → μ s < ∞ → ∀ x, 0 ≤ x → 0 ≤ T s x) {f g : α →ₛ G'}
---     (hfi : Integrable f μ) (hgi : Integrable g μ) (hfg : f ≤ g) :
---     setToSimpleFunc T f ≤ setToSimpleFunc T g := by
---   rw [← sub_nonneg, ← setToSimpleFunc_sub T h_add hgi hfi]
---   refine setToSimpleFunc_nonneg' T hT_nonneg _ ?_ (hgi.sub hfi)
---   intro x
---   simp only [coe_sub, sub_nonneg, coe_zero, Pi.zero_apply, Pi.sub_apply]
---   exact hfg x
+theorem setToVectorSimpleFunc_nonneg' (T : Set α → R →L[R] M)
+    (hT_nonneg : ∀ s, MeasurableSet s → ∀ x, 0 ≤ x → 0 ≤ T s x) (f : α →ₛ R) (hf : 0 ≤ f) :
+    0 ≤ setToVectorSimpleFunc T f := by
+  refine sum_nonneg fun i hi => ?_
+  by_cases h0 : i = 0
+  · simp [h0]
+  refine
+    hT_nonneg _ (measurableSet_fiber _ _) i ?_
+  rw [mem_range] at hi
+  obtain ⟨y, hy⟩ := Set.mem_range.mp hi
+  rw [← hy]
+  convert hf y
 
--- end Order
+theorem setToVectorSimpleFunc_mono [IsOrderedAddMonoid R]
+    {T : Set α → R →L[R] M}
+    (h_add : ∀ s t, MeasurableSet s → MeasurableSet t → Disjoint s t → T (s ∪ t) = T s + T t)
+    (hT_nonneg : ∀ s, MeasurableSet s → ∀ x, 0 ≤ x → 0 ≤ T s x) {f g : α →ₛ R} (hfg : f ≤ g) :
+    setToVectorSimpleFunc T f ≤ setToVectorSimpleFunc T g := by
+  rw [← sub_nonneg, ← setToVectorSimpleFunc_sub T h_add]
+  refine setToVectorSimpleFunc_nonneg' T hT_nonneg _ ?_
+  intro x
+  simp only [coe_sub, sub_nonneg, coe_zero, Pi.zero_apply, Pi.sub_apply]
+  exact hfg x
+
+end Order
 
 -- theorem norm_setToSimpleFunc_le_sum_opNorm {m : MeasurableSpace α} (T : Set α → F' →L[ℝ] F)
 --     (f : α →ₛ F') : ‖f.setToSimpleFunc T‖ ≤ ∑ x ∈ f.range, ‖T (f ⁻¹' {x})‖ * ‖x‖ :=
