@@ -5,7 +5,6 @@ Authors: Yoh Tanimoto
 -/
 -- import Mathlib.MeasureTheory.VectorMeasure.Basic
 import Mathlib
-import SpectralThm.ComplexMeasure.SimpleFunc
 import SpectralThm.toMathlib.Variation.Lemmas
 
 -- /-!
@@ -558,7 +557,7 @@ def vectorIntegral (f : α →₁[μ.variation.ennrealToMeasure] E) : G :=
 
 variable (f : α →₁[μ.variation.ennrealToMeasure] E)
 
-#check vectorIntegral B μ f
+#check vectorIntegral
 
 -- -- variable (𝕜) in
 -- -- /-- The Bochner integral in L1 space as a continuous linear map. -/
