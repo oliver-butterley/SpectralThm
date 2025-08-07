@@ -6,6 +6,7 @@ Authors: Yoh Tanimoto
 -- import Mathlib.MeasureTheory.VectorMeasure.Basic
 import Mathlib
 import SpectralThm.ComplexMeasure.SimpleFunc
+import SpectralThm.toMathlib.Variation.Lemmas
 
 -- /-!
 -- # Bochner integral
@@ -61,102 +62,102 @@ noncomputable section
 open Filter ENNReal Set MeasureTheory VectorMeasure ContinuousLinearMap
 open scoped NNReal ENNReal MeasureTheory
 
-variable {α E F G R S K: Type*}
+variable {α E F G : Type*}
 
 namespace MeasureTheory
 
 section weightedVectorSMul
 
-variable [m : MeasurableSpace α] [NormedAddCommGroup E] [NontriviallyNormedField R]
-  [NormedSpace R E]
-  [NormedAddCommGroup F] [NontriviallyNormedField S]
-  [NormedSpace S F] (μ : VectorMeasure α F)
-  [NormedAddCommGroup G] [NontriviallyNormedField K] [NormedSpace K G]
-  {σ : R →+* K} {ρ : S →+* K} (B : E →SL[σ] F →SL[ρ] G)
-  (μ : VectorMeasure α F)
+variable [m : MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [NormedAddCommGroup F] [NormedSpace ℝ F] (μ : VectorMeasure α F)
+  [NormedAddCommGroup G] [NormedSpace ℝ G]
+  (B : E →L[ℝ] F →L[ℝ] G) (μ : VectorMeasure α F)
 
 /-- Given a set `s`, return the continuous linear map `fun x => (μ s) x`. The extension
 of that set function through `setToL1` gives the Bochner integral of L1 functions. -/
-def weightedVectorSMul (s : Set α) : E →SL[σ] G where
+def weightedVectorSMul (s : Set α) : E →L[ℝ] G where
   toFun c := B c (μ s)
   map_add' _ _ := map_add₂ B _ _ (μ s)
   map_smul' _ _ := map_smulₛₗ₂ B _ _ (μ s)
 
--- @[simp]
--- theorem weightedVectorSMul_apply (s : Set α) (c : R) : weightedVectorSMul μ s c = c • (μ s) := rfl
+@[simp]
+theorem weightedVectorSMul_apply (s : Set α) (x : E) : weightedVectorSMul B μ s x = B x (μ s) := rfl
 
--- @[simp]
--- theorem weightedVectorSMul_zero_measure :
---     weightedVectorSMul (0 : VectorMeasure α M) = (0 : Set α → R →L[R] M) := by ext; simp
+@[simp]
+theorem weightedVectorSMul_zero_measure :
+    weightedVectorSMul B (0 : VectorMeasure α F) = (0 : Set α → E →L[ℝ] G) := by ext; simp
 
--- @[simp]
--- theorem weightedVectorSMul_empty :
---     weightedVectorSMul μ ∅ = (0 : R →L[R] M) := by ext; simp
+@[simp]
+theorem weightedVectorSMul_empty :
+    weightedVectorSMul B μ ∅ = (0 : E →L[ℝ] G) := by ext; simp
 
--- theorem weightedVectorSMul_smul_vectorMeasure (a b : R) {s : Set α} :
---     (weightedVectorSMul (a • μ) s) b = b • (weightedVectorSMul μ s a) := by simp
+theorem weightedVectorSMul_smul_vectorMeasure (a : ℝ) (b : E) {s : Set α} :
+    (weightedVectorSMul B (a • μ) s) b = a • (weightedVectorSMul B μ s b) := by simp
 
--- theorem weightedVectorSMul_congr (s t : Set α) (hst : μ s = μ t) :
---     (weightedVectorSMul μ s : R →L[R] M) = weightedVectorSMul μ t := by
---   ext
---   simp only [weightedVectorSMul_apply, one_smul]
---   exact hst
+theorem weightedVectorSMul_congr (s t : Set α) (hst : μ s = μ t) :
+    (weightedVectorSMul B μ s : E →L[ℝ] G) = weightedVectorSMul B μ t := by
+  ext
+  simp only [weightedVectorSMul_apply]
+  exact congrArg (B _) hst
 
--- theorem weightedVectorSMul_null {s : Set α} (h_zero : μ s = 0) :
---     (weightedVectorSMul μ s : R →L[R] M) = 0 := by
---   ext
---   simp only [weightedVectorSMul_apply, one_smul, ContinuousLinearMap.zero_apply]
---   exact h_zero
+theorem weightedVectorSMul_null {s : Set α} (h_zero : μ s = 0) :
+    (weightedVectorSMul B μ s : E →L[ℝ] G) = 0 := by ext; simp [h_zero]
 
 -- theorem weightedVectorSMul_nonneg [PartialOrder M] [PartialOrder R] [OrderedSMul R M]
 --     {s : Set α} {c : R} (hs : 0 ≤ μ s) (hc : 0 ≤ c) : 0 ≤ weightedVectorSMul μ s c := by
 --   simp only [weightedVectorSMul_apply]
 --   exact smul_nonneg hc hs
 
--- theorem weightedVectorSMul_smul (c : R) (s : Set α) (x : R) :
---     weightedVectorSMul μ s (c • x) = c • weightedVectorSMul μ s x := by
---   simp only [weightedVectorSMul_apply]
---   exact smul_assoc c x (μ s)
+theorem weightedVectorSMul_smul (c : ℝ) (s : Set α) (x : E) :
+    weightedVectorSMul B μ s (c • x) = c • weightedVectorSMul B μ s x := by simp
 
--- theorem weightedVectorSMul_smul' {𝕜 : Type*} [SMul 𝕜 M] [SMul 𝕜 R] [IsScalarTower 𝕜 R M]
---     (c : 𝕜) (s : Set α) (x : R) :
---     weightedVectorSMul μ s (c • x) = c • weightedVectorSMul μ s x := by
---   simp only [weightedVectorSMul_apply]
---   exact smul_assoc c x (μ s)
+theorem weightedVectorSMul_add_vectorMeasure (ν : VectorMeasure α F) {s : Set α} :
+    (weightedVectorSMul B (μ + ν) s : E →L[ℝ] G)
+    = weightedVectorSMul B μ s + weightedVectorSMul B ν s := by ext; simp
 
--- variable [ContinuousAdd M]
+theorem weightedVectorSMul_union (s t : Set α) (hs : MeasurableSet s) (ht : MeasurableSet t)
+    (hs_finite : μ.variation.ennrealToMeasure s ≠ ∞) (ht_finite : μ.variation.ennrealToMeasure t ≠ ∞)
+    (hdisj : Disjoint s t) :
+    (weightedVectorSMul B μ (s ∪ t) : E →L[ℝ] G)
+    = weightedVectorSMul B μ s + weightedVectorSMul B μ t := by
+  ext x
+  simp only [weightedVectorSMul_apply, ContinuousLinearMap.add_apply]
+  rw [← (B x).map_add]
+  congr
+  exact of_union hdisj hs ht
 
--- theorem weightedVectorSMul_add_vectorMeasure (ν : VectorMeasure α M) {s : Set α} :
---     (weightedVectorSMul (μ + ν) s : R →L[R] M) = weightedVectorSMul μ s + weightedVectorSMul ν s := by ext; simp
+end weightedVectorSMul
 
--- variable [T2Space M]
+section NormedWeightedVectorSMul
 
--- theorem weightedVectorSMul_union (s t : Set α) (hs : MeasurableSet s) (ht : MeasurableSet t)
---     (hdisj : Disjoint s t) :
---     (weightedVectorSMul μ (s ∪ t) : R →L[R] M) = weightedVectorSMul μ s + weightedVectorSMul μ t := by
---   ext
---   simp only [weightedVectorSMul_apply, one_smul, ContinuousLinearMap.add_apply]
---   exact of_union hdisj hs ht
+variable [m : MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [NormedAddCommGroup F] [NormedSpace ℝ F] (μ : VectorMeasure α F)
+  [NormedAddCommGroup G] [NormedSpace ℝ G]
+  (B : E →L[ℝ] F →L[ℝ] G) (μ : VectorMeasure α F)
 
--- end weightedVectorSMul
+theorem norm_weightedVectorSMul_le (s : Set α) :
+    ‖(weightedVectorSMul B μ s : E →L[ℝ] G)‖ ≤ ‖B‖ * ‖μ s‖ := by
+  rw [ContinuousLinearMap.opNorm_le_iff (mul_nonneg (norm_nonneg B) (norm_nonneg (μ s)))]
+  intro x
+  simp only [weightedVectorSMul_apply]
+  apply le_trans (le_opNorm (B x) (μ s))
+  rw [mul_assoc, mul_comm _ ‖x‖, ← mul_assoc]
+  gcongr
+  exact le_opNorm B x
 
--- section NormedWeightedVectorSMul
+theorem dominatedFinMeasAdditive_weightedVectorSMul :
+    DominatedFinMeasAdditive (μ.variation.ennrealToMeasure)
+    (weightedVectorSMul B μ : Set α → E →L[ℝ] G) ‖B‖ := by
+  constructor
+  · exact fun s t hs ht hsf htf hdisj => weightedVectorSMul_union B μ s t hs ht hsf htf hdisj
+  · intro s hs hsf
+    apply (fun s _ _ => (norm_weightedVectorSMul_le B μ s).trans)
+    gcongr
+    rw [Measure.real, ← ofReal_le_iff_le_toReal (LT.lt.ne_top hsf), ennrealToMeasure_apply hs,
+      ofReal_norm ]
+    exact norm_measure_le_variation μ s
 
--- variable [MeasurableSpace α] [SeminormedAddCommGroup M] [NontriviallyNormedField R]
---   [NormedSpace R M] (μ : VectorMeasure α M)
-
--- -- theorem dominatedFinMeasAdditive_weightedSMul {_ : MeasurableSpace α} :
--- --     DominatedFinMeasAdditive μ (weightedSMul μ : Set α → R →L[R] M) 1 :=
--- --   ⟨weightedSMul_union, fun s _ _ => (norm_weightedSMul_le s).trans (one_mul _).symm.le⟩
-
--- theorem norm_weightedVectorSMul_le (s : Set α) :
---     ‖(weightedVectorSMul μ s : R →L[R] M)‖ ≤ ‖μ s‖ := by
---   rw [ContinuousLinearMap.opNorm_le_iff (norm_nonneg (μ s))]
---   intro c
---   simp only [weightedVectorSMul_apply, mul_comm]
---   exact norm_smul_le _ _
-
--- end NormedWeightedVectorSMul
+end NormedWeightedVectorSMul
 
 
 -- local infixr:25 " →ₛ " => SimpleFunc
@@ -539,18 +540,25 @@ def weightedVectorSMul (s : Set α) : E →SL[σ] G where
 
 -- -- end SimpleFunc
 
--- -- open SimpleFunc
+open SimpleFunc L1
 
--- -- local notation "Integral" => @integralCLM α E _ _ _ _ _ μ _
+section IntegrationInL1
 
--- -- variable [NormedSpace ℝ E] [NormedRing 𝕜] [Module 𝕜 E] [IsBoundedSMul 𝕜 E] [SMulCommClass ℝ 𝕜 E]
--- --   [CompleteSpace E]
-
--- -- section IntegrationInL1
+variable [m : MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [NormedAddCommGroup F] [NormedSpace ℝ F] (μ : VectorMeasure α F)
+  [NormedAddCommGroup G] [NormedSpace ℝ G] [CompleteSpace G]
+  (B : E →L[ℝ] F →L[ℝ] G) (μ : VectorMeasure α F)
 
 -- -- attribute [local instance] simpleFunc.isBoundedSMul simpleFunc.module
 
--- -- open ContinuousLinearMap
+open ContinuousLinearMap
+
+def vectorIntegral (f : α →₁[μ.variation.ennrealToMeasure] E) : G :=
+    setToL1 (dominatedFinMeasAdditive_weightedVectorSMul B μ) f
+
+variable (f : α →₁[μ.variation.ennrealToMeasure] E)
+
+#check vectorIntegral B μ f
 
 -- -- variable (𝕜) in
 -- -- /-- The Bochner integral in L1 space as a continuous linear map. -/
