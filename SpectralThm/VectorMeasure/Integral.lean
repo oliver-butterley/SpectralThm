@@ -68,7 +68,7 @@ namespace MeasureTheory
 section weightedVectorSMul
 
 variable [m : MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
-  [NormedAddCommGroup F] [NormedSpace ℝ F] (μ : VectorMeasure α F)
+  [NormedAddCommGroup F] [NormedSpace ℝ F]
   [NormedAddCommGroup G] [NormedSpace ℝ G]
   (B : E →L[ℝ] F →L[ℝ] G) (μ : VectorMeasure α F)
 
@@ -541,10 +541,19 @@ end NormedWeightedVectorSMul
 
 open SimpleFunc L1
 
+section ScalarSMul
+
+def scalarSMulCLM (F : Type*) [NormedAddCommGroup F] [NormedSpace ℝ F] : ℝ →L[ℝ] F →L[ℝ] F where
+  toFun c := c • (id ℝ F)
+  map_add' _ _ := Module.add_smul _ _ (ContinuousLinearMap.id ℝ F)
+  map_smul' _ _ := IsScalarTower.smul_assoc _ _ (ContinuousLinearMap.id ℝ F)
+
+end ScalarSMul
+
 section IntegrationInL1
 
 variable [m : MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
-  [NormedAddCommGroup F] [NormedSpace ℝ F] (μ : VectorMeasure α F)
+  [NormedAddCommGroup F] [NormedSpace ℝ F]
   [NormedAddCommGroup G] [NormedSpace ℝ G] [CompleteSpace G]
   (B : E →L[ℝ] F →L[ℝ] G) (μ : VectorMeasure α F)
 
@@ -552,12 +561,15 @@ variable [m : MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
 
 open ContinuousLinearMap
 
-def vectorIntegral (f : α →₁[μ.variation.ennrealToMeasure] E) : G :=
+namespace VectorMeasure
+
+def pairingIntegral (f : α →₁[μ.variation.ennrealToMeasure] E) : G :=
     setToL1 (dominatedFinMeasAdditive_weightedVectorSMul B μ) f
 
 variable (f : α →₁[μ.variation.ennrealToMeasure] E)
 
-#check vectorIntegral
+def integral [CompleteSpace F] (f : α →₁[μ.variation.ennrealToMeasure] ℝ) : F :=
+    pairingIntegral (scalarSMulCLM F) μ f
 
 -- -- variable (𝕜) in
 -- -- /-- The Bochner integral in L1 space as a continuous linear map. -/
@@ -588,33 +600,31 @@ variable (f : α →₁[μ.variation.ennrealToMeasure] E)
 
 -- -- variable (α E)
 
--- -- @[simp]
--- -- theorem integral_zero : integral (0 : α →₁[μ] E) = 0 := by
--- --   simp only [integral]
--- --   exact map_zero integralCLM
+@[simp]
+theorem pairingIntegral_zero :
+    pairingIntegral B μ (0 : α →₁[μ.variation.ennrealToMeasure] E) = 0 := by simp [pairingIntegral]
 
 -- -- variable {α E}
 
--- -- @[integral_simps]
--- -- theorem integral_add (f g : α →₁[μ] E) : integral (f + g) = integral f + integral g := by
--- --   simp only [integral]
--- --   exact map_add integralCLM f g
+@[integral_simps]
+theorem pairingIntegral_add (f g : α →₁[μ.variation.ennrealToMeasure] E) :
+    pairingIntegral B μ (f + g) = pairingIntegral B μ f + pairingIntegral B μ g := by
+  simp [pairingIntegral]
 
--- -- @[integral_simps]
--- -- theorem integral_neg (f : α →₁[μ] E) : integral (-f) = -integral f := by
--- --   simp only [integral]
--- --   exact map_neg integralCLM f
+@[integral_simps]
+theorem pairingIntegral_neg (f : α →₁[μ.variation.ennrealToMeasure] E) :
+    pairingIntegral B μ  (-f) = -pairingIntegral B μ f := by
+  simp [pairingIntegral]
 
--- -- @[integral_simps]
--- -- theorem integral_sub (f g : α →₁[μ] E) : integral (f - g) = integral f - integral g := by
--- --   simp only [integral]
--- --   exact map_sub integralCLM f g
+@[integral_simps]
+theorem pairingIntegral_sub (f g : α →₁[μ.variation.ennrealToMeasure] E) :
+    pairingIntegral B μ (f - g) = pairingIntegral B μ f - pairingIntegral B μ g := by
+  simp [pairingIntegral]
 
--- -- @[integral_simps]
--- -- theorem integral_smul (c : 𝕜) (f : α →₁[μ] E) : integral (c • f) = c • integral f := by
--- --   simp only [integral]
--- --   change (integralCLM' 𝕜) (c • f) = c • (integralCLM' 𝕜) f
--- --   exact map_smul (integralCLM' 𝕜) c f
+@[integral_simps]
+theorem pairingIntegral_smul (c : ℝ) (f : α →₁[μ.variation.ennrealToMeasure] E) :
+    pairingIntegral B μ (c • f) = c • pairingIntegral B μ f := by
+  simp [pairingIntegral]
 
 -- -- theorem norm_Integral_le_one : ‖integralCLM (α := α) (E := E) (μ := μ)‖ ≤ 1 :=
 -- --   norm_setToL1_le (dominatedFinMeasAdditive_weightedSMul μ) zero_le_one
