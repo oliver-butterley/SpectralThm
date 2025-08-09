@@ -4,56 +4,44 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yoh Tanimoto
 -/
 -- import Mathlib.MeasureTheory.VectorMeasure.Basic
-import Mathlib
+import Mathlib.Analysis.InnerProductSpace.Basic
+import Mathlib.MeasureTheory.Integral.SetToL1
 import SpectralThm.toMathlib.Variation.Lemmas
 
--- /-!
--- # Bochner integral
+/-!
+# Integral of vector-valued function against vector measure
 
--- The Bochner integral extends the definition of the Lebesgue integral to functions that map from a
--- measure space into a Banach space (complete normed vector space). It is constructed here
--- for L1 functions by extending the integral on simple functions. See the file
--- `Mathlib/MeasureTheory/Integral/Bochner/Basic.lean` for the integral of functions
--- and corresponding API.
+We extend the definition of the Bochner integral (of vector-valued function against `ℝ≥0∞`-valued
+measure) to vector measures through a bilinear pairing.
+Let `E`, `F` be normed vector spaces, and `G` be a Banach space (complete normed vector space).
+We fix a continuous linear pairing `B : E →L[ℝ] F →L[ℝ] → G` and an `F`-valued vector measure `μ`
+on a measurable space `α`.
+The vector measure `μ` gives the total variation measure `μ.totalvariation.ennrealToMeasure` on `α`.
+For an L1 function `f : α → E` with respect to this total variation measure,
+we define the `G`-valued integral, which is informally written `∫ B (f x) ∂μ x`.
 
--- ## Main definitions
+The pairing integral is defined through the general setting `setToL1` which sends
+a set function to a continuous linear map on the type of L1 functions, see the file
+`Mathlib/MeasureTheory/Integral/SetToL1.lean`.
 
--- The Bochner integral is defined through the extension process described in the file
--- `Mathlib/MeasureTheory/Integral/SetToL1.lean`, which follows these steps:
+## Main definitions
 
--- 1. Define the integral of the indicator of a set. This is `weightedSMul μ s x = μ.real s * x`.
---   `weightedSMul μ` is shown to be linear in the value `x` and `DominatedFinMeasAdditive`
---   (defined in the file `Mathlib/MeasureTheory/Integral/SetToL1.lean`) with respect to the set `s`.
+The pairing integral is defined through the extension process described in the file
+`Mathlib/MeasureTheory/Integral/SetToL1.lean`, which follows these steps:
 
--- 2. Define the integral on simple functions of the type `SimpleFunc α E` (notation : `α →ₛ E`)
---   where `E` is a real normed space. (See `SimpleFunc.integral` for details.)
+1. Define the integral of the indicator of a set. This is `weightedVectorSMul B μ s x = B x (μ s)`.
+  `weightedVectorSMul B μ` is shown to be linear in the value `x` and `DominatedFinMeasAdditive`
+  (defined in the file `Mathlib/MeasureTheory/Integral/SetToL1.lean`) with respect to the set `s`.
 
--- 3. Transfer this definition to define the integral on `L1.simpleFunc α E` (notation :
---   `α →₁ₛ[μ] E`), see `L1.simpleFunc.integral`. Show that this integral is a continuous linear
---   map from `α →₁ₛ[μ] E` to `E`.
+2. Define the pairing integral on L1 functions `f` as `setToL1 (...) f`. Note that, differently
+  from the definition of Bochner integral, here `setToL1` is already a continuous linear map from
+  L1 functions, not from step functions.
 
--- 4. Define the Bochner integral on L1 functions by extending the integral on integrable simple
---   functions `α →₁ₛ[μ] E` using `ContinuousLinearMap.extend` and the fact that the embedding of
---   `α →₁ₛ[μ] E` into `α →₁[μ] E` is dense.
+## Notations
 
--- ## Notations
+* `α →₁[μ.variation.ennrealToVectorMeasure] E` : `E`-valued functions in L1 space.
 
--- * `α →ₛ E` : simple functions (defined in `Mathlib/MeasureTheory/Function/SimpleFunc.lean`)
--- * `α →₁[μ] E` : functions in L1 space, i.e., equivalence classes of integrable functions (defined in
---                 `Mathlib/MeasureTheory/Function/LpSpace/Basic.lean`)
--- * `α →₁ₛ[μ] E` : simple functions in L1 space, i.e., equivalence classes of integrable simple
---                  functions (defined in `Mathlib/MeasureTheory/Function/SimpleFuncDense`)
-
--- We also define notations for integral on a set, which are described in the file
--- `Mathlib/MeasureTheory/Integral/SetIntegral.lean`.
-
--- Note : `ₛ` is typed using `\_s`. Sometimes it shows as a box if the font is missing.
-
--- ## Tags
-
--- Bochner integral, simple function, function space, Lebesgue dominated convergence theorem
-
--- -/
+-/
 
 
 noncomputable section
@@ -73,7 +61,7 @@ variable [m : MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
   (B : E →L[ℝ] F →L[ℝ] G) (μ : VectorMeasure α F)
 
 /-- Given a set `s`, return the continuous linear map `fun x => (μ s) x`. The extension
-of that set function through `setToL1` gives the Bochner integral of L1 functions. -/
+of that set function through `setToL1` gives the pairing integral of L1 functions. -/
 def weightedVectorSMul (s : Set α) : E →L[ℝ] G where
   toFun c := B c (μ s)
   map_add' _ _ := map_add₂ B _ _ (μ s)
@@ -115,7 +103,6 @@ theorem weightedVectorSMul_add_vectorMeasure (ν : VectorMeasure α F) {s : Set 
     = weightedVectorSMul B μ s + weightedVectorSMul B ν s := by ext; simp
 
 theorem weightedVectorSMul_union (s t : Set α) (hs : MeasurableSet s) (ht : MeasurableSet t)
-    (hs_finite : μ.variation.ennrealToMeasure s ≠ ∞) (ht_finite : μ.variation.ennrealToMeasure t ≠ ∞)
     (hdisj : Disjoint s t) :
     (weightedVectorSMul B μ (s ∪ t) : E →L[ℝ] G)
     = weightedVectorSMul B μ s + weightedVectorSMul B μ t := by
@@ -148,7 +135,7 @@ theorem dominatedFinMeasAdditive_weightedVectorSMul :
     DominatedFinMeasAdditive (μ.variation.ennrealToMeasure)
     (weightedVectorSMul B μ : Set α → E →L[ℝ] G) ‖B‖ := by
   constructor
-  · exact fun s t hs ht hsf htf hdisj => weightedVectorSMul_union B μ s t hs ht hsf htf hdisj
+  · exact fun s t hs ht _ _ hdisj => weightedVectorSMul_union B μ s t hs ht hdisj
   · intro s hs hsf
     apply (fun s _ _ => (norm_weightedVectorSMul_le B μ s).trans)
     gcongr
@@ -541,14 +528,14 @@ end NormedWeightedVectorSMul
 
 open SimpleFunc L1
 
-section ScalarSMul
+-- section ScalarSMul
 
-def scalarSMulCLM (F : Type*) [NormedAddCommGroup F] [NormedSpace ℝ F] : ℝ →L[ℝ] F →L[ℝ] F where
-  toFun c := c • (id ℝ F)
-  map_add' _ _ := Module.add_smul _ _ (ContinuousLinearMap.id ℝ F)
-  map_smul' _ _ := IsScalarTower.smul_assoc _ _ (ContinuousLinearMap.id ℝ F)
+-- def scalarSMulCLM (F : Type*) [NormedAddCommGroup F] [NormedSpace ℝ F] : ℝ →L[ℝ] F →L[ℝ] F where
+--   toFun c := c • (id ℝ F)
+--   map_add' _ _ := Module.add_smul _ _ (ContinuousLinearMap.id ℝ F)
+--   map_smul' _ _ := IsScalarTower.smul_assoc _ _ (ContinuousLinearMap.id ℝ F)
 
-end ScalarSMul
+-- end ScalarSMul
 
 section IntegrationInL1
 
@@ -563,19 +550,17 @@ open ContinuousLinearMap
 
 namespace VectorMeasure
 
-def pairingIntegral (f : α →₁[μ.variation.ennrealToMeasure] E) : G :=
-    setToL1 (dominatedFinMeasAdditive_weightedVectorSMul B μ) f
+
+-- -- variable (𝕜) in
+-- nonrec def?
+/-- The Bochner integral in L1 space as a continuous linear map. -/
+def pairingIntegralCLM : (α →₁[μ.variation.ennrealToMeasure] E) →L[ℝ] G :=
+    setToL1 (dominatedFinMeasAdditive_weightedVectorSMul B μ)
 
 variable (f : α →₁[μ.variation.ennrealToMeasure] E)
 
-def integral [CompleteSpace F] (f : α →₁[μ.variation.ennrealToMeasure] ℝ) : F :=
-    pairingIntegral (scalarSMulCLM F) μ f
-
--- -- variable (𝕜) in
--- -- /-- The Bochner integral in L1 space as a continuous linear map. -/
--- -- nonrec def integralCLM' : (α →₁[μ] E) →L[𝕜] E :=
--- --   (integralCLM' α E 𝕜 μ).extend (coeToLp α E 𝕜) (simpleFunc.denseRange one_ne_top)
--- --     simpleFunc.isUniformInducing
+-- def integralCLM [CompleteSpace F] (f : α →₁[μ.variation.ennrealToMeasure] ℝ) : F :=
+--     pairingIntegralCLM (scalarSMulCLM F) μ f
 
 -- -- /-- The Bochner integral in L1 space as a continuous linear map over ℝ. -/
 -- -- def integralCLM : (α →₁[μ] E) →L[ℝ] E :=
@@ -601,33 +586,45 @@ def integral [CompleteSpace F] (f : α →₁[μ.variation.ennrealToMeasure] ℝ
 -- -- variable (α E)
 
 @[simp]
-theorem pairingIntegral_zero :
-    pairingIntegral B μ (0 : α →₁[μ.variation.ennrealToMeasure] E) = 0 := by simp [pairingIntegral]
+theorem pairingIntegralCLM_zero :
+    pairingIntegralCLM B μ (0 : α →₁[μ.variation.ennrealToMeasure] E) = 0 := by simp [pairingIntegralCLM]
 
 -- -- variable {α E}
 
 @[integral_simps]
-theorem pairingIntegral_add (f g : α →₁[μ.variation.ennrealToMeasure] E) :
-    pairingIntegral B μ (f + g) = pairingIntegral B μ f + pairingIntegral B μ g := by
-  simp [pairingIntegral]
+theorem pairingIntegralCLM_add (f g : α →₁[μ.variation.ennrealToMeasure] E) :
+    pairingIntegralCLM B μ (f + g) = pairingIntegralCLM B μ f + pairingIntegralCLM B μ g := by
+  simp [pairingIntegralCLM]
 
 @[integral_simps]
-theorem pairingIntegral_neg (f : α →₁[μ.variation.ennrealToMeasure] E) :
-    pairingIntegral B μ  (-f) = -pairingIntegral B μ f := by
-  simp [pairingIntegral]
+theorem pairingIntegralCLM_neg (f : α →₁[μ.variation.ennrealToMeasure] E) :
+    pairingIntegralCLM B μ  (-f) = -pairingIntegralCLM B μ f := by
+  simp [pairingIntegralCLM]
 
 @[integral_simps]
-theorem pairingIntegral_sub (f g : α →₁[μ.variation.ennrealToMeasure] E) :
-    pairingIntegral B μ (f - g) = pairingIntegral B μ f - pairingIntegral B μ g := by
-  simp [pairingIntegral]
+theorem pairingIntegralCLM_sub (f g : α →₁[μ.variation.ennrealToMeasure] E) :
+    pairingIntegralCLM B μ (f - g) = pairingIntegralCLM B μ f - pairingIntegralCLM B μ g := by
+  simp [pairingIntegralCLM]
 
 @[integral_simps]
-theorem pairingIntegral_smul (c : ℝ) (f : α →₁[μ.variation.ennrealToMeasure] E) :
-    pairingIntegral B μ (c • f) = c • pairingIntegral B μ f := by
-  simp [pairingIntegral]
+theorem pairingIntegralCLM_smul (c : ℝ) (f : α →₁[μ.variation.ennrealToMeasure] E) :
+    pairingIntegralCLM B μ (c • f) = c • pairingIntegralCLM B μ f := by
+  simp [pairingIntegralCLM]
 
--- -- theorem norm_Integral_le_one : ‖integralCLM (α := α) (E := E) (μ := μ)‖ ≤ 1 :=
--- --   norm_setToL1_le (dominatedFinMeasAdditive_weightedSMul μ) zero_le_one
+@[simp]
+lemma pairingIntegralCLM_apply (f : (α →₁[μ.variation.ennrealToMeasure] E)) :
+    pairingIntegralCLM B μ f =  setToL1 (dominatedFinMeasAdditive_weightedVectorSMul B μ) f := rfl
+
+  -- (integralCLM' α E 𝕜 μ).extend (coeToLp α E 𝕜) (simpleFunc.denseRange one_ne_top)
+  --   simpleFunc.isUniformInducing
+
+theorem norm_pairingIntegralCLM_le_norm (f : (α →₁[μ.variation.ennrealToMeasure] E)) :
+    ‖pairingIntegralCLM B μ f‖ ≤ ‖B‖ * ‖f‖:= by
+  simp only [pairingIntegralCLM_apply]
+  exact norm_setToL1_le_mul_norm (dominatedFinMeasAdditive_weightedVectorSMul B μ) (norm_nonneg B) f
+
+theorem norm_paringIntegralCLM_le_norm : ‖pairingIntegralCLM B μ‖ ≤ ‖B‖ :=
+  (ContinuousLinearMap.opNorm_le_iff (norm_nonneg B)).mpr (norm_pairingIntegralCLM_le_norm B μ)
 
 -- -- theorem nnnorm_Integral_le_one : ‖integralCLM (α := α) (E := E) (μ := μ)‖₊ ≤ 1 :=
 -- --   norm_Integral_le_one
