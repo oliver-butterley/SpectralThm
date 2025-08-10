@@ -32,31 +32,36 @@ The pairing integral is defined through the extension process described in the f
   `weightedVectorSMul B μ` is shown to be linear in the value `x` and `DominatedFinMeasAdditive`
   (defined in the file `Mathlib/MeasureTheory/Integral/SetToL1.lean`) with respect to the set `s`.
 
-2. Define the pairing integral on L1 functions `f` as `setToL1 (...) f`. Note that, differently
+2. Define the structure `VectorMeasureWithPairing`, combining a pairing of two normed vector spaces
+   and a vector measure.
+
+3. Define the pairing integral on L1 functions `f` as `setToL1 (...) f`. Note that, differently
   from the definition of Bochner integral, here `setToL1` is already a continuous linear map from
   L1 functions, not from step functions.
 
-## Notations
+## Note
 
-* `α →₁[μ.variation.ennrealToVectorMeasure] E` : `E`-valued functions in L1 space.
+Let be `Bμ : VectorMeasureWithPairing`.
+We often consider L1 functions with respect to the total variation of `Bμ.vectorMeasure`:
+* `α →₁[Bμ.vectorMeasure.variation.ennrealToVectorMeasure] E` : `E`-valued functions in L1 space.
 
 -/
 
 open ENNReal Set MeasureTheory VectorMeasure ContinuousLinearMap
 
-
 namespace MeasureTheory
 
 section weightedVectorSMul
 
-variable {α E F G : Type*} [m : MeasurableSpace α]
+variable {α E F G : Type*} [MeasurableSpace α]
   [NormedAddCommGroup E] [NormedSpace ℝ E]
   [NormedAddCommGroup F] [NormedSpace ℝ F]
   [NormedAddCommGroup G] [NormedSpace ℝ G]
   (B : E →L[ℝ] F →L[ℝ] G) (μ : VectorMeasure α F)
 
-/-- Given a set `s`, return the continuous linear map `fun x => B x (μ s)`. The extension
-of that set function through `setToL1` gives the pairing integral of L1 functions. -/
+/-- Given a set `s`, return the continuous linear map `fun x : E => B x (μ s)`, where the `B` is a
+`G`-valued bilinear form on `E` `F` and `μ` is an `F`-valued vector measure. The extension of that
+set function through `setToL1` gives the pairing integral of L1 functions. -/
 def weightedVectorSMul (s : Set α) : E →L[ℝ] G where
   toFun x := B x (μ s)
   map_add' _ _ := map_add₂ B _ _ (μ s)
@@ -103,7 +108,7 @@ open SimpleFunc L1
 
 section
 
-variable (α E F G : Type*) [m : MeasurableSpace α]
+variable (α E F G : Type*) [MeasurableSpace α]
   [NormedAddCommGroup E] [NormedSpace ℝ E]
   [NormedAddCommGroup F] [NormedSpace ℝ F]
   [NormedAddCommGroup G] [NormedSpace ℝ G] [CompleteSpace G]
@@ -116,7 +121,7 @@ end
 
 namespace VectorMeasureWithPairing
 
-variable {α E F G : Type*} [m : MeasurableSpace α]
+variable {α E F G : Type*} [MeasurableSpace α]
   [NormedAddCommGroup E] [NormedSpace ℝ E]
   [NormedAddCommGroup F] [NormedSpace ℝ F]
   [NormedAddCommGroup G] [NormedSpace ℝ G] [CompleteSpace G]
@@ -125,8 +130,6 @@ variable {α E F G : Type*} [m : MeasurableSpace α]
 /-- The pairing integral in L1 space as a continuous linear map. -/
 noncomputable def pairingIntegral : (α →₁[Bμ.vectorMeasure.variation.ennrealToMeasure] E) →L[ℝ] G :=
     setToL1 (dominatedFinMeasAdditive_weightedVectorSMul Bμ.pairing Bμ.vectorMeasure)
-
-variable (f : α →₁[Bμ.vectorMeasure.variation.ennrealToMeasure] E)
 
 @[simp]
 theorem pairingIntegral_zero :
@@ -185,16 +188,18 @@ end VectorMeasureWithPairing
 
 section ScalarSMul
 
+/-- The embedding of `ℝ` to the multiple of the identity map as an `F`-valued pairing of
+`ℝ` and `F`. -/
 def scalarSMulCLM (F : Type*) [NormedAddCommGroup F] [NormedSpace ℝ F] : ℝ →L[ℝ] F →L[ℝ] F where
   toFun c := c • (id ℝ F)
-  map_add' _ _ := Module.add_smul _ _ (ContinuousLinearMap.id ℝ F)
-  map_smul' _ _ := IsScalarTower.smul_assoc _ _ (ContinuousLinearMap.id ℝ F)
+  map_add' _ _ := Module.add_smul _ _ (id ℝ F)
+  map_smul' _ _ := IsScalarTower.smul_assoc _ _ (id ℝ F)
 
 end ScalarSMul
 
 namespace VectorMeasure
 
-variable {α F : Type*} [m : MeasurableSpace α]
+variable {α F : Type*} [MeasurableSpace α]
   [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
   (μ : VectorMeasure α F)
 
@@ -202,6 +207,8 @@ def withPairing : VectorMeasureWithPairing α ℝ F F where
   pairing := scalarSMulCLM F
   vectorMeasure := μ
 
+/-- The `F`-valued integral with respect to an `F`-valued vector measure, defined as the pairing
+integral where the pairing is `scalarSMulCLM`. -/
 noncomputable def integral (f : α →₁[μ.variation.ennrealToMeasure] ℝ) : F :=
     μ.withPairing.pairingIntegral f
 
