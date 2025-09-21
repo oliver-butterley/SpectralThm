@@ -88,15 +88,18 @@ noncomputable def toMeasure {α : Type*} [MeasurableSpace α] (E : ResolutionOfI
 
 variable (E : ResolutionOfIdentity α H)
 
+@[simp]
+lemma ResolutionOfIdentity.apply (w: Set α): E w = E.measureOf' w := rfl
+
+@[simp]
+lemma toMeasure_apply (x : H) (w : Set α) : toMeasure E x w = (toOuterMeasure E x).trim w := rfl
+
+@[simp]
+lemma toOuterMeasure_apply (x : H) (w : Set α) : (toOuterMeasure E x) w = ENNReal.ofReal ‖E.measureOf' w x‖ := rfl
+
 lemma ResolutionOfIdentity.zero_iff (w : Set α) (h : MeasurableSet w) : E w  = 0 ↔
     ∀ x, (toMeasure E x) w = 0 := by
-  simp_rw [toMeasure, ← MeasureTheory.Measure.toOuterMeasure_apply, MeasureTheory.OuterMeasure.trim_eq _ h, toOuterMeasure, DFunLike.coe]
-  refine ⟨?_, ?_⟩
-  . intro hw
-    simp [hw]
-  . intro hw
-    ext a
-    simpa using hw a
+  simp [MeasureTheory.OuterMeasure.trim_eq _ h, ContinuousLinearMap.ext_iff]
 
 noncomputable def SumOuterMeasure {ι : Type*} (μ : ι → Measure α) : OuterMeasure α where
   measureOf w := ∑' i, μ i w
