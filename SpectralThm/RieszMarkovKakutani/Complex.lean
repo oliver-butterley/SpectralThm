@@ -115,7 +115,13 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
   -- Then `Λ f ≥ 0`, `Λ` satisfies the two required inequalities,
   have (f : C_c(X, ℝ≥0)) : 0 ≤ Λ' f := by
     -- because it is the sup of nonnegative quantities
-    sorry
+    unfold Λ'
+    apply Real.sSup_nonneg
+    intro x hx
+    rw [Set.mem_image] at hx
+    obtain ⟨a, _, ha⟩ := hx
+    rw [← ha]
+    positivity
   have (f : C_c(X, ℝ≥0)) : ‖Φ (toComplex (f.toReal))‖ ≤ Λ' f := by
     sorry
   have (f : C_c(X, ℝ≥0)) : Λ' f ≤ ‖toZeroAtInftyContinuousMap' f.toReal‖ := by

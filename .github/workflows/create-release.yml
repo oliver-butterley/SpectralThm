@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 2  # Fetch the last two commits for comparison
 
@@ -49,7 +49,7 @@ jobs:
 
       - name: Create GitHub Release
         if: env.CHANGED == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
             tag_name: ${{ env.tag_name }}
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
