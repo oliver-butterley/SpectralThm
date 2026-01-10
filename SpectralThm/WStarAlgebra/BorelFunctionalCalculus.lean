@@ -3,9 +3,10 @@ Copyright (c) 2024 Jon Bannon. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Bannon, Jireh Loreaux
 -/
+module
 
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.MeasureTheory.Function.Holder
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.MeasureTheory.Function.Holder
 
 /-!
 # Borel Functional Calculus Class
@@ -21,6 +22,7 @@ We develop the basic definition of the `BorelFunctionalCalculus` class, imitatin
 
 -/
 
+@[expose] public section
 
 namespace MeasureTheory
 section BorelSpace
@@ -90,29 +92,12 @@ instance : Star (α →ₛ R) where
 
 lemma star_apply (f : α →ₛ R) (x : α) : (star f) x = star (f x) := rfl
 
-protected theorem _root_.Filter.EventuallyEq.star {f g : α → R}
-    {l : Filter α} (h : f =ᶠ[l] g) :
-    (fun x ↦ star (f x)) =ᶠ[l] fun x ↦ star (g x) :=
-  h.fun_comp Star.star
-
 variable [TopologicalSpace R] [ContinuousStar R]
-
-@[measurability]
-protected theorem StronglyMeasurable.star (f : α → R) (hf : StronglyMeasurable f) :
-    StronglyMeasurable (star f) :=
-  ⟨fun n => star (hf.approx n), fun x => (hf.tendsto_approx x).star⟩
 
 variable {R : Type*} [TopologicalSpace R] [Star R] [ContinuousStar R]
 
-protected theorem AEStronglyMeasurable.star {f : α → R} (hf : AEStronglyMeasurable f μ) :
-    AEStronglyMeasurable (star f) μ :=
-  ⟨star (hf.mk f), hf.stronglyMeasurable_mk.star, hf.ae_eq_mk.star⟩
-
 instance : Star (α →ₘ[μ] R) where
   star f := (AEEqFun.comp _ continuous_star f)
-
-lemma AEEqFun.coeFn_star (f : α →ₘ[μ] R) : ↑(star f) =ᵐ[μ] (star f : α → R) :=
-   coeFn_comp _ (continuous_star) f
 
 end Star
 
@@ -120,22 +105,8 @@ section NormStar
 
 variable {R : Type*} [NormedAddCommGroup R] [StarAddMonoid R] [NormedStarGroup R]
 
-@[simp]
-theorem eLpNorm_star {p : ℝ≥0∞} {f : α → R} : eLpNorm (star f) p μ = eLpNorm f p μ :=
-  eLpNorm_congr_norm_ae <| .of_forall <| by simp
-
-@[simp]
-theorem AEEqFun.eLpNorm_star {p : ℝ≥0∞} {f : α →ₘ[μ] R} : eLpNorm (star f : α →ₘ[μ] R) p μ = eLpNorm f p μ :=
-  eLpNorm_congr_ae (coeFn_star f) |>.trans <| by simp
-
-protected theorem MemLp.star {p : ℝ≥0∞} {f : α → R} (hf : MemLp f p μ) : MemLp (star f) p μ :=
-  ⟨hf.1.star, by simpa using hf.2⟩
-
 protected noncomputable instance {p : ℝ≥0∞} : Star (Lp R p μ) where
   star f := ⟨star (f : α →ₘ[μ] R), by simpa [Lp.mem_Lp_iff_eLpNorm_lt_top] using Lp.eLpNorm_lt_top f⟩
-
-lemma Lp.coeFn_star {p : ℝ≥0∞} (f : Lp R p μ) : (star f : Lp R p μ) =ᵐ[μ] star f :=
-    (f : α →ₘ[μ] R).coeFn_star
 
 end NormStar
 

@@ -3,10 +3,12 @@ Copyright (c) 2025 Oliver Butterley. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Oliver Butterley, Yoh Tanimoto
 -/
-import Mathlib
-import SpectralThm.toMathlib.Variation.Defs
-import SpectralThm.toMathlib.Variation.Lemmas
-import SpectralThm.ComplexMeasure.Integral
+module
+
+public import Mathlib
+public import SpectralThm.toMathlib.Variation.Defs
+public import SpectralThm.toMathlib.Variation.Lemmas
+public import SpectralThm.ComplexMeasure.Integral
 
 /-!
 # Riesz–Markov–Kakutani representation theorem for complex linear functionals
@@ -44,6 +46,8 @@ The proof of existence of such a measures takes advantage of the corresponding s
 
 - Rudin 6.16: Duality of `L^1` and `L^∞` (not in Mathlib [https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025])
 -/
+
+@[expose] public section
 
 open NNReal ENNReal
 open ZeroAtInfty MeasureTheory CompactlySupported CompactlySupportedContinuousMap

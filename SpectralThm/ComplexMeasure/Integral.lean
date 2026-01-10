@@ -3,9 +3,11 @@ Copyright (c) 2025 Oliver Butterley. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Oliver Butterley, Yoh Tanimoto
 -/
-import Mathlib
-import SpectralThm.toMathlib.Variation.Defs
-import SpectralThm.toMathlib.Variation.Lemmas
+module
+
+public import Mathlib
+public import SpectralThm.toMathlib.Variation.Defs
+public import SpectralThm.toMathlib.Variation.Lemmas
 
 
 /-!
@@ -47,6 +49,8 @@ into their own files.
 
 -/
 
+@[expose] public section
+
 namespace MeasureTheory.ComplexMeasure
 
 open MeasureTheory
@@ -60,7 +64,8 @@ variable {G : Type*} [NormedAddCommGroup G] [NormedSpace ℂ G]
 noncomputable def var (μ : ComplexMeasure α) := μ.variation.ennrealToMeasure
 
 @[simp]
-lemma var_neg (μ : ComplexMeasure α) : (-μ).var = μ.var := by simp [var]
+lemma var_neg (μ : ComplexMeasure α) : (-μ).var = μ.var := by
+  simp [var, MeasureTheory.VectorMeasure.variation_neg]
 
 /-- The angular part (density function) in the polar decomposition of a complex measure. -/
 noncomputable def ang (μ : ComplexMeasure α) := μ.rnDeriv μ.var

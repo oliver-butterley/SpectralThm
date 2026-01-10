@@ -1,5 +1,7 @@
-import Mathlib
-import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
+module
+
+public import Mathlib
+-- public import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
 /-!
 # Resoltuions of the identity
@@ -7,6 +9,8 @@ import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
 
 -/
+
+@[expose] public section
 
 open scoped Function InnerProductSpace
 open MeasureTheory BigOperators ENNReal

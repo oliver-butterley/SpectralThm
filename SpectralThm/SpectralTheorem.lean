@@ -1,12 +1,16 @@
-import Mathlib
-import SpectralThm.RieszMarkovKakutani.Complex
-import SpectralThm.Resolutions
-import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
+module
+
+public import Mathlib
+public import SpectralThm.RieszMarkovKakutani.Complex
+public import SpectralThm.Resolutions
+-- public import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
 /-!
 # The Spectral Theorem
 
 -/
+
+@[expose] public section
 
 open InnerProductSpace ContinuousLinearMap ZeroAtInfty ZeroAtInftyContinuousMap MeasureTheory
 
