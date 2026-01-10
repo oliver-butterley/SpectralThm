@@ -3,10 +3,10 @@ Copyright (c) 2025 Oliver Butterley. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Oliver Butterley, Yoh Tanimoto
 -/
-import Mathlib.Analysis.Normed.Field.Instances
-import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Jordan
-import Mathlib.Topology.Metrizable.CompletelyMetrizable
-import SpectralThm.toMathlib.Variation.Lemmas
+module
+
+public import Mathlib.MeasureTheory.VectorMeasure.Decomposition.Jordan
+public import SpectralThm.toMathlib.Variation.Lemmas
 
 /-!
 # Properties of variation
@@ -16,6 +16,8 @@ import SpectralThm.toMathlib.Variation.Lemmas
 * `signedMeasure_totalVariation_eq`: if `μ` is a `SignedMeasure` then variation defined as a
 supremum is equal to variation defined using the Hahn-Jordan decomposition.
 -/
+
+@[expose] public section
 
 open MeasureTheory BigOperators NNReal ENNReal Function Filter VectorMeasure SignedMeasure
 
@@ -39,7 +41,7 @@ lemma signedMeasure_totalVariation_le (μ : SignedMeasure X) (r : Set X) (hr : M
     simp [Disjoint.inter_right, Set.disjoint_compl_right_iff_subset.mpr]
   have hP₁ : ∀ t ∈ P, t ⊆ r := by simp [P]
   have hP₂ : ∀ t ∈ P, MeasurableSet t := by simp [P, hsm, hr]
-  have hP₃ : P.toSet.PairwiseDisjoint id := by
+  have hP₃ : (P : Set (Set X)).PairwiseDisjoint id := by
     simp only [Finset.coe_insert, Finset.coe_singleton, P]
     intro p hp q hq hpq
     obtain hc | hc : p = s ∩ r ∨ p = sᶜ ∩ r := by exact hp
@@ -153,8 +155,8 @@ lemma le_signedMeasure_totalVariation (μ : SignedMeasure X) (r : Set X) (hr : M
       have : μ (sᶜ ∩ r) = μ (sᶜ ∩ ⋃ p ∈ P, p) + μ ((sᶜ ∩ r) \ (sᶜ ∩ ⋃ p ∈ P, p)) := by
         refine Eq.symm (of_add_of_diff ?_ ?_ ?_)
         · refine MeasurableSet.inter ?_ ?_
-          exact MeasurableSet.compl_iff.mpr hsm
-          refine Finset.measurableSet_biUnion P hP.2.1
+          · exact MeasurableSet.compl_iff.mpr hsm
+          · exact Finset.measurableSet_biUnion P hP.2.1
         · exact MeasurableSet.inter (MeasurableSet.compl_iff.mpr hsm) hr
         · apply Set.inter_subset_inter_right
           exact Set.iUnion₂_subset_iff.mpr hP.1
@@ -189,7 +191,8 @@ lemma le_signedMeasure_totalVariation (μ : SignedMeasure X) (r : Set X) (hr : M
     _ ≤ ∑ p ∈ P, (μ (s ∩ p) - μ (sᶜ ∩ p)) := by
       gcongr with p hp
       exact abs_le p hp
-    _ = ∑ p ∈ P, μ (s ∩ p) - ∑ p ∈ P, μ (sᶜ ∩ p) := by simp
+    _ = ∑ p ∈ P, μ (s ∩ p) - ∑ p ∈ P, μ (sᶜ ∩ p) :=
+      Finset.sum_sub_distrib _ _
     _ ≤ μ (s ∩ r) - μ (sᶜ ∩ r) := by
       gcongr
     _ = (μ.totalVariation r).toReal := by
@@ -206,7 +209,7 @@ defined as a sup. -/
 lemma signedMeasure_totalVariation_eq (μ : SignedMeasure X) :
     totalVariation μ = μ.variation.ennrealToMeasure := by
   ext r hr
-  refine eq_of_le_of_ge ?_ ?_
+  refine le_antisymm ?_ ?_
   · exact signedMeasure_totalVariation_le μ r hr
   · exact le_signedMeasure_totalVariation μ r hr
 
