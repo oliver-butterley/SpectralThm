@@ -3,12 +3,12 @@ Copyright (c) 2025 Oliver Butterley. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Oliver Butterley, Yoh Tanimoto
 -/
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.MeasureTheory.Measure.Complex
-import Mathlib.Order.CompletePartialOrder
-import SpectralThm.toMathlib.Variation.Defs
+module
 
-/-!lake
+public import Mathlib.MeasureTheory.Measure.Complex
+public import SpectralThm.toMathlib.Variation.Defs
+
+/-!
 ## Properties of variation
 
 ## Main results
@@ -20,6 +20,8 @@ import SpectralThm.toMathlib.Variation.Defs
 * `variation_of_ENNReal`: if `μ` is `VectorMeasure X ℝ≥0∞` then `variation μ = μ`.
 -/
 
+@[expose] public section
+
 open MeasureTheory BigOperators NNReal ENNReal Function Filter
 
 namespace MeasureTheory.VectorMeasure
@@ -29,7 +31,8 @@ variable {X V : Type*} [MeasurableSpace X] [TopologicalSpace V] [ENormedAddCommM
 open Classical Finset in
 /-- Measure version of `le_var_aux` which was for subadditive functions. -/
 lemma le_variation (μ : VectorMeasure X V) {s : Set X} (hs : MeasurableSet s) {P : Finset (Set X)}
-    (hP₁ : ∀ t ∈ P, t ⊆ s) (hP₂ : ∀ t ∈ P, MeasurableSet t) (hP₃ : P.toSet.PairwiseDisjoint id) :
+    (hP₁ : ∀ t ∈ P, t ⊆ s)
+    (hP₂ : ∀ t ∈ P, MeasurableSet t) (hP₃ : (P : Set (Set X)).PairwiseDisjoint id) :
     ∑ p ∈ P, ‖μ p‖ₑ ≤ μ.variation s := by
   let Q := P.filter (· ≠ ∅)
   have h : ∑ p ∈ P, ‖μ p‖ₑ = ∑ q ∈ Q, ‖μ q‖ₑ := by
@@ -41,31 +44,25 @@ lemma le_variation (μ : VectorMeasure X V) {s : Set X} (hs : MeasurableSet s) {
     · exact hP₁ p (mem_filter.mp hp).1
     · exact hP₂ p (mem_filter.mp hp).1
     · exact hP₃ (mem_filter.mp hp).1 (mem_filter.mp hq).1 hpq
-    · exact (mem_filter.mp hp).2
+    · exact Set.nonempty_iff_ne_empty.mpr (mem_filter.mp hp).2
   refine le_of_eq_of_le h ?_
-  simpa [variation] using le_var_aux (fun s ↦ ‖μ s‖ₑ) hs hQ
+  simpa [variation] using IsInnerPart.sum_le_varAux (fun s ↦ ‖μ s‖ₑ) hs hQ
 
 theorem norm_measure_le_variation (μ : VectorMeasure X V) (E : Set X) : ‖μ E‖ₑ ≤ variation μ E := by
   wlog hE' : E ≠ ∅
   · simp [not_ne_iff.mp hE']
   wlog hE : MeasurableSet E
   · simp [μ.not_measurable' hE]
-  have h : {E} ∈ {P | IsInnerPart E P} := by simpa using isInnerPart_self hE hE'
+  have h : {E} ∈ {P | IsInnerPart E P} := by
+    simpa [IsInnerPart] using ⟨hE, Set.nonempty_iff_ne_empty.mpr hE'⟩
   have := le_biSup (fun P ↦ ∑ p ∈ P, ‖μ p‖ₑ) h
   simp_all [variation, var_aux]
 
-theorem measure_eq_zero_of_variation_eq_zero (μ : VectorMeasure X V) (E : Set X)
-    (h : μ.variation.ennrealToMeasure E = 0) : μ E = 0 := by
-  wlog hE : MeasurableSet E
-  · simp [μ.not_measurable' hE]
-  rw [← enorm_eq_zero, ← nonpos_iff_eq_zero, ← h, ennrealToMeasure_apply hE]
-  exact norm_measure_le_variation μ E
-
 lemma variation_zero : (0 : VectorMeasure X V).variation = 0 := by
   ext _ _
-  simp [variation, var_aux_zero]
+  simp [variation, var_aux]
 
-@[simp]
+
 lemma variation_neg
     (μ : MeasureTheory.ComplexMeasure X) : (-μ).variation = μ.variation := by
   simp [variation]
@@ -87,11 +84,11 @@ lemma monotone_of_ENNReal  {s₁ s₂ : Set X} (hs₁ : MeasurableSet s₁) (hs�
 -- TO DO: move this to a good home or could more mathlib style choices earlier make this redundant?
 open Classical in
 lemma biUnion_Finset (μ : VectorMeasure X ℝ≥0∞) {S : Finset (Set X)}
-    (hS : ∀ s ∈ S, MeasurableSet s) (hS' : S.toSet.PairwiseDisjoint id) :
+    (hS : ∀ s ∈ S, MeasurableSet s) (hS' : (S : Set (Set X)).PairwiseDisjoint id) :
     ∑ s ∈ S, μ s = μ (⋃ s ∈ S, s) := by
   have : ⋃ s ∈ S, s = ⋃ i : S, i.val := by apply Set.biUnion_eq_iUnion
   rw [this, μ.of_disjoint_iUnion]
-  · simp
+  · exact Eq.symm (Finset.tsum_subtype S ↑μ)
   · simpa
   · intro p q h
     exact hS' p.property q.property (Subtype.coe_ne_coe.mpr h)
@@ -100,7 +97,7 @@ lemma biUnion_Finset (μ : VectorMeasure X ℝ≥0∞) {S : Finset (Set X)}
 lemma variation_of_ENNReal (μ : VectorMeasure X ℝ≥0∞) : variation μ = μ := by
   ext s hs
   simp only [variation, var_aux, hs, reduceIte]
-  apply eq_of_le_of_ge
+  apply le_antisymm
   · simp only [enorm_eq_self, iSup_le_iff]
     intro P hP
     have : ∑ x ∈ P, μ x  =  μ (⋃ p ∈ P, p) := by
@@ -108,7 +105,8 @@ lemma variation_of_ENNReal (μ : VectorMeasure X ℝ≥0∞) : variation μ = μ
     rw [this]
     apply monotone_of_ENNReal (Finset.measurableSet_biUnion P hP.2.1) (hs) (Set.iUnion₂_subset hP.1)
   · by_cases hc : s ≠ ∅
-    · have h : {s} ∈ {P | IsInnerPart s P} := by simpa using isInnerPart_self hs hc
+    · have h : {s} ∈ {P | IsInnerPart s P} := by
+        simpa [IsInnerPart] using ⟨hs, Set.nonempty_iff_ne_empty.mpr hc⟩
       have := le_biSup (fun P ↦ ∑ x ∈ P, μ x) h
       simp_all
     · push_neg at hc
