@@ -71,11 +71,19 @@ lemma var_neg (μ : ComplexMeasure α) : (-μ).var = μ.var := by
 noncomputable def ang (μ : ComplexMeasure α) := μ.rnDeriv μ.var
 
 @[simp]
-lemma ang_neg (μ : ComplexMeasure α) : (-μ).ang = -μ.ang := by
+lemma ang_neg (μ : ComplexMeasure α) : (-μ).ang =ᶠ[ae μ.var] -μ.ang := by
+  rw [ang, ang, var_neg]
+  -- need lenna for `ComplexMeasure` like `MeasureTheory.SignedMeasure.rnDeriv_neg`
   -- To do: adjust this statement to the `μ`-a.e. version.
+  -- This should follow from lemmas about `SignedMeasure.neg` and `rnDeriv`
+  -- and need that `-(re c).toComplexMeasure (im c) = (re (-c)).toComplexMeasure (im -c)`
+  -- maybe add a lemma about `smul` in `Mathlib.MeasureTheory.Measure.Complex`
   sorry
 
 /-! ## Definition of the integral. -/
+
+-- TODO switch the definition to the integral against a vector measure.
+-- Find/place these lemma in the folder of `VectorMeasure`
 
 /-- The integral with respect to a complex measure defined using the polar decomposition of the
 complex measure and the integral with respect to the total variation.-/
@@ -110,6 +118,7 @@ lemma integral_add (μ ν : ComplexMeasure α) (f : α → ℂ) :
 lemma integral_neg (μ  : ComplexMeasure α) (f : α → ℂ) :
     ∫ a, f a ∂(-μ) = -∫ a, f a ∂μ := by
   simp [integral, MeasureTheory.integral_neg]
+  sorry -- need lemma for a.e. equality of complex measure
 
 lemma integral_sub (μ₁ μ₂  : ComplexMeasure α) (f : α → ℂ) :
     ∫ a, f a ∂(μ₁ - μ₂) = ∫ a, f a ∂μ₁ - ∫ a, f a ∂μ₂ := by
