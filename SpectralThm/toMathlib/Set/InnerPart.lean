@@ -77,8 +77,8 @@ lemma iUnion {s : ℕ → Set X} (hs : Pairwise (Disjoint on s))
     obtain hc | hc : i = j ∨ i ≠ j := by omega
     · rw [hc] at hp
       simpa using Set.subset_eq_empty ((hP j).disjoint hp hq hpq hrp hrq) rfl
-    · have hp' := (hP i).1 t hp
-      have hq' := (hP j).1 q hq
+    · have hp' := (hP i).subset t hp
+      have hq' := (hP j).subset q hq
       simpa using Set.subset_eq_empty (hs hc (subset_trans hrp hp') (subset_trans hrq hq')) rfl
   · obtain ⟨i, hi, ht'⟩ : ∃ i < n, u ∈ P i := by simp_all
     exact ((hP i).nonempty) u ht'
@@ -90,7 +90,7 @@ lemma disjoint_of_disjoint {s t : Set X} (hst : Disjoint s t) {P Q : Finset (Set
   simp only [Finset.bot_eq_empty, Finset.le_eq_subset, Finset.subset_empty]
   by_contra! hc
   obtain ⟨r, hr⟩ := Finset.Nonempty.exists_mem <| Finset.nonempty_iff_ne_empty.mpr hc.ne_empty
-  have := hst (hP.1 r <| hRP hr) (hQ.1 r <| hRQ hr)
+  have := hst (hP.subset r <| hRP hr) (hQ.subset r <| hRQ hr)
   have hc := Set.subset_eq_empty this rfl
   have := hP.nonempty r (hRP hr)
   simp_all
@@ -99,9 +99,11 @@ open Classical in
 /-- The restriction of a partition `P` to the set `t`. -/
 noncomputable def restriction (t : Set X) (P : Finset (Set X)) : Finset (Set X) :=
   (P.image (fun p ↦ p ∩ t)).filter Set.Nonempty
+
 /-- If `P` is a partition then the restriction of `P` to a set `t` is a partition of `t`. -/
-lemma restriction_IsInnerPart {s t : Set X} {P : Finset (Set X)} (hs : IsInnerPart s P pred_inter)
-    (ht : pred t) : IsInnerPart t (restriction t P) pred_inter := by
+lemma restriction_of_pred {s t : Set X} {P : Finset (Set X)}
+    (hs : IsInnerPart s P pred_inter) (ht : pred t) :
+    IsInnerPart t (restriction t P) pred_inter := by
   classical
   refine ⟨fun _ h ↦ ?_, fun r hr ↦ ?_, fun _ hr _ hr' ↦ ?_, fun _ hp ↦ ?_⟩
   · obtain ⟨_, _, hp⟩ := Finset.mem_image.mp (Finset.mem_filter.mp h).1
