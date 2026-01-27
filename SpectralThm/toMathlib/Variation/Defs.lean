@@ -7,7 +7,7 @@ module
 
 public import Mathlib.Analysis.Normed.Group.InfiniteSum
 public import Mathlib.MeasureTheory.VectorMeasure.Basic
-public import SpectralThm.toMathlib.MeasurableSpace.InnerPart
+public import SpectralThm.toMathlib.MeasurableSpace.Subpartition
 
 /-!
 # Total variation for vector-valued measures
