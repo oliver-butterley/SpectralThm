@@ -13,7 +13,9 @@ public import Mathlib
 @[expose] public section
 
 open scoped Function InnerProductSpace
-open MeasureTheory BigOperators ENNReal
+open MeasureTheory BigOperators ENNReal Bornology
+
+section ResolutionOfIdentity
 
 variable (α : Type*) [MeasurableSpace α]
 
@@ -43,6 +45,8 @@ structure ResolutionOfIdentity (α : Type*) [MeasurableSpace α] (H: Type*) [Nor
   isOrthogonalProjection' : ∀ w, IsOrthogonalProjection (measureOf' w)
   /-- The empty set has measure zero -/
   empty' : measureOf' ∅ = 0
+  /-- The whole set has measure one -/
+  univ' : measureOf' Set.univ = 1
   /-- Non-measurable sets have measure zero -/
   not_measurable' ⦃i : Set α⦄ : ¬MeasurableSet i → measureOf' i = 0
   /-- The measure is additive -/
@@ -59,7 +63,7 @@ structure ResolutionOfIdentity (α : Type*) [MeasurableSpace α] (H: Type*) [Nor
 instance ResolutionOfIdentity.instFunLike [MeasurableSpace α] : FunLike (ResolutionOfIdentity α H)
     (Set α) (H →L[ℂ] H) where
   coe E := E.measureOf'
-  coe_injective' | ⟨_, _, _, _,  _, _, _⟩, ⟨_, _, _, _, _, _, _⟩, rfl => rfl
+  coe_injective' | ⟨_, _, _, _,  _, _, _, _⟩, ⟨_, _, _, _, _, _, _,_⟩, rfl => rfl
 
 def toComplexMeasure {α : Type*} [MeasurableSpace α] (E : ResolutionOfIdentity α H) (x y : H) : ComplexMeasure α where
   measureOf' w := ⟪x, E.measureOf' w y⟫_ℂ
@@ -72,12 +76,12 @@ def toComplexMeasure {α : Type*} [MeasurableSpace α] (E : ResolutionOfIdentity
   m_iUnion' := E.m_iUnion'
 
 def toOuterMeasure {α : Type*} [MeasurableSpace α] (E : ResolutionOfIdentity α H) (x : H) : OuterMeasure α where
-  measureOf w := ENNReal.ofReal ‖E.measureOf' w x‖
+  measureOf w := ENNReal.ofReal (‖E.measureOf' w x‖ ^ 2)
   empty := by
     rw [E.empty']
-    simp only [ContinuousLinearMap.zero_apply, norm_zero, ofReal_zero]
+    simp
   mono {w₁ w₂} h := by
-    rw [ENNReal.ofReal_le_ofReal_iff (norm_nonneg _)]
+    rw [ENNReal.ofReal_le_ofReal_iff (sq_nonneg _)]
     sorry
   iUnion_nat := sorry
 
@@ -99,48 +103,108 @@ lemma ResolutionOfIdentity.apply (w: Set α): E w = E.measureOf' w := rfl
 lemma toMeasure_apply (x : H) (w : Set α) : toMeasure E x w = (toOuterMeasure E x).trim w := rfl
 
 @[simp]
-lemma toOuterMeasure_apply (x : H) (w : Set α) : (toOuterMeasure E x) w = ENNReal.ofReal ‖E.measureOf' w x‖ := rfl
+lemma toOuterMeasure_apply (x : H) (w : Set α) : (toOuterMeasure E x) w = ENNReal.ofReal (‖E.measureOf' w x‖ ^ 2) := rfl
 
 lemma ResolutionOfIdentity.zero_iff (w : Set α) (h : MeasurableSet w) : E w  = 0 ↔
     ∀ x, (toMeasure E x) w = 0 := by
   simp [MeasureTheory.OuterMeasure.trim_eq _ h, ContinuousLinearMap.ext_iff]
 
-noncomputable def SumOuterMeasure {ι : Type*} (μ : ι → Measure α) : OuterMeasure α where
-  measureOf w := ∑' i, μ i w
-  empty := by
-    simp only [measure_empty, tsum_zero]
-  mono {w₁ w₂} h := Summable.tsum_le_tsum (fun i => (μ i).mono h) ENNReal.summable ENNReal.summable
-  iUnion_nat w h := by
-    rw [← Summable.tsum_comm' ENNReal.summable (fun i => ENNReal.summable)
-      (fun i => ENNReal.summable)]
-    apply Summable.tsum_le_tsum _ ENNReal.summable ENNReal.summable
-    exact fun i => (μ i).iUnion_nat w h
+-- noncomputable def SumOuterMeasure {ι : Type*} (μ : ι → Measure α) : OuterMeasure α where
+--   measureOf w := ∑' i, μ i w
+--   empty := by
+--     simp only [measure_empty, tsum_zero]
+--   mono {w₁ w₂} h := Summable.tsum_le_tsum (fun i => (μ i).mono h) ENNReal.summable ENNReal.summable
+--   iUnion_nat w h := by
+--     rw [← Summable.tsum_comm' ENNReal.summable (fun i => ENNReal.summable)
+--       (fun i => ENNReal.summable)]
+--     apply Summable.tsum_le_tsum _ ENNReal.summable ENNReal.summable
+--     exact fun i => (μ i).iUnion_nat w h
 
-noncomputable def SumMeasure {ι : Type*} (μ : ι → Measure α) : Measure α :=
-  {
-    toOuterMeasure := (SumOuterMeasure α μ).trim
-    m_iUnion {f} f_measurable f_disjoint := by
-      rw [MeasureTheory.OuterMeasure.trim_eq _ (MeasurableSet.iUnion f_measurable)]
-      have : ∑' i, (SumOuterMeasure α μ).trim (f i) = ∑' i, (SumOuterMeasure α μ) (f i) := by
-        congr
-        ext i
-        exact MeasureTheory.OuterMeasure.trim_eq _ (f_measurable i)
-      rw [this]
-      rw [← MeasureTheory.OuterMeasure.measureOf_eq_coe]
-      rw [SumOuterMeasure]
-      rw [← Summable.tsum_comm' ENNReal.summable (fun i => ENNReal.summable)
-        (fun i => ENNReal.summable)]
-      simp only
-      congr
-      ext i
-      exact (μ i).m_iUnion f_measurable f_disjoint
-    trim_le := by
-      rw [MeasureTheory.OuterMeasure.trim_trim]
-  }
+-- noncomputable def SumMeasure {ι : Type*} (μ : ι → Measure α) : Measure α :=
+--   {
+--     toOuterMeasure := (SumOuterMeasure α μ).trim
+--     m_iUnion {f} f_measurable f_disjoint := by
+--       rw [MeasureTheory.OuterMeasure.trim_eq _ (MeasurableSet.iUnion f_measurable)]
+--       have : ∑' i, (SumOuterMeasure α μ).trim (f i) = ∑' i, (SumOuterMeasure α μ) (f i) := by
+--         congr
+--         ext i
+--         exact MeasureTheory.OuterMeasure.trim_eq _ (f_measurable i)
+--       rw [this]
+--       rw [← MeasureTheory.OuterMeasure.measureOf_eq_coe]
+--       rw [SumOuterMeasure]
+--       rw [← Summable.tsum_comm' ENNReal.summable (fun i => ENNReal.summable)
+--         (fun i => ENNReal.summable)]
+--       simp only
+--       congr
+--       ext i
+--       exact (μ i).m_iUnion f_measurable f_disjoint
+--     trim_le := by
+--       rw [MeasureTheory.OuterMeasure.trim_trim]
+--   }
 
 noncomputable def ofUnitBall : {x : H // ‖x‖ ≤ 1} → Measure α := fun x => toMeasure E x
 
-noncomputable def Linfty (E : ResolutionOfIdentity α H) := MeasureTheory.Lp ℂ ⊤ (SumMeasure α (ofUnitBall α E))
+-- noncomputable def Linfty (E : ResolutionOfIdentity α H) := MeasureTheory.Lp ℂ ⊤ (SumMeasure α (ofUnitBall α E))
+
+end ResolutionOfIdentity
+
+section
+
+variable {α : Type*} [MeasurableSpace α]
+
+variable {H: Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
+
+def essRange (E : ResolutionOfIdentity α H) (f : α → ℂ) : Set ℂ :=
+    ⋂₀ { s : Set ℂ | IsClosed s ∧ ∃ ω, (MeasurableSet ω ∧ ω.image f ⊆ s ∧ E (ωᶜ) = 0) }
+
+variable (E : ResolutionOfIdentity α H)
+
+lemma isClosed_essRange (E : ResolutionOfIdentity α H) (f : α → ℂ) : IsClosed (essRange E f) := by
+  apply isClosed_sInter
+  grind
+
+lemma isCompact_essRange (E : ResolutionOfIdentity α H) (f : α → ℂ) (hf : IsBounded (essRange E f)) :
+    IsCompact (essRange E f) := Metric.isCompact_of_isClosed_isBounded (isClosed_essRange E f) hf
+
+noncomputable def essNorm [Nonempty α] (E : ResolutionOfIdentity α H) {f : α → ℂ}
+    (hf : IsBounded (essRange E f)) :=
+    have nonempty_essRange : (essRange E f).Nonempty := by
+      rw [essRange]
+      simp only [Set.image_subset_iff, ResolutionOfIdentity.apply, Set.nonempty_sInter,
+        Set.mem_setOf_eq, and_imp, forall_exists_index]
+      sorry
+    have continuousOn_norm : ContinuousOn (fun (x : ℂ) => ‖x‖) (essRange E f) :=
+      ContinuousOn.norm <| continuousOn_id' (essRange E f)
+    Classical.choose <| IsCompact.exists_isMaxOn (isCompact_essRange E f hf) nonempty_essRange
+      continuousOn_norm
+
+section BoundedMeasurableMap
+
+open Filter
+
+structure BoundedMeasurableMap (α : Type*) [MeasurableSpace α] (H : Type*)
+    [NormedAddCommGroup H] [MeasurableSpace H] [BorelSpace H] where
+  toFun : α → H
+  measurable' : Measurable toFun
+  bounded' : ∃ C, ∀ x, ‖toFun x‖ ≤ C
+
+lemma BoundedMeasurableMap.exists_simpleFunc_forall_tendsTo (f : BoundedMeasurableMap α ℂ) :
+    ∃ g : ℕ → SimpleFunc α ℂ, ∀ x : α, Filter.Tendsto (fun n => g n x) atTop (nhds (f.toFun x)) := by
+  sorry
+
+lemma BoundedMeasurableMap.exists_simpleFunc_forall_finite_tendsTo_integral_sub
+    (f : BoundedMeasurableMap α ℂ) :
+    ∃ g : ℕ → SimpleFunc α ℂ, ∀ μ : Measure α, IsFiniteMeasure μ →
+    Filter.Tendsto (fun n => ∫ x, ‖g n x - f.toFun x‖ ∂ μ) atTop (nhds 0) := by
+  sorry
+
+end BoundedMeasurableMap
+
+def toLinfty_toMeasure (E : ResolutionOfIdentity α H) (x : {y : H // ‖y‖ ≤ 1})
+    (f : BoundedMeasurableMap α ℂ) : Lp ℂ ⊤ (ofUnitBall α E x) := by
+  sorry
+
+end
 
 /- TODO
 
