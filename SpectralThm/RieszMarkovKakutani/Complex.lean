@@ -99,17 +99,17 @@ def absOfFunc_c (f : C_c(X, ℂ)) : C_c(X, ℝ) := sorry
 def toZeroAtInftyContinuousMap : C_c(X, ℂ) → C₀(X, ℂ) := fun f ↦ (f : C₀(X, ℂ))
 def toZeroAtInftyContinuousMap' : C_c(X, ℝ) → C₀(X, ℝ) := fun f ↦ (f : C₀(X, ℝ))
 
-noncomputable def identity : C_c(X, ℝ≥0) → C_c(X, ℝ) := CompactlySupportedContinuousMap.toReal
-
 -- TO DO: define the identity between the ℝ and ℂ spaces of continuous functions,
 -- similar to `CompactlySupportedContinuousMap.toReal`.
-def toComplex : C_c(X, ℝ) → C_c(X, ℂ) := by sorry
+noncomputable def _root_.CompactlySupportedContinuousMap.toComplex (f : C_c(X, ℝ)) : C_c(X, ℂ) :=
+  f.compLeft Complex.ofRealCLM
+
 
 /-- Let `Φ` be a bounded linear functional on `C₀(X, ℂ)`. There exists a positive linear functional
 `Λ` on `C₀(X, ℝ)` such that, `∀ f : C₀(X, ℂ)`, `|Φ f| ≤ Λ |f|` and `Λ |f| ≤ ‖f‖` (`‖⬝‖` denotes
 the supremum norm). [Rudin 87, part of proof of Theorem 6.19] -/
 theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C₀(X, ℂ)),
-    ‖Φ f‖ ≤ Λ (absOfFunc₀ f) ∧ Λ (absOfFunc₀ f) ≤ ‖f‖ := by
+    ‖Φ f‖ ≤ Λ (absOfFunc₀ f) ∧ Λ (absOfFunc₀ f) ≤ ‖Φ‖ * ‖f‖ := by
 
   -- If `f ∈` [class of all nonnegative real members of `C_c(X, ℝ)`],
   -- define `Λ f = \sup { |Φ(h)| : h ∈ C_c(X, ℂ), |h| ≤ f }`.
