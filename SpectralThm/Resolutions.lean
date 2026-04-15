@@ -188,22 +188,30 @@ structure BoundedMeasurableMap (α : Type*) [MeasurableSpace α] (H : Type*)
   measurable' : Measurable toFun
   bounded' : ∃ C, ∀ x, ‖toFun x‖ ≤ C
 
-lemma BoundedMeasurableMap.exists_simpleFunc_forall_tendsTo (f : BoundedMeasurableMap α ℂ) :
-    ∃ g : ℕ → SimpleFunc α ℂ, ∀ x : α, Filter.Tendsto (fun n => g n x) atTop (nhds (f.toFun x)) := by
-  sorry
 
 lemma BoundedMeasurableMap.exists_simpleFunc_forall_finite_tendsTo_integral_sub
     (f : BoundedMeasurableMap α ℂ) :
     ∃ g : ℕ → SimpleFunc α ℂ, ∀ μ : Measure α, IsFiniteMeasure μ →
     Filter.Tendsto (fun n => ∫ x, ‖g n x - f.toFun x‖ ∂ μ) atTop (nhds 0) := by
   sorry
+  -- use MeasureTheory.SimpleFunc.approxOn f.toFun f.measurable' Set.univ 0 ( by simp +decide ) n;
+  -- tendsto_approxOn_L1_enorm
 
 end BoundedMeasurableMap
 
 def toLinfty_toMeasure (E : ResolutionOfIdentity α H) (x : {y : H // ‖y‖ ≤ 1})
     (f : BoundedMeasurableMap α ℂ) : Lp ℂ ⊤ (ofUnitBall α E x) := by
   sorry
-
+  -- for each `x`, `ofUnitBall α E x`, gives an Linfty space.
+  -- take the direct sum of such spaces.
+  -- take the diagonal image of `BoundedMeasurableMap` in this direct sum and take the closure.
+  -- this is Linfty(E).
+  -- prove that it is closed under product, so that it is a Banach algebra.
+  -- define the map Linfty(E) → B(H) by sending step function to the operator defined by the
+  -- resolution of identity, and then extend by continuity.
+  -- this defines the map Ψ which associates to a bounded measurable function an operator.
+  -- when the resolution of identity comes from a self-adjoint operator,
+  -- prove that this extends the Gelfand transfrorm.
 end
 
 /- TODO
