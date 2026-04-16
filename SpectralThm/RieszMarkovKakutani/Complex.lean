@@ -127,8 +127,65 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
     rw [← ha]
     positivity
   have (f : C_c(X, ℝ≥0)) : ‖Φ (toComplex (f.toReal))‖ ≤ Λ' f := by
-    sorry
-  have (f : C_c(X, ℝ≥0)) : Λ' f ≤ ‖toZeroAtInftyContinuousMap' f.toReal‖ := by
+    -- because `toComplex (f.toReal)` is one of the `h`'s in the definition of `Λ f`
+    unfold Λ'
+    apply le_csSup
+    · by_cases hempty : IsEmpty f.toFun.support
+      · simp only [ContinuousMap.toFun_eq_coe, coe_toContinuousMap, Set.isEmpty_coe_sort,
+          Function.support_eq_empty_iff] at hempty
+        use 0
+        intro a
+        simp only [Set.mem_image, exists_exists_and_eq_and, forall_exists_index, and_imp]
+        intro g hg hga
+        obtain ⟨k, hk⟩ := hg
+        simp only [Set.mem_setOf_eq] at hk
+        rw [hempty] at hk
+        simp only [Pi.zero_apply, NNReal.coe_zero, norm_le_zero_iff] at hk
+        have : g = 0 := by
+          ext x
+          rw [← hk.2, toZeroAtInftyContinuousMap]
+          simpa using hk.1 x
+        simp only [this, map_zero, norm_zero] at hga
+        grind
+      · letI : Nonempty X := by
+          push_neg at hempty
+          obtain ⟨x, hx⟩ := hempty
+          exact ⟨x⟩
+        obtain ⟨x, hx⟩ := Continuous.exists_forall_ge_of_hasCompactSupport f.continuous
+          f.hasCompactSupport'
+        use ‖Φ‖ * f x
+        intro a ha
+        simp only [Set.mem_image, exists_exists_and_eq_and] at ha
+        obtain ⟨g, hg, hga⟩ := ha
+        obtain ⟨k, hk⟩ := hg
+        simp only [Set.mem_setOf_eq] at hk
+        rw [← hga]
+        apply le_trans (ContinuousLinearMap.le_opNorm Φ g)
+        apply mul_le_mul_of_nonneg_left _ (norm_nonneg Φ)
+        rw [← g.norm_toBCF_eq_norm, BoundedContinuousFunction.norm_le]
+        · intro y
+          rw [← hk.2, toZeroAtInftyContinuousMap]
+          simp only [ZeroAtInftyContinuousMap.toBCF_apply, ZeroAtInftyContinuousMap.coe_mk]
+          apply le_trans <| hk.1 y
+          exact GCongr.toReal_le_toReal (hx y)
+        · simp
+    use Φ (toComplex (f.toReal))
+    simp only [Set.mem_image, and_true]
+    use f.toReal.toComplex
+    rw [Set.mem_image]
+    simp only [Set.mem_setOf_eq, and_true]
+    use f.toReal.toComplex
+    constructor
+    · intro x
+      rw [toComplex, CompactlySupportedContinuousMap.toReal,
+        CompactlySupportedContinuousMap.compLeft_apply,
+        CompactlySupportedContinuousMap.compLeft_apply]
+      simp
+      exact coeNNRealReal_zero
+      exact Eq.symm (Complex.ext rfl rfl)
+    · ext x
+      rw [toZeroAtInftyContinuousMap]
+  have (f : C_c(X, ℝ≥0)) : Λ' f ≤ ‖Φ‖ * ‖toZeroAtInftyContinuousMap' f.toReal‖ := by
     sorry
 
   -- `0 ≤ f_1 ≤ f_2` implies `Λ f_1 ≤ Λ f_2`, and `Λ (cf) = c Λ f` if `c` is a positive constant.
