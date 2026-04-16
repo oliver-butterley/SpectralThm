@@ -186,7 +186,36 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
     · ext x
       rw [toZeroAtInftyContinuousMap]
   have (f : C_c(X, ℝ≥0)) : Λ' f ≤ ‖Φ‖ * ‖toZeroAtInftyContinuousMap' f.toReal‖ := by
-    sorry
+    rw [toZeroAtInftyContinuousMap']
+    unfold Λ'
+    apply csSup_le
+    · use 0
+      simp only [Set.mem_image, norm_eq_zero, exists_eq_right]
+      use 0
+      simp only [map_zero, and_true]
+      unfold U
+      simp only [Set.mem_image, Set.mem_setOf_eq]
+      use 0
+      simp only [CompactlySupportedContinuousMap.coe_zero, Pi.zero_apply, norm_zero, zero_le_coe,
+        implies_true, true_and]
+      rw [toZeroAtInftyContinuousMap]
+      ext x
+      simp
+    · simp only [Set.mem_image, exists_exists_and_eq_and, forall_exists_index, and_imp,
+        forall_apply_eq_imp_iff₂]
+      intro g hg
+      apply le_trans (ContinuousLinearMap.le_opNorm Φ g)
+      apply mul_le_mul_of_nonneg_left _ (norm_nonneg Φ)
+      rw [← g.norm_toBCF_eq_norm, BoundedContinuousFunction.norm_le (norm_nonneg _)]
+      intro x
+      rw [← ZeroAtInftyContinuousMap.norm_toBCF_eq_norm]
+      apply le_trans _ <| BoundedContinuousFunction.apply_le_norm _ x
+      simp only [ZeroAtInftyContinuousMap.toBCF_apply, ZeroAtInftyContinuousMap.coe_mk,
+        toReal_apply]
+      obtain ⟨k, hk⟩ := hg
+      rw [← hk.2, toZeroAtInftyContinuousMap]
+      simpa using hk.1 x
+
 
   -- `0 ≤ f_1 ≤ f_2` implies `Λ f_1 ≤ Λ f_2`, and `Λ (cf) = c Λ f` if `c` is a positive constant.
 
