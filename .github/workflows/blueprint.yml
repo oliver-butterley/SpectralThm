@@ -46,7 +46,7 @@ jobs:
           lint: false
 
       - name: Check declarations mentioned in the blueprint exist in Lean code
-        run: ~/.elan/bin/lake exe checkdecls blueprint/lean_decls
+        run: lake exe checkdecls blueprint/lean_decls
 
       - name: Compile blueprint and documentation
         uses: leanprover-community/docgen-action@7b5b9a1822650bd45aaeb4182d94bceba2030f89 # 2026-04-14
