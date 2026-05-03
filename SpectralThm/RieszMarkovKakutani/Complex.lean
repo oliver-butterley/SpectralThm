@@ -56,6 +56,11 @@ namespace ComplexRMK
 
 variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
 
+theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
+    ∃ h : X → ℂ, Integrable h μ.variation.ennrealToMeasure ∧
+    μ = (μ.variation.ennrealToMeasure).withDensityᵥ h := by
+  sorry
+
 lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
     μ = 0 := by
   -- [Rudin 87, Theorem 6.19]
@@ -90,14 +95,28 @@ theorem rieszMeasure_unique {μ₁ μ₂ : ComplexMeasure X} (Φ : C₀(X, ℂ) 
 
 variable (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
 
+noncomputable def _root_.CompactlySupportedContinuousMap.compNorm (f : C_c(X, ℂ)) : C_c(X, ℝ) where
+  toContinuousMap := ⟨fun x ↦ ‖f x‖, by continuity⟩
+  hasCompactSupport' := by simpa using f.hasCompactSupport'.norm
+
+noncomputable def _root_.ZeroAtInfty.compNorm (f : C₀(X, ℂ)) : C₀(X, ℝ) where
+  toContinuousMap := ⟨fun x ↦ ‖f x‖, by continuity⟩
+  zero_at_infty' := by simpa using Filter.Tendsto.norm f.zero_at_infty'
+
 -- TO DO: define `norm` as a `ContinuousMap` and use `norm ∘ f` in the following instead of the
 -- `absOfFunc X f` hack.
 def absOfFunc₀ (f : C₀(X, ℂ)) : C₀(X, ℝ) := sorry
 def absOfFunc_c (f : C_c(X, ℂ)) : C_c(X, ℝ) := sorry
 
+
 -- TO DO: figure out using this coercial directly in the argument.
 def toZeroAtInftyContinuousMap : C_c(X, ℂ) → C₀(X, ℂ) := fun f ↦ (f : C₀(X, ℂ))
 def toZeroAtInftyContinuousMap' : C_c(X, ℝ) → C₀(X, ℝ) := fun f ↦ (f : C₀(X, ℝ))
+
+-- there is a coercion
+variable (f : C_c(X, ℂ))
+#check (f : ZeroAtInftyContinuousMap X ℂ)
+
 
 -- TO DO: define the identity between the ℝ and ℂ spaces of continuous functions,
 -- similar to `CompactlySupportedContinuousMap.toReal`.
@@ -254,6 +273,8 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
   -- Simple algebraic manipulations, just like those which occur in the proof of
   -- Theorem 1.32, show now that our extended functional `Λ` is linear on `C_c(X)`.
   sorry
+
+-- def preVariationFunctional :
 
 end ComplexRMK
 
