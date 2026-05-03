@@ -35,4 +35,4 @@ Lean projects.
 - [`lean-toolchain`](lean-toolchain) specifies the Lean version and toolchain used for the project.
 - ['LAYOUT.md'](LAYOUT.md) is this file describing the repo layout
 - [blueprint/src/content.tex](blueprint/src/content.tex) is the `tex` source file which produces the [lean blueprint](https://github.com/PatrickMassot/leanblueprint) of the project.
-- [home_page/index.md](home_page/index.md) is the source of the home page of the project.
+- [docs/index.md](docs/index.md) is the source of the home page of the project.
