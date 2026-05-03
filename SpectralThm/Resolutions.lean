@@ -61,7 +61,7 @@ instance ResolutionOfIdentity.instFunLike [MeasurableSpace α] : FunLike (Resolu
   coe E := E.measureOf'
   coe_injective' | ⟨_, _, _, _,  _, _, _⟩, ⟨_, _, _, _, _, _, _⟩, rfl => rfl
 
-def toComplexMeasure {α : Type*} [MeasurableSpace α] (E : ResolutionOfIdentity α H) (x y : H) : ComplexMeasure α where
+noncomputable def toComplexMeasure {α : Type*} [MeasurableSpace α] (E : ResolutionOfIdentity α H) (x y : H) : ComplexMeasure α where
   measureOf' w := ⟪x, E.measureOf' w y⟫_ℂ
   empty' := by
     rw [E.empty']

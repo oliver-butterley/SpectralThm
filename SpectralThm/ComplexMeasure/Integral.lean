@@ -6,9 +6,6 @@ Authors: Oliver Butterley, Yoh Tanimoto
 module
 
 public import Mathlib
-public import SpectralThm.toMathlib.Variation.Defs
-public import SpectralThm.toMathlib.Variation.Lemmas
-
 
 /-!
 # Integral with respect to a complex-valued measure
@@ -61,7 +58,7 @@ variable {G : Type*} [NormedAddCommGroup G] [NormedSpace ℂ G]
 /-! ## Polar decomposition of complex measures. -/
 
 /-- The variation measure part in the polar decomposition of a complex measure. -/
-noncomputable def var (μ : ComplexMeasure α) := μ.variation.ennrealToMeasure
+noncomputable def var (μ : ComplexMeasure α) := μ.variation
 
 @[simp]
 lemma var_neg (μ : ComplexMeasure α) : (-μ).var = μ.var := by
