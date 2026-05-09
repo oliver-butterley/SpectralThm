@@ -6,8 +6,6 @@ Authors: Oliver Butterley, Yoh Tanimoto
 module
 
 public import Mathlib
-public import SpectralThm.toMathlib.Variation.Defs
-public import SpectralThm.toMathlib.Variation.Lemmas
 public import SpectralThm.ComplexMeasure.Integral
 
 /-!
@@ -57,8 +55,8 @@ namespace ComplexRMK
 variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
 
 theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
-    ∃ h : X → ℂ, Integrable h μ.variation.ennrealToMeasure ∧
-    μ = (μ.variation.ennrealToMeasure).withDensityᵥ h := by
+    ∃ h : X → ℂ, Integrable h μ.variation ∧
+    μ = μ.variation.withDensityᵥ h := by
   sorry
 
 lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
@@ -167,7 +165,7 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
         simp only [this, map_zero, norm_zero] at hga
         grind
       · letI : Nonempty X := by
-          push_neg at hempty
+          push Not at hempty
           obtain ⟨x, hx⟩ := hempty
           exact ⟨x⟩
         obtain ⟨x, hx⟩ := Continuous.exists_forall_ge_of_hasCompactSupport f.continuous
@@ -186,7 +184,7 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
           rw [← hk.2, toZeroAtInftyContinuousMap]
           simp only [ZeroAtInftyContinuousMap.toBCF_apply, ZeroAtInftyContinuousMap.coe_mk]
           apply le_trans <| hk.1 y
-          exact GCongr.toReal_le_toReal (hx y)
+          exact_mod_cast hx y
         · simp
     use Φ (toComplex (f.toReal))
     simp only [Set.mem_image, and_true]
