@@ -29,7 +29,12 @@ the action of the linear functional.
 
 Firstly the uniqueness of measures satisfying the represenation equation is proven.
 
-The proof of existence of such a measures takes advantage of the corresponding statement for ℝ-valued linear functionals and signed measures (see `Mathlib/MeasureTheory/Integral/RieszMarkovKakutani/Real.lean`). As such, a major part of the argument is to reduce the complex situation to the case of a ℝ-valued linear functional. Moreover the required measure can be defined using the measure obtained in the ℝ-valued linear functional case.
+The proof of existence of such a measures takes advantage of the corresponding statement for
+`ℝ`-valued linear functionals and signed measures (see
+`Mathlib/MeasureTheory/Integral/RieszMarkovKakutani/Real.lean`). As such, a major part of the
+argument is to reduce the complex situation to the case of a `ℝ`-valued linear functional. Moreover
+the required measure can be defined using the measure obtained in the `ℝ`-valued linear functional
+case.
 
 
 ## Notes
@@ -42,7 +47,18 @@ The proof of existence of such a measures takes advantage of the corresponding s
 
 ## To do
 
-- Rudin 6.16: Duality of `L^1` and `L^∞` (not in Mathlib [https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025])
+- Rudin 6.4 `IsFiniteMeasure μ.variation`
+- Rudin 6.5 `NormedAddCommGroup` instance for `ComplexMeasure X`
+(- Rudin 6.9 lemma, not needed?)
+- Rudin 6.12 polar decomposition `exists_l1_eq_withDensity_variation`
+- Rudin 6.13, `variation_withDensity_eq`
+- Rudin 6.16: Duality of `L^1` and `L^∞` (not in Mathlib
+[https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025])
+- Rudin 6.19
+* the existence of `Λ`
+* take `g` by duality
+* define the  measure `μ` by `dμ = g dλ`
+* uniqueness
 -/
 
 @[expose] public section
@@ -54,6 +70,16 @@ namespace ComplexRMK
 
 variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
 
+
+-- Rudin 6.4
+instance (μ : ComplexMeasure X) : IsFiniteMeasure μ.variation := sorry
+
+
+-- Rudin 6.5
+instance {V : Type*} [NormedAddCommGroup V] : NormedAddCommGroup (VectorMeasure X V) := sorry
+
+
+-- Rudin 6.12 polar decomposition
 theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
     ∃ h : X → ℂ, Integrable h μ.variation ∧
     μ = μ.variation.withDensityᵥ h := by
