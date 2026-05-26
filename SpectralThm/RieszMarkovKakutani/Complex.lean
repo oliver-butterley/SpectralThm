@@ -56,6 +56,7 @@ case.
 [https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025])
 - Rudin 6.19
 * the existence of `Λ`
+* take the realRMK measure `λ` associated to `Λ`
 * take `g` by duality
 * define the  measure `μ` by `dμ = g dλ`
 * uniqueness
@@ -74,15 +75,29 @@ variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpa
 -- Rudin 6.4
 instance (μ : ComplexMeasure X) : IsFiniteMeasure μ.variation := sorry
 
-
 -- Rudin 6.5
-instance {V : Type*} [NormedAddCommGroup V] : NormedAddCommGroup (VectorMeasure X V) := sorry
-
+noncomputable instance {V : Type*} [NormedAddCommGroup V] : NormedAddCommGroup (VectorMeasure X V) where
+  norm μ := μ.variation.real Set.univ
+  dist_self := by intro; simp
+  dist_comm := by
+    intro _ _
+    simp only
+    rw [← MeasureTheory.VectorMeasure.variation_neg]
+    simp
+  dist_triangle := by
+    intro x y z
+    simp only
+    rw [Eq.symm (add_add_neg_add_cancel (-x) y z)]
+    -- apply MeasureTheory.VectorMeasure.variation_add_le
+    sorry
+  eq_of_dist_eq_zero := by
+    intro x y h
+    sorry
 
 -- Rudin 6.12 polar decomposition
 theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
     ∃ h : X → ℂ, Integrable h μ.variation ∧
-    μ = μ.variation.withDensityᵥ h := by
+    μ = μ.variation.withDensityᵥ h ∧ ∀ x, ‖h x‖ = 1 := by
   sorry
 
 lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
