@@ -56,7 +56,7 @@ structure ResolutionOfIdentity (α : Type*) [MeasurableSpace α] (H: Type*) [Nor
     HasSum (fun i => ⟪x, measureOf' (w i) y⟫_ℂ) (⟪x, measureOf' (⋃ i, w i) y⟫_ℂ)
 
 
-instance ResolutionOfIdentity.instFunLike [MeasurableSpace α] : FunLike (ResolutionOfIdentity α H)
+instance ResolutionOfIdentity.instFunLike : FunLike (ResolutionOfIdentity α H)
     (Set α) (H →L[ℂ] H) where
   coe E := E.measureOf'
   coe_injective' | ⟨_, _, _, _,  _, _, _⟩, ⟨_, _, _, _, _, _, _⟩, rfl => rfl

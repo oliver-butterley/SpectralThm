@@ -149,12 +149,12 @@ def absOfFunc_c (f : C_c(X, ℂ)) : C_c(X, ℝ) := sorry
 
 
 -- TO DO: figure out using this coercial directly in the argument.
-def toZeroAtInftyContinuousMap : C_c(X, ℂ) → C₀(X, ℂ) := fun f ↦ (f : C₀(X, ℂ))
+noncomputable def toZeroAtInftyContinuousMap : C_c(X, ℂ) → C₀(X, ℂ) := fun f ↦ (f : C₀(X, ℂ))
 def toZeroAtInftyContinuousMap' : C_c(X, ℝ) → C₀(X, ℝ) := fun f ↦ (f : C₀(X, ℝ))
 
 -- there is a coercion
 variable (f : C_c(X, ℂ))
-#check (f : ZeroAtInftyContinuousMap X ℂ)
+-- #check (f : ZeroAtInftyContinuousMap X ℂ)
 
 
 -- TO DO: define the identity between the ℝ and ℂ spaces of continuous functions,
