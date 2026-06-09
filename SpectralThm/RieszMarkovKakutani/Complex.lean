@@ -76,23 +76,41 @@ variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpa
 instance (μ : ComplexMeasure X) : IsFiniteMeasure μ.variation := sorry
 
 -- Rudin 6.5
-noncomputable instance {V : Type*} [NormedAddCommGroup V] : NormedAddCommGroup (VectorMeasure X V) where
-  norm μ := μ.variation.real Set.univ
-  dist_self := by intro; simp
-  dist_comm := by
+
+@[simp] lemma variation_zero_iff_univ {V : Type*} [NormedAddCommGroup V] {μ : VectorMeasure X V} :
+    μ.variation Set.univ = 0 ↔ μ = 0 := by
+  simp
+
+noncomputable instance {V : Type*} [NormedAddCommGroup V] : EMetricSpace (VectorMeasure X V) where
+  edist μ ν := (μ - ν).variation Set.univ
+  edist_self := by intro; simp
+  edist_comm := by
     intro _ _
-    simp only
     rw [← MeasureTheory.VectorMeasure.variation_neg]
     simp
-  dist_triangle := by
+  edist_triangle := by
     intro x y z
-    simp only
-    rw [Eq.symm (add_add_neg_add_cancel (-x) y z)]
-    -- apply MeasureTheory.VectorMeasure.variation_add_le
-    sorry
-  eq_of_dist_eq_zero := by
-    intro x y h
-    sorry
+    simpa using Measure.le_iff.mp (VectorMeasure.variation_add_le (μ := x - y) (ν := y - z))
+      Set.univ MeasurableSet.univ
+  eq_of_edist_eq_zero {x y} h := by
+    rw [variation_zero_iff_univ] at h
+    exact eq_of_sub_eq_zero h
+
+lemma edist_eq_variation_sub {V : Type*} [NormedAddCommGroup V] (μ ν : VectorMeasure X V) :
+    edist μ ν = (μ - ν).variation Set.univ := by rfl
+
+noncomputable instance {V : Type*} [NormedAddCommGroup V] :
+    ENormedAddCommMonoid (VectorMeasure X V) where
+  enorm μ := μ.variation Set.univ
+  continuous_enorm := by
+    have : Continuous (fun x : VectorMeasure X V ↦ edist x 0) := by
+      continuity
+    simpa [edist_eq_variation_sub, sub_zero] using this
+  enorm_zero := by simp
+  enorm_add_le x y := by
+    simpa using Measure.le_iff.mp (VectorMeasure.variation_add_le (μ := x) (ν := y)) Set.univ
+      MeasurableSet.univ
+  enorm_eq_zero x := variation_zero_iff_univ
 
 -- Rudin 6.12 polar decomposition
 theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
@@ -163,6 +181,48 @@ noncomputable def _root_.CompactlySupportedContinuousMap.toComplex (f : C_c(X, �
   f.compLeft Complex.ofRealCLM
 
 
+noncomputable def preVariationFunctional : C₀(X, ℝ≥0) →ₗ[ℝ≥0] ℝ≥0 where
+  toFun := fun f ↦ sSup (nnnorm '' (Φ '' {g : C₀(X, ℂ) | ∀ x, ‖g x‖ ≤ f x}))
+  map_add' f g := by
+    apply le_antisymm
+      sorry
+      sorry
+  -- We have to show that
+  -- (10) `Λ(f + g) = Λ f + Λ g` whenever `f, g ∈ C_c^+(X)`,
+  -- and we then have to extend `Λ` to a linear functional on `C_c(X, ℝ)`.
+  -- Fix `f` and `g \in C_c^+(X)`.
+  -- If `ε > 0`, there exist `h_1, h_2 \in C_c(X, ℝ)` such that `|h_1| ≤ f`, `|h_2| ≤ g`,
+  -- `Λ f ≤ |Φ(h_1)| + ε`, `Λ g ≤ |Φ(h_2)| + ε`.
+  -- There are complex numbers `α_i`, `|α_i| = 1`, so that `α_i Φ(h_i) = |Φ(h_i)|`, `i = 1, 2`.
+  -- Then
+  -- `Λ f + Λ g ≤ |Φ(h_1)| + |Φ(h_2)| + 2ε`
+  -- `_ = Φ(α_1 h_1 + α_2 h_2) + 2ε`
+  -- `_ ≤ Λ(|h_1| + |h_2|) + 2ε`
+  -- `_ ≤ Λ(f + g) + 2ε`
+  -- so that the inequality `≥` holds in (10).
+  -- Next, choose `h ∈ C_c(X)`, subject only to the condition `|h| ≤ f + g`,
+  -- let `V = { x : f(x) + g(x) > 0 }`, and define
+  -- `h_1(x) = \frac{f(x) h(x)}{f(x) + g(x)}`,
+  -- `h_2(x) = \frac{g(x) h(x)}{f(x) + g(x)}` when `x ∈ V`,
+  -- `h_1(x) = h_2(x) = 0` when `x ∉ V`.
+  -- It is clear that `h_1` is continuous at every point of `V`.
+  -- If `x_0 ∉ V`, then `h(x_0) = 0`;
+  -- since `h` is continuous and since `|h_1(x)| ≤ |h(x)|` for all `x ∈ X`,
+  -- it follows that `x_0` is a point of continuity of `h_1`.
+  -- Thus `h_1 \in C_c(X)`, and the same holds for `h_2`.
+  -- Since `h_1 + h_2 = h` and `|h_1| ≤ f`, `|h_2| ≤ g`, we have
+  -- `|Φ(h)| = |Φ(h_1) + Φ(h_2)| ≤ |Φ(h_1)| + |Φ(h_2)| ≤ Λ f + Λ g`.
+  -- Hence `Λ(f + g) ≤ Λ f + Λ g`, and we have proved (10).
+  -- If `f` is now a real function, `f \in C_c(X)`, then `2f^+ = |f| + f`,
+  -- so that `f^+ \in C_c^+(X)`;
+  -- likewise, `f^- \in C_c^+(X)`; and since `f = f^+ - f^-`, it is natural to define
+  -- `Λ f = Λ f^+ - Λ f^- ` for `f \in C_c(X)`, `f` real
+  -- and
+  -- `Λ(u + iv) = Λ u + i Λ v`.
+  -- Simple algebraic manipulations, just like those which occur in the proof of
+  -- Theorem 1.32, show now that our extended functional `Λ` is linear on `C_c(X)`.
+  map_smul' := sorry
+
 /-- Let `Φ` be a bounded linear functional on `C₀(X, ℂ)`. There exists a positive linear functional
 `Λ` on `C₀(X, ℝ)` such that, `∀ f : C₀(X, ℂ)`, `|Φ f| ≤ Λ |f|` and `Λ |f| ≤ ‖f‖` (`‖⬝‖` denotes
 the supremum norm). [Rudin 87, part of proof of Theorem 6.19] -/
@@ -175,6 +235,7 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
   let Λ' (f : C_c(X, ℝ≥0)) := sSup (norm '' (Φ '' U f))
 
   -- Then `Λ f ≥ 0`, `Λ` satisfies the two required inequalities,
+  -- this is not needed?
   have (f : C_c(X, ℝ≥0)) : 0 ≤ Λ' f := by
     -- because it is the sup of nonnegative quantities
     unfold Λ'
@@ -313,7 +374,6 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
   -- Theorem 1.32, show now that our extended functional `Λ` is linear on `C_c(X)`.
   sorry
 
--- def preVariationFunctional :
 
 end ComplexRMK
 
