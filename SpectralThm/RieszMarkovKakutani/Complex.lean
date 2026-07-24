@@ -71,6 +71,10 @@ namespace ComplexRMK
 
 variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
 
+-- TODO
+-- move ComplexMeasure in VectorMeasure
+-- separate things about SignedMeasure in Basic in a separate file
+-- counterexample: a L^∞ valued measure whose variation is not finite?
 
 -- Rudin 6.4
 instance (μ : ComplexMeasure X) : IsFiniteMeasure μ.variation := sorry
