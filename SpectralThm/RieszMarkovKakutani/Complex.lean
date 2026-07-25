@@ -51,7 +51,7 @@ case.
 - Rudin 6.5 `NormedAddCommGroup` instance for `ComplexMeasure X`
 (- Rudin 6.9 lemma, not needed?)
 - Rudin 6.12 polar decomposition `exists_l1_eq_withDensity_variation`
-- Rudin 6.13, `variation_withDensity_eq`
+- Rudin 6.13, `MeasureTheory.Measure.variation_withDensityᵥ`
 - Rudin 6.16: Duality of `L^1` and `L^∞` (not in Mathlib
 [https://leanprover.zulipchat.com/#narrow/channel/217875-Is-there-code-for-X.3F/topic/Lp.20duality/near/495207025])
 - Rudin 6.19
@@ -75,6 +75,7 @@ variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpa
 -- move ComplexMeasure in VectorMeasure
 -- separate things about SignedMeasure in Basic in a separate file
 -- counterexample: a L^∞ valued measure whose variation is not finite?
+-- make a folder VectorMeasure/SignedMeasure, make a file Basic, a folder Decomposition
 
 -- Rudin 6.4
 instance (μ : ComplexMeasure X) : IsFiniteMeasure μ.variation := sorry
@@ -117,9 +118,25 @@ noncomputable instance {V : Type*} [NormedAddCommGroup V] :
   enorm_eq_zero x := variation_zero_iff_univ
 
 -- Rudin 6.12 polar decomposition
+
+theorem MeasureTheory.ComplexMeasure.withDensityᵥ_rnDeriv_eq (v : ComplexMeasure X) (μ : Measure X)
+    (h : VectorMeasure.AbsolutelyContinuous v μ.toENNRealVectorMeasure) :
+    μ.withDensityᵥ (v.rnDeriv μ) = v := by
+  sorry
+  -- need ComplexMeasure.ext
+  -- need (μ.withDensityᵥ f).re = μ.withDensityᵥ f.re
+  -- need (v.rnDeriv μ).re = v.re.rnDeriv μ
+
+
+theorem eq_withDensityᵥ_rnDeriv (μ : ComplexMeasure X) :
+    μ.variation.withDensityᵥ (μ.rnDeriv μ.variation) = μ := by
+  sorry
+  -- need the Complex version of MeasureTheory.SignedMeasure.withDensityᵥ_rnDeriv_eq
+
+
 theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
-    ∃ h : X → ℂ, Integrable h μ.variation ∧
-    μ = μ.variation.withDensityᵥ h ∧ ∀ x, ‖h x‖ = 1 := by
+    μ.rnDeriv μ.variation =ᵐ[μ.variation] 1 := by
+  let A : ℝ≥0 → Set X := fun r ↦ {x | ‖μ.rnDeriv μ.variation x‖ < r}
   sorry
 
 lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
