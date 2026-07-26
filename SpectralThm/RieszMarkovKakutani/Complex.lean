@@ -119,20 +119,75 @@ noncomputable instance {V : Type*} [NormedAddCommGroup V] :
 
 -- Rudin 6.12 polar decomposition
 
-theorem MeasureTheory.ComplexMeasure.withDensityᵥ_rnDeriv_eq (v : ComplexMeasure X) (μ : Measure X)
-    (h : VectorMeasure.AbsolutelyContinuous v μ.toENNRealVectorMeasure) :
+theorem ComplexMeasure.ext (μ ν : ComplexMeasure X) : μ.re = ν.re → μ.im = ν.im → μ = ν := by
+  intro hre him
+  apply Equiv.injective ComplexMeasure.equivSignedMeasure
+  simp [hre, him]
+
+theorem ComplexMeasure.ext_iff (μ ν : ComplexMeasure X) : μ = ν ↔ (μ.re = ν.re ∧ μ.im = ν.im) :=
+  ⟨fun h ↦ by constructor <;> rw [h], fun h ↦ ComplexMeasure.ext μ ν h.1 h.2⟩
+
+theorem re_withDensityᵥ_eq {μ : Measure X} {f : X → ℂ} (hf : Integrable f μ):
+    ComplexMeasure.re (μ.withDensityᵥ f) = μ.withDensityᵥ (Complex.re ∘ f) := by
+  ext E hE
+  rw [ComplexMeasure.re_apply,
+    MeasureTheory.VectorMeasure.mapRange_apply (μ.withDensityᵥ f) Complex.continuous_re,
+    MeasureTheory.withDensityᵥ_apply hf hE, LinearMap.toAddMonoidHom_coe, Complex.reLm_coe,
+    ← Complex.reCLM_apply, ← ContinuousLinearMap.integral_comp_comm _ hf.integrableOn,
+    MeasureTheory.withDensityᵥ_apply (f := Complex.re ∘ f)
+      (Complex.reCLM.integrable_comp hf) hE]
+  simp
+
+theorem im_withDensityᵥ_eq {μ : Measure X} {f : X → ℂ} (hf : Integrable f μ):
+    ComplexMeasure.im (μ.withDensityᵥ f) = μ.withDensityᵥ (Complex.im ∘ f) := by
+  ext E hE
+  rw [ComplexMeasure.im_apply,
+    MeasureTheory.VectorMeasure.mapRange_apply (μ.withDensityᵥ f) Complex.continuous_im,
+    MeasureTheory.withDensityᵥ_apply hf hE, LinearMap.toAddMonoidHom_coe, Complex.imLm_coe,
+    ← Complex.imCLM_apply, ← ContinuousLinearMap.integral_comp_comm _ hf.integrableOn,
+    MeasureTheory.withDensityᵥ_apply (f := Complex.im ∘ f)
+      (Complex.imCLM.integrable_comp hf) hE]
+  simp
+
+theorem re_rnDeriv_eq_rnDeriv_re (v : ComplexMeasure X) (μ : Measure X) :
+    Complex.re ∘ (v.rnDeriv μ) = v.re.rnDeriv μ := by rfl
+
+theorem im_rnDeriv_eq_rnDeriv_im (v : ComplexMeasure X) (μ : Measure X) :
+    Complex.im ∘ (v.rnDeriv μ) = v.im.rnDeriv μ := by rfl
+
+theorem absolutelyContinuous_re {v : ComplexMeasure X} {μ : Measure X}
+    (h : v ≪ᵥ μ.toENNRealVectorMeasure) : v.re ≪ᵥ μ.toENNRealVectorMeasure := by
+  intro E hE
+  rw [ComplexMeasure.re_apply, VectorMeasure.mapRange_apply v Complex.continuous_re]
+  simp [LinearMap.toAddMonoidHom_coe, Complex.reLm_coe, h hE]
+
+theorem absolutelyContinuous_im {v : ComplexMeasure X} {μ : Measure X}
+    (h : v ≪ᵥ μ.toENNRealVectorMeasure) : v.im ≪ᵥ μ.toENNRealVectorMeasure := by
+  intro E hE
+  rw [ComplexMeasure.im_apply, VectorMeasure.mapRange_apply v Complex.continuous_im]
+  simp [LinearMap.toAddMonoidHom_coe, Complex.imLm_coe, h hE]
+
+theorem MeasureTheory.ComplexMeasure.withDensityᵥ_rnDeriv_eq {v : ComplexMeasure X} {μ : Measure X}
+    [SigmaFinite μ] (h : v ≪ᵥ μ.toENNRealVectorMeasure) :
     μ.withDensityᵥ (v.rnDeriv μ) = v := by
-  sorry
-  -- need ComplexMeasure.ext
-  -- need (μ.withDensityᵥ f).re = μ.withDensityᵥ f.re
-  -- need (v.rnDeriv μ).re = v.re.rnDeriv μ
+  apply ComplexMeasure.ext
+  · rw [re_withDensityᵥ_eq (ComplexMeasure.integrable_rnDeriv v μ), re_rnDeriv_eq_rnDeriv_re]
+    exact MeasureTheory.SignedMeasure.withDensityᵥ_rnDeriv_eq _ _ (absolutelyContinuous_re h)
+  · rw [im_withDensityᵥ_eq (ComplexMeasure.integrable_rnDeriv v μ), im_rnDeriv_eq_rnDeriv_im]
+    exact MeasureTheory.SignedMeasure.withDensityᵥ_rnDeriv_eq _ _ (absolutelyContinuous_im h)
 
+theorem absolutelyContinuous_variation {V : Type} [TopologicalSpace V] [ENormedAddCommMonoid V]
+    [T2Space V] (μ : VectorMeasure X V) : μ ≪ᵥ μ.ennrealVariation := by
+  intro E hE
+  by_cases hEm : MeasurableSet E
+  · rw [MeasureTheory.VectorMeasure.ennrealVariation_apply _ hEm] at hE
+    rw [← enorm_eq_zero, ← le_zero_iff, ← hE]
+    exact VectorMeasure.enorm_measure_le_variation μ E
+  · exact VectorMeasure.not_measurable μ hEm
 
-theorem eq_withDensityᵥ_rnDeriv (μ : ComplexMeasure X) :
-    μ.variation.withDensityᵥ (μ.rnDeriv μ.variation) = μ := by
-  sorry
-  -- need the Complex version of MeasureTheory.SignedMeasure.withDensityᵥ_rnDeriv_eq
-
+theorem withDensityᵥ_variation_rnDeriv_eq (μ : ComplexMeasure X) :
+    μ.variation.withDensityᵥ (μ.rnDeriv μ.variation) = μ :=
+  MeasureTheory.ComplexMeasure.withDensityᵥ_rnDeriv_eq <| absolutelyContinuous_variation μ
 
 theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
     μ.rnDeriv μ.variation =ᵐ[μ.variation] 1 := by
