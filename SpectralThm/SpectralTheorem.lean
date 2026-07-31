@@ -143,7 +143,7 @@ cf. Rudin "Functional Analysis" Theorem 12.22, the definition (9) and later.
 def toResolutionOfIdentity : ResolutionOfIdentity (spectrum ℂ a) H where
   measureOf' s := InnerProductSpace.continuousLinearMapOfBilin
     (@toBoundedBilin _ _ _ _ _ ha 1 (Set.indicator s (1 : (spectrum ℂ a) → ℂ)))
-  isOrthogonalProjection' := sorry
+  IsStarProjection' := sorry
   empty' := by
     ext
     simp [continuousLinearMapOfBilin, toBoundedBilin, cfc_toComplexMeasure, ComplexMeasure.integral]
@@ -162,6 +162,6 @@ map.
 cf. Rudin "Functional Analysis" Theorem 12.21, Theorem 12.22.
 -/
 theorem SpectralDecomposition (x y : H) :
-    ⟪x, a y⟫_ℂ = (toComplexMeasure (toResolutionOfIdentity ha) x y).integral
+    ⟪x, a y⟫_ℂ = ((toResolutionOfIdentity ha).toComplexMeasure x y).integral
     (Function.Embedding.subtype (spectrum ℂ a)) := by
   sorry
