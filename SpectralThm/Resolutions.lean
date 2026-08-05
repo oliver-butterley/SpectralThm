@@ -46,6 +46,60 @@ instance ResolutionOfIdentity.instFunLike : FunLike (ResolutionOfIdentity X H)
 
 end Def
 
+section OrthogonalProjection
+
+section Def
+
+variable (H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
+
+def OrthogonalProjection := { p : H →L[ℂ] H // IsStarProjection p }
+
+end Def
+
+namespace OrthogonalProjection
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
+
+lemma norm_le_of_le (x : H) {p q : H →L[ℂ] H} (hp : IsStarProjection p) (hq : IsStarProjection q)
+    (h : p ≤ q) : ‖p x‖ ≤ ‖q x‖ := by
+  calc
+    ‖p x‖ = ‖(p * q) x‖ := by rw [hp.le_iff_mul_eq_left hq |>.mp h]
+    _ = ‖p (q x)‖ := by rw [mul_apply_eq_comp]
+    _ ≤ ‖p‖ * ‖q x‖ := p.le_opNorm (q x)
+    _ ≤ 1 * ‖q x‖ := mul_le_mul_of_nonneg_right (hp.norm_le p) (norm_nonneg _)
+    _ = ‖q x‖ := one_mul _
+
+variable (p q : OrthogonalProjection H)
+
+def IsOrthogonalTo : Prop := p.val * q.val = 0
+
+#check p.IsOrthogonalTo q
+
+lemma IsOrthogonalTo.symm (h : p.IsOrthogonalTo q) : q.IsOrthogonalTo p := by
+  unfold IsOrthogonalTo
+  rw [← star_eq_zero]; simpa [p.property.isSelfAdjoint.star_eq, q.property.isSelfAdjoint.star_eq]
+
+lemma add_isStarProjection_of_isOrthogonalTo (p q : OrthogonalProjection H)
+    (h : p.IsOrthogonalTo q) : IsStarProjection (p.val + q.val) := by
+  refine ⟨?_, IsSelfAdjoint.add p.property.isSelfAdjoint q.property.isSelfAdjoint⟩
+  refine IsIdempotentElem.add p.property.isIdempotentElem q.property.isIdempotentElem ?_
+  rw [h, h.symm]; simp
+
+
+variable (ι : Type*) (p : ι → OrthogonalProjection H)
+
+#check fun i ↦ ((p i).val.toPointwiseConvergenceCLM _ _ _ _)
+#check ContinuousLinearMap.toPointwiseConvergenceCLM _ _ _ _ q.val
+
+-- TODO
+-- define the union of ranges of `p`
+-- show that if `(p : ι → OrthogonalProjection H)`, then
+-- `HasSum (fun i ↦ (p i).val.toPointwiseConvergenceCLM)
+
+end OrthogonalProjection
+
+end OrthogonalProjection
+
 namespace ResolutionOfIdentity
 
 variable {X : Type*} {mX : MeasurableSpace X}
@@ -66,46 +120,24 @@ lemma subset_iff_le (w₁ w₂ : Set X) (h1 : MeasurableSet w₁) (h2 : Measurab
 
 noncomputable def toComplexMeasure (x y : H) : ComplexMeasure X where
   measureOf' w := ⟪x, E.measureOf' w y⟫_ℂ
-  empty' := by
-    rw [E.empty']
-    simp only [zero_apply, inner_zero_right]
-  not_measurable' w h := by
-    rw [E.not_measurable' h]
-    simp only [zero_apply, inner_zero_right]
+  empty' := by simp [E.empty', zero_apply, inner_zero_right]
+  not_measurable' w h := by simp [E.not_measurable' h, zero_apply, inner_zero_right]
   m_iUnion' := E.m_iUnion'
 
-def toOuterMeasure (x : H) : OuterMeasure X where
-  measureOf w := ENNReal.ofReal ‖E.measureOf' w x‖
-  empty := by
-    rw [E.empty']
-    simp only [zero_apply, norm_zero, ofReal_zero]
-  mono {w₁ w₂} h := by
-    rw [ENNReal.ofReal_le_ofReal_iff (norm_nonneg _)]
-    sorry
-  iUnion_nat := sorry
+noncomputable def toMeasure (x : H) := Measure.ofMeasurable
+  (fun w _ ↦ ENNReal.ofReal ‖E.measureOf' w x‖)
+  (by rw [E.empty']; simp only [zero_apply, norm_zero, ofReal_zero])
+  (by sorry)
 
-noncomputable def toMeasure (x : H) : Measure X :=
-  {
-    toOuterMeasure := (E.toOuterMeasure x).trim
-    m_iUnion {f} f_measurable f_disjoint := sorry
-    trim_le := by
-      rw [MeasureTheory.OuterMeasure.trim_trim]
-  }
+@[simp]
+lemma toMeasure_apply (w : Set X) (hw : MeasurableSet w) (x : H) :
+    E.toMeasure x w = ENNReal.ofReal ‖E.measureOf' w x‖ := by
+  simpa [toMeasure] using Measure.ofMeasurable_apply w hw
 
 variable (E : ResolutionOfIdentity X H)
 
-@[simp]
-lemma ResolutionOfIdentity.apply (w: Set X): E w = E.measureOf' w := rfl
-
-@[simp]
-lemma toMeasure_apply (x : H) (w : Set X) : toMeasure E x w = (toOuterMeasure E x).trim w := rfl
-
-@[simp]
-lemma toOuterMeasure_apply (x : H) (w : Set X) : (toOuterMeasure E x) w = ENNReal.ofReal ‖E.measureOf' w x‖ := rfl
-
-lemma ResolutionOfIdentity.zero_iff (w : Set X) (h : MeasurableSet w) : E w  = 0 ↔
-    ∀ x, (toMeasure E x) w = 0 := by
-  simp [MeasureTheory.OuterMeasure.trim_eq _ h, ContinuousLinearMap.ext_iff]
+lemma zero_iff (w : Set X) (h : MeasurableSet w) : E w  = 0 ↔ ∀ x, (toMeasure E x) w = 0 := by
+  simp [ContinuousLinearMap.ext_iff, apply, toMeasure_apply E w h]
 
 noncomputable def SumOuterMeasure {ι : Type*} (μ : ι → Measure X) : OuterMeasure X where
   measureOf w := ∑' i, μ i w
