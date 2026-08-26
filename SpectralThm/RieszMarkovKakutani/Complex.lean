@@ -67,6 +67,77 @@ case.
 open NNReal ENNReal
 open ZeroAtInfty MeasureTheory CompactlySupported CompactlySupportedContinuousMap
 
+section Lemmas
+
+variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X]
+
+lemma outerRegular_add (μ₁ μ₂ : Measure X) [μ₁.OuterRegular] [μ₂.OuterRegular] :
+    (μ₁ + μ₂).OuterRegular := by
+  constructor
+  intro A hA r hr
+  simp only [Measure.coe_add, Pi.add_apply] at hr
+  obtain ⟨u, hu, v, hv, huv⟩ := ENNReal.exists_add_lt_of_add_lt hr
+  obtain ⟨U, hAU, hU, hμU⟩ := A.exists_isOpen_lt_of_lt u hu
+  obtain ⟨V, hAV, hV, hμV⟩ := A.exists_isOpen_lt_of_lt v hv
+  use U ∩ V
+  refine ⟨Set.subset_inter hAU hAV, hU.inter hV, ?_⟩
+  calc
+    (μ₁ + μ₂) (U ∩ V) ≤ μ₁ U + μ₂ V := by
+        simp only [Measure.coe_add, Pi.add_apply]
+        gcongr
+        · exact Set.inter_subset_left
+        · exact Set.inter_subset_right
+    _ < u + v := by gcongr
+    _ < r := by grind
+
+lemma innerRegular_add (μ₁ μ₂ : Measure X) [μ₁.Regular] [μ₂.Regular] :
+    (μ₁ + μ₂).InnerRegularWRT IsCompact IsOpen := by
+  intro U hU r hr
+  simp only [Measure.coe_add, Pi.add_apply] at hr
+  rcases eq_or_ne (μ₁ U) 0 with h₁ | h₁
+  · simp only [h₁, zero_add] at hr
+    obtain ⟨K, hKU, hK, hrK⟩ := hU.exists_lt_isCompact hr
+    exact ⟨K, hKU, hK, hrK.trans_le (by simp)⟩
+  rcases eq_or_ne (μ₂ U) 0 with h₂ | h₂
+  · simp only [h₂, add_zero] at hr
+    obtain ⟨K, hKU, hK, hrK⟩ := hU.exists_lt_isCompact hr
+    exact ⟨K, hKU, hK, hrK.trans_le (by simp)⟩
+  obtain ⟨u, hu, v, hv, huv⟩ := ENNReal.exists_lt_add_of_lt_add hr h₁ h₂
+  obtain ⟨K, hKU, hK, huK⟩ := hU.exists_lt_isCompact hu
+  obtain ⟨L, hLU, hL, hvL⟩ := hU.exists_lt_isCompact hv
+  use K ∪ L
+  refine ⟨Set.union_subset hKU hLU, hK.union hL, ?_⟩
+  calc
+    r < u + v := huv
+    _ < μ₁ K + μ₂ L := by gcongr
+    _ ≤ (μ₁ + μ₂) (K ∪ L) := by
+        simp only [Measure.coe_add, Pi.add_apply]
+        gcongr
+        · exact Set.subset_union_left
+        · exact Set.subset_union_right
+
+lemma regular_add (μ₁ μ₂ : Measure X) [μ₁.Regular] [μ₂.Regular] : (μ₁ + μ₂).Regular := by
+  let ⟨hOuter⟩ := outerRegular_add μ₁ μ₂
+  exact
+    { lt_top_of_isCompact := fun _K hK =>
+        ENNReal.add_lt_top.mpr ⟨hK.measure_lt_top, hK.measure_lt_top⟩
+      outerRegular := hOuter
+      innerRegular := innerRegular_add μ₁ μ₂ }
+
+lemma regular_finset_sum {ι : Type*} (s : Finset ι) (μ : ι → Measure X)
+    [∀ i, (μ i).Regular] : (∑ i ∈ s, μ i).Regular := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+      simpa [Finset.sum_empty] using Measure.Regular.zero
+  | insert i s hi ih =>
+      rw [Finset.sum_insert hi]
+      exact regular_add (μ i) (∑ j ∈ s, μ j)
+
+-- adapt and generalize this to more outerRegular type classes
+
+end Lemmas
+
 namespace ComplexRMK
 
 variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
@@ -190,11 +261,27 @@ theorem withDensityᵥ_variation_rnDeriv_eq (μ : ComplexMeasure X) :
   MeasureTheory.ComplexMeasure.withDensityᵥ_rnDeriv_eq <| absolutelyContinuous_variation μ
 
 theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
-    μ.rnDeriv μ.variation =ᵐ[μ.variation] 1 := by
-  let A : ℝ≥0 → Set X := fun r ↦ {x | ‖μ.rnDeriv μ.variation x‖ < r}
-  sorry
+     ∀ᵐ x ∂μ.variation, ‖μ.rnDeriv μ.variation x‖ = 1 := by
+  have hDensity :
+      ((μ.variation).withDensityᵥ (μ.rnDeriv μ.variation)).variation
+        = VectorMeasure.variation μ := by
+      congr; exact withDensityᵥ_variation_rnDeriv_eq μ
+  rw [Measure.variation_withDensityᵥ (ComplexMeasure.integrable_rnDeriv μ μ.variation)]
+    at hDensity
+  have henorm : (fun x ↦ ‖μ.rnDeriv μ.variation x‖ₑ) =ᵐ[μ.variation] 1 := by
+    apply (MeasureTheory.withDensity_eq_iff_of_sigmaFinite
+      (ComplexMeasure.integrable_rnDeriv μ μ.variation).aestronglyMeasurable.enorm
+      aemeasurable_const).mp
+    simpa using hDensity
+  filter_upwards [henorm] with x h
+  simpa [← ofReal_norm, Pi.one_apply, ofReal_eq_one] using h
 
-lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
+
+-- TODO remove `[NormalSpace X]` from `exists_hasCompactSupport_integral_sub_le`
+-- switch to `C_c`
+lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMeasure X}
+    [Measure.Regular μ.variation]
+    (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
     μ = 0 := by
   -- [Rudin 87, Theorem 6.19]
   -- Suppose `μ` is a regular complex Borel measure on `X`
@@ -206,15 +293,85 @@ lemma eq_zero_of_integral_eq_zero {μ: ComplexMeasure X} (h : ∀ f : C₀(X, �
   -- so chosen that the last expression in the above tends to 0 as `n → \infty`.
   -- Thus `|μ|(X) = 0`, and `μ = 0`.
   -- (Theorem 3.14: compactly supported continuous functions are dense in `L^p`,
-  -- depends on 3.13 `MeasureTheory.Lp.simpleFunc.isDenseEmbedding`, this is written only for
+  -- depends on 3.13 `exists_hasCompactSupport_integral_sub_le`, this is written only for
   -- `NormalSpace α` and approximation given by bounded functions)
   -- It is easy to see that the difference of two regular complex Borel measures on `X` is regular.
-  sorry
+  rw [← variation_zero_iff_univ]
+  -- take a sequence `f n` which tends to `star μ.rnDeriv μ.variation` in the L^1 norm of `μ.variation`
+  -- calc
+  --   μ.variation.real Set.univ = ∫ (x : X), 1 ∂(μ.variation) := by simp
+  --   _ = ∫ (x : X), ‖μ.rnDeriv μ.variation x‖ ∂(μ.variation) := by sorry
+  --   _ = ∫ (x : X), ‖μ.rnDeriv μ.variation x‖ ^ 2 ∂(μ.variation) := by sorry
+  --   _ = ∫ (x : X), (star μ.rnDeriv μ.variation x - f n) * h ∂(μ.variation) := by sorry
+  --   _ = ∫ (x : X), (star μ.rnDeriv μ.variation x - f n) ∂ μ := by sorry
+  --   _ = ∫ (x : X), ‖star μ.rnDeriv μ.variation x - f n‖ ∂ μ.variation := by sorry
+  --   _ ≤ 0
+  -- (actually the calc block below is almost ok)
 
+  rw [← measureReal_eq_zero_iff]
+  apply le_antisymm _ ENNReal.toReal_nonneg
+  · apply _root_.le_of_forall_pos_le_add
+    intro ε hε
+    let a := μ.rnDeriv μ.variation
+    have ha : Integrable (fun x ↦ star (a x)) μ.variation :=
+      (Complex.conjCLE : ℂ →L[ℝ] ℂ).integrable_comp
+        (ComplexMeasure.integrable_rnDeriv μ μ.variation)
+    obtain ⟨g, hg_support, hg_approx, hg_cont, hg_int⟩ :=
+      ha.exists_hasCompactSupport_integral_sub_le hε
+    let f : C_c(X, ℂ) := ⟨⟨g, hg_cont⟩, hg_support⟩
+    -- start calc here
+    have hfg : ∫ x, a x * g x ∂μ.variation = 0 := by
+      simpa [f, a, ComplexMeasure.integral, ComplexMeasure.ang, ComplexMeasure.var]
+        using h (f : C₀(X, ℂ))
+    have haa : ∀ᵐ x ∂μ.variation, star (a x) * a x = 1 := by
+      filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx
+      rw [← show (Complex.normSq (a x) : ℂ) = star (a x) * a x by
+        simpa only [starRingEnd_apply] using Complex.normSq_eq_conj_mul_self]
+      have hx' : ‖a x‖ = 1 := by simpa [a] using hx
+      rw [Complex.normSq_eq_norm_sq, hx']
+      norm_num
+    have ha' : Integrable a μ.variation :=
+      ComplexMeasure.integrable_rnDeriv μ μ.variation
+    have ha_bound : ∀ᵐ x ∂μ.variation, ‖a x‖ ≤ 1 := by
+      filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx
+      have hx' : ‖a x‖ = 1 := by simpa [a] using hx
+      simp [hx']
+    have hdiff : Integrable (fun x ↦ (star (a x) - g x) * a x) μ.variation :=
+      (ha.sub hg_int).mul_bdd ha'.aestronglyMeasurable ha_bound
+    have hprod : Integrable (fun x ↦ a x * g x) μ.variation :=
+      hg_int.bdd_mul ha'.aestronglyMeasurable ha_bound
+    calc
+      μ.variation.real Set.univ
+          = ‖∫ x, star (a x) * a x ∂μ.variation‖ := by
+              rw [integral_congr_ae haa]
+              simp [abs_of_nonneg]
+      _ = ‖∫ x, (star (a x) - g x) * a x ∂μ.variation‖ := by
+            congr 1
+            calc
+              ∫ x, star (a x) * a x ∂μ.variation =
+                  ∫ x, (star (a x) - g x) * a x + a x * g x ∂μ.variation := by
+                    congr 1
+                    funext x
+                    ring
+              _ = (∫ x, (star (a x) - g x) * a x ∂μ.variation) +
+                  ∫ x, a x * g x ∂μ.variation := by
+                    exact integral_add hdiff hprod
+              _ = _ := by rw [hfg, add_zero]
+      _ ≤ ∫ x, ‖star (a x) - g x‖ ∂μ.variation := by
+            refine norm_integral_le_of_norm_le (ha.sub hg_int).norm ?_
+            filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx
+            have hx' : ‖a x‖ = 1 := by simpa [a] using hx
+            simp [hx']
+      _ ≤ ε := hg_approx
+      _ ≤ 0 + ε := by simp
+
+-- need that if `μ₁ μ₂` are regular (in the vector measure sense), then `μ₁ - μ₂` is regular.
 /-- Uniqueness of `ComplexRMK.rieszMeasure`: Let `Φ` be a linear functional on `C_0(X, ℂ)`. Suppose
 that `μ`, `μ'` are complex Borel measures such that, `∀ f : C_0(X, ℂ)`, `Φ f = ∫ x, f x ∂μ` and
 `Φ f = ∫ x, f x ∂μ'`. Then `μ = μ'`. -/
-theorem rieszMeasure_unique {μ₁ μ₂ : ComplexMeasure X} (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
+theorem rieszMeasure_unique [BorelSpace X] [NormalSpace X] {μ₁ μ₂ : ComplexMeasure X}
+    [Measure.Regular (μ₁ - μ₂).variation]
+    (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
     (h₁ : ∀ f : C₀(X, ℂ), μ₁.integral f = Φ f) (h₂ : ∀ f : C₀(X, ℂ), μ₂.integral f = Φ f):
     μ₁ = μ₂ := by
   let μ := μ₁ - μ₂

@@ -86,10 +86,12 @@ lemma add_isStarProjection_of_isOrthogonalTo (p q : OrthogonalProjection H)
   rw [h, h.symm]; simp
 
 
-variable (ι : Type*) (p : ι → OrthogonalProjection H)
+variable (ι : Type*) (p : ι → OrthogonalProjection H) (x : H)
 
 #check fun i ↦ ((p i).val.toPointwiseConvergenceCLM _ _ _ _)
 #check ContinuousLinearMap.toPointwiseConvergenceCLM _ _ _ _ q.val
+
+example : ContinuousLinearMap.toPointwiseConvergenceCLM _ _ _ _ q.val x = q.val x := by rfl
 
 -- TODO
 -- define the union of ranges of `p`
