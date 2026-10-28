@@ -490,7 +490,7 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
         simp only [Set.mem_image, exists_exists_and_eq_and, forall_exists_index, and_imp]
         intro g hg hga
         obtain ⟨k, hk⟩ := hg
-        simp only [Set.mem_setOf_eq] at hk
+        simp only [Set.mem_ofPred_eq] at hk
         rw [hempty] at hk
         simp only [Pi.zero_apply, NNReal.coe_zero, norm_le_zero_iff] at hk
         have : g = 0 := by
@@ -510,7 +510,7 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
         simp only [Set.mem_image, exists_exists_and_eq_and] at ha
         obtain ⟨g, hg, hga⟩ := ha
         obtain ⟨k, hk⟩ := hg
-        simp only [Set.mem_setOf_eq] at hk
+        simp only [Set.mem_ofPred_eq] at hk
         rw [← hga]
         apply le_trans (ContinuousLinearMap.le_opNorm Φ g)
         apply mul_le_mul_of_nonneg_left _ (norm_nonneg Φ)
@@ -525,7 +525,7 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
     simp only [Set.mem_image, and_true]
     use f.toReal.toComplex
     rw [Set.mem_image]
-    simp only [Set.mem_setOf_eq, and_true]
+    simp only [Set.mem_ofPred_eq, and_true]
     use f.toReal.toComplex
     constructor
     · intro x
@@ -546,7 +546,7 @@ theorem exists_pos_lin_func : ∃ (Λ : C₀(X, ℝ) →L[ℝ] ℝ), ∀ (f : C�
       use 0
       simp only [map_zero, and_true]
       unfold U
-      simp only [Set.mem_image, Set.mem_setOf_eq]
+      simp only [Set.mem_image, Set.mem_ofPred_eq]
       use 0
       simp only [CompactlySupportedContinuousMap.coe_zero, Pi.zero_apply, norm_zero, zero_le_coe,
         implies_true, true_and]

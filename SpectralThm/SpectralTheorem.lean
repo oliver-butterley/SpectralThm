@@ -57,7 +57,7 @@ def cfcCAH : C((spectrum ℂ a), ℂ) →A[ℂ] H →L[ℂ] H
               (cfcHom ha.isStarNormal).toLinearMap.map_smul' 1
             simp only [AlgHom.toRingHom_eq_coe, RingHom.toMonoidHom_eq_coe,
               AlgHom.toRingHom_toMonoidHom, OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe,
-              MonoidHom.coe_coe, StarAlgHom.coe_toAlgHom, one_mul]
+              MonoidHom.coe_ofClass, StarAlgHom.coe_toAlgHom, one_mul]
             exact fun f => le_of_eq (norm_cfcHom a f))
 
 @[simp]
@@ -163,5 +163,5 @@ cf. Rudin "Functional Analysis" Theorem 12.21, Theorem 12.22.
 -/
 theorem SpectralDecomposition (x y : H) :
     ⟪x, a y⟫_ℂ = ((toResolutionOfIdentity ha).toComplexMeasure x y).integral
-    (Function.Embedding.subtype (spectrum ℂ a)) := by
+    (Subtype.val : spectrum ℂ a → ℂ) := by
   sorry

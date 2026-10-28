@@ -145,11 +145,11 @@ noncomputable def SumOuterMeasure {ι : Type*} (μ : ι → Measure X) : OuterMe
   measureOf w := ∑' i, μ i w
   empty := by
     simp only [measure_empty, tsum_zero]
-  mono {w₁ w₂} h := Summable.tsum_le_tsum (fun i => (μ i).mono h) ENNReal.summable ENNReal.summable
+  mono {w₁ w₂} h := Summable.tsum_le_tsum (fun i => (μ i).mono h) CompleteLattice.summable CompleteLattice.summable
   iUnion_nat w h := by
-    rw [← Summable.tsum_comm' ENNReal.summable (fun i => ENNReal.summable)
-      (fun i => ENNReal.summable)]
-    apply Summable.tsum_le_tsum _ ENNReal.summable ENNReal.summable
+    rw [← Summable.tsum_comm' CompleteLattice.summable (fun i => CompleteLattice.summable)
+      (fun i => CompleteLattice.summable)]
+    apply Summable.tsum_le_tsum _ CompleteLattice.summable CompleteLattice.summable
     exact fun i => (μ i).iUnion_nat w h
 
 noncomputable def SumMeasure {ι : Type*} (μ : ι → Measure X) : Measure X :=
@@ -164,8 +164,8 @@ noncomputable def SumMeasure {ι : Type*} (μ : ι → Measure X) : Measure X :=
       rw [this]
       rw [← MeasureTheory.OuterMeasure.measureOf_eq_coe]
       rw [SumOuterMeasure]
-      rw [← Summable.tsum_comm' ENNReal.summable (fun i => ENNReal.summable)
-        (fun i => ENNReal.summable)]
+      rw [← Summable.tsum_comm' CompleteLattice.summable (fun i => CompleteLattice.summable)
+        (fun i => CompleteLattice.summable)]
       simp only
       congr
       ext i
