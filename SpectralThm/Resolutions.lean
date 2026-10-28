@@ -1,6 +1,7 @@
 module
 
 public import Mathlib
+public import SpectralThm.Linfty
 -- public import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
 /-!
@@ -27,6 +28,8 @@ structure ResolutionOfIdentity where
   IsStarProjection' : ∀ w, IsStarProjection (measureOf' w)
   /-- The empty set has measure zero -/
   empty' : measureOf' ∅ = 0
+  /-- The whole space has measure the identity -/
+  univ' : measureOf' Set.univ = 1
   /-- Non-measurable sets have measure zero -/
   not_measurable' ⦃i : Set X⦄ : ¬MeasurableSet i → measureOf' i = 0
   /-- The measure is additive -/
@@ -42,9 +45,16 @@ structure ResolutionOfIdentity where
 instance ResolutionOfIdentity.instFunLike : FunLike (ResolutionOfIdentity X H)
     (Set X) (H →L[ℂ] H) where
   coe E := E.measureOf'
-  coe_injective | ⟨_, _, _, _, _, _, _⟩, ⟨_, _, _, _, _, _, _⟩, rfl => rfl
+  coe_injective | ⟨_, _, _, _, _, _, _, _⟩, ⟨_, _, _, _, _, _, _, _⟩, rfl => rfl
 
 end Def
+
+/-- For a star projection `p`, `⟪x, p x⟫ = ‖p x‖ ^ 2`. -/
+lemma IsStarProjection.inner_apply_self {𝕜 H : Type*} [RCLike 𝕜] [NormedAddCommGroup H]
+    [InnerProductSpace 𝕜 H] [CompleteSpace H] {p : H →L[𝕜] H} (hp : IsStarProjection p) (x : H) :
+    ⟪x, p x⟫_𝕜 = (‖p x‖ : 𝕜) ^ 2 := by
+  rw [← inner_self_eq_norm_sq_to_K, ← ContinuousLinearMap.adjoint_inner_right,
+    hp.isSelfAdjoint.adjoint_eq, ← mul_apply_eq_comp, hp.isIdempotentElem.eq]
 
 section OrthogonalProjection
 
@@ -126,57 +136,101 @@ noncomputable def toComplexMeasure (x y : H) : ComplexMeasure X where
   not_measurable' w h := by simp [E.not_measurable' h, zero_apply, inner_zero_right]
   m_iUnion' := E.m_iUnion'
 
-noncomputable def toMeasure (x : H) := Measure.ofMeasurable
-  (fun w _ ↦ ENNReal.ofReal ‖E.measureOf' w x‖)
-  (by rw [E.empty']; simp only [zero_apply, norm_zero, ofReal_zero])
-  (by sorry)
+lemma inner_apply_self (w : Set X) (x : H) : ⟪x, E w x⟫_ℂ = (‖E w x‖ : ℂ) ^ 2 :=
+  (E.IsStarProjection' w).inner_apply_self x
+
+@[simp]
+lemma toComplexMeasure_apply (x y : H) (w : Set X) : E.toComplexMeasure x y w = ⟪x, E w y⟫_ℂ :=
+  rfl
+
+/-- The positive measure `E_{x,x} w = ⟪x, E w x⟫ = ‖E w x‖ ^ 2` (Rudin 12.17). -/
+noncomputable def toMeasure (x : H) : Measure X := Measure.ofMeasurable
+  (fun w _ ↦ ENNReal.ofReal (‖E w x‖ ^ 2))
+  (by simp [apply, E.empty'])
+  (fun f hf hd ↦ by
+    have h := E.m_iUnion' (x := x) (y := x) hf hd
+    simp_rw [← apply, inner_apply_self, ← Complex.ofReal_pow] at h
+    have h' := Complex.hasSum_ofReal.mp h
+    rw [← h'.tsum_eq, ENNReal.ofReal_tsum_of_nonneg (fun _ ↦ by positivity) h'.summable])
 
 @[simp]
 lemma toMeasure_apply (w : Set X) (hw : MeasurableSet w) (x : H) :
-    E.toMeasure x w = ENNReal.ofReal ‖E.measureOf' w x‖ := by
-  simpa [toMeasure] using Measure.ofMeasurable_apply w hw
+    E.toMeasure x w = ENNReal.ofReal (‖E w x‖ ^ 2) :=
+  Measure.ofMeasurable_apply w hw
 
-variable (E : ResolutionOfIdentity X H)
+@[simp]
+lemma toMeasure_univ (x : H) : E.toMeasure x Set.univ = ‖x‖ₑ ^ 2 := by
+  simp [apply, E.univ', ENNReal.ofReal_pow, ofReal_norm]
+
+instance (x : H) : IsFiniteMeasure (E.toMeasure x) :=
+  ⟨by simp⟩
 
 lemma zero_iff (w : Set X) (h : MeasurableSet w) : E w  = 0 ↔ ∀ x, (toMeasure E x) w = 0 := by
-  simp [ContinuousLinearMap.ext_iff, apply, toMeasure_apply E w h]
+  simp [ContinuousLinearMap.ext_iff, toMeasure_apply E w h]
 
-noncomputable def SumOuterMeasure {ι : Type*} (μ : ι → Measure X) : OuterMeasure X where
-  measureOf w := ∑' i, μ i w
-  empty := by
-    simp only [measure_empty, tsum_zero]
-  mono {w₁ w₂} h := Summable.tsum_le_tsum (fun i => (μ i).mono h) CompleteLattice.summable CompleteLattice.summable
-  iUnion_nat w h := by
-    rw [← Summable.tsum_comm' CompleteLattice.summable (fun i => CompleteLattice.summable)
-      (fun i => CompleteLattice.summable)]
-    apply Summable.tsum_le_tsum _ CompleteLattice.summable CompleteLattice.summable
-    exact fun i => (μ i).iUnion_nat w h
+/-- A scalar measure with the same null sets as `E` (see `measure_eq_zero_iff`): the sum of the
+measures `E_{x,x}` over all `x : H`. It only takes the values `0` and `∞` on measurable sets and is
+not s-finite in general, so it should only be used through its null sets, e.g. to define
+`L^∞(E)`. -/
+noncomputable def measure : Measure X :=
+  Measure.sum E.toMeasure
 
-noncomputable def SumMeasure {ι : Type*} (μ : ι → Measure X) : Measure X :=
-  {
-    toOuterMeasure := (SumOuterMeasure μ).trim
-    m_iUnion {f} f_measurable f_disjoint := by
-      rw [MeasureTheory.OuterMeasure.trim_eq _ (MeasurableSet.iUnion f_measurable)]
-      have : ∑' i, (SumOuterMeasure μ).trim (f i) = ∑' i, (SumOuterMeasure μ) (f i) := by
-        congr
-        ext i
-        exact MeasureTheory.OuterMeasure.trim_eq _ (f_measurable i)
-      rw [this]
-      rw [← MeasureTheory.OuterMeasure.measureOf_eq_coe]
-      rw [SumOuterMeasure]
-      rw [← Summable.tsum_comm' CompleteLattice.summable (fun i => CompleteLattice.summable)
-        (fun i => CompleteLattice.summable)]
-      simp only
-      congr
-      ext i
-      exact (μ i).m_iUnion f_measurable f_disjoint
-    trim_le := by
-      rw [MeasureTheory.OuterMeasure.trim_trim]
-  }
+/-- A measurable set is `E.measure`-null iff `E` vanishes on it. -/
+lemma measure_eq_zero_iff {w : Set X} (hw : MeasurableSet w) : E.measure w = 0 ↔ E w = 0 := by
+  simp [measure, Measure.sum_apply _ hw, hw, ContinuousLinearMap.ext_iff]
 
-noncomputable def ofUnitBall : {x : H // ‖x‖ ≤ 1} → Measure X := fun x => toMeasure E x
+/-- A set is `E.measure`-null iff it is contained in a measurable set on which `E` vanishes. -/
+lemma measure_eq_zero_iff_exists_superset (s : Set X) :
+    E.measure s = 0 ↔ ∃ w, s ⊆ w ∧ MeasurableSet w ∧ E w = 0 := by
+  rw [← exists_measurable_superset_iff_measure_eq_zero]
+  exact exists_congr fun w ↦ and_congr_right fun _ ↦ and_congr_right E.measure_eq_zero_iff
 
-noncomputable def Linfty (E : ResolutionOfIdentity X H) := MeasureTheory.Lp ℂ ⊤ (SumMeasure (ofUnitBall E))
+/-- `E.measure`-almost everywhere means outside a measurable set on which `E` vanishes. -/
+lemma ae_iff {p : X → Prop} :
+    (∀ᵐ x ∂E.measure, p x) ↔ ∃ w, MeasurableSet w ∧ E w = 0 ∧ ∀ x ∉ w, p x := by
+  simp only [MeasureTheory.ae_iff, measure_eq_zero_iff_exists_superset, Set.subset_def,
+    not_imp_comm]
+  exact exists_congr fun w ↦ by tauto
+
+lemma toMeasure_absolutelyContinuous (x : H) : E.toMeasure x ≪ E.measure :=
+  (Measure.le_sum E.toMeasure x).absolutelyContinuous
+
+lemma toComplexMeasure_absolutelyContinuous (x y : H) :
+    E.toComplexMeasure x y ≪ᵥ E.measure.toENNRealVectorMeasure :=
+  VectorMeasure.AbsolutelyContinuous.mk fun w hw h ↦ by
+    rw [Measure.toENNRealVectorMeasure_apply_measurable hw, E.measure_eq_zero_iff hw] at h
+    simp [h]
+
+/-- The algebra `L^∞(E)` (Rudin 12.20). Its elements are classes of bounded measurable functions
+modulo functions vanishing outside an `E`-null set (`ae_iff`), and its norm is Rudin's
+essential supremum `‖f‖_∞` with respect to `E`. -/
+noncomputable abbrev Linfty := Lp ℂ ∞ E.measure
+
+/-- `∫ |f|² dE_{x,x} ≤ ‖f‖_∞² ‖x‖²` (Rudin 12.21 (12)). -/
+lemma lintegral_enorm_sq_le (f : X → ℂ) (x : H) :
+    ∫⁻ y, ‖f y‖ₑ ^ 2 ∂E.toMeasure x ≤ eLpNorm f ∞ E.measure ^ 2 * ‖x‖ₑ ^ 2 := by
+  refine (lintegral_mono_ae ?_).trans_eq (by rw [lintegral_const, toMeasure_univ])
+  filter_upwards [(E.toMeasure_absolutelyContinuous x).ae_le
+    (ae_le_eLpNormEssSup (f := f) (μ := E.measure))] with y hy
+  gcongr
+  exact hy.trans eLpNormEssSup_le_eLpNorm_top
+
+lemma measure_ne_zero [Nontrivial H] : E.measure ≠ 0 := by
+  rw [Ne, ← Measure.measure_univ_eq_zero, E.measure_eq_zero_iff .univ, apply, E.univ']
+  exact one_ne_zero
+
+/-- The `L^∞(E)` norm of a simple function `s` is the supremum of `‖a‖ₑ` over the values `a` of
+`s` with `E (s ⁻¹' {a}) ≠ 0`. -/
+lemma eLpNorm_top_eq_iSup (s : SimpleFunc X ℂ) :
+    eLpNorm s ∞ E.measure = ⨆ (a) (_ : E (s ⁻¹' {a}) ≠ 0), ‖a‖ₑ := by
+  simp_rw [s.eLpNorm_top_eq_iSup, Ne, E.measure_eq_zero_iff (s.measurableSet_preimage _)]
+
+/-- The `L^∞(E)` norm of a simple function `s` is `‖a‖ₑ` for a value `a` of `s` with
+`E (s ⁻¹' {a}) ≠ 0` (used in Rudin 12.21 to show `‖Ψ(s)‖ = ‖s‖_∞`). -/
+lemma exists_eLpNorm_top_eq [Nontrivial H] (s : SimpleFunc X ℂ) :
+    ∃ a, E (s ⁻¹' {a}) ≠ 0 ∧ eLpNorm s ∞ E.measure = ‖a‖ₑ := by
+  simp_rw [Ne, ← E.measure_eq_zero_iff (s.measurableSet_preimage _)]
+  exact s.exists_eLpNorm_top_eq E.measure_ne_zero
 
 end ResolutionOfIdentity
 

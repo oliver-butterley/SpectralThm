@@ -148,6 +148,7 @@ def toResolutionOfIdentity : ResolutionOfIdentity (spectrum ℂ a) H where
     ext
     simp [continuousLinearMapOfBilin, toBoundedBilin, cfc_toComplexMeasure, ComplexMeasure.integral]
     rfl
+  univ' := sorry
   not_measurable' := sorry
   m_Union' := sorry
   m_Inter' := sorry
