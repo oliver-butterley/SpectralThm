@@ -66,6 +66,7 @@ case.
 
 open NNReal ENNReal
 open ZeroAtInfty MeasureTheory CompactlySupported CompactlySupportedContinuousMap
+open scoped MeasureTheory.ComplexMeasure
 
 section Lemmas
 
@@ -275,12 +276,46 @@ theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
   filter_upwards [henorm] with x h
   simpa [← ofReal_norm, Pi.one_apply, ofReal_eq_one] using h
 
+/-- The integral against a complex measure in terms of its polar decomposition (Rudin RCA 6.18):
+`∫ f dμ = ∫ (dμ/d|μ|) f d|μ|`. -/
+theorem integral_eq_integral_rnDeriv (μ : ComplexMeasure X) {f : X → ℂ}
+    (hf : Integrable f μ.variation) :
+    ∫ᶜ x, f x ∂μ = ∫ x, μ.rnDeriv μ.variation x * f x ∂μ.variation := by
+  set a := μ.rnDeriv μ.variation
+  have ha : Integrable a μ.variation := ComplexMeasure.integrable_rnDeriv μ μ.variation
+  have ha_le : ∀ᵐ x ∂μ.variation, ‖a x‖ ≤ 1 := by
+    filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx using hx.le
+  have hmul {g : X → ℂ} (hg : Integrable g μ.variation) :
+      Integrable (fun x ↦ a x * g x) μ.variation :=
+    hg.bdd_mul ha.aestronglyMeasurable ha_le
+  refine hf.induction (P := fun f ↦ ∫ᶜ x, f x ∂μ = ∫ x, a x * f x ∂μ.variation) ?_ ?_ ?_ ?_
+  · intro c s hs _
+    have h : (fun x ↦ a x * s.indicator (fun _ ↦ c) x) = s.indicator (fun x ↦ a x * c) := by
+      ext x; by_cases hx : x ∈ s <;> simp [hx]
+    rw [VectorMeasure.integral_indicator_const _ hs, h, integral_indicator hs, integral_mul_const,
+      ← withDensityᵥ_apply ha hs, withDensityᵥ_variation_rnDeriv_eq, mul_comm]
+    rfl
+  · intro f g _ hf hg hPf hPg
+    simp only [Pi.add_apply, mul_add]
+    rw [VectorMeasure.integral_fun_add hf hg, integral_add (hmul hf) (hmul hg), hPf, hPg]
+  · refine isClosed_eq VectorMeasure.continuous_integral ?_
+    refine LipschitzWith.continuous (K := 1) (LipschitzWith.of_dist_le_mul fun g h ↦ ?_)
+    rw [dist_eq_norm, ← integral_sub (hmul (L1.integrable_coeFn g)) (hmul (L1.integrable_coeFn h)),
+      NNReal.coe_one, one_mul, dist_eq_norm, L1.norm_eq_integral_norm]
+    refine norm_integral_le_of_norm_le (L1.integrable_coeFn _).norm ?_
+    filter_upwards [ha_le, Lp.coeFn_sub g h] with x hx hgh
+    rw [← mul_sub, norm_mul, hgh, Pi.sub_apply]
+    exact mul_le_of_le_one_left (norm_nonneg _) hx
+  · intro f g hfg _ hPf
+    rw [← VectorMeasure.integral_congr_ae hfg, hPf]
+    exact integral_congr_ae (hfg.mono fun x hx ↦ congrArg (a x * ·) hx)
+
 
 -- TODO remove `[NormalSpace X]` from `exists_hasCompactSupport_integral_sub_le`
 -- switch to `C_c`
 lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMeasure X}
     [Measure.Regular μ.variation]
-    (h : ∀ f : C₀(X, ℂ), μ.integral f = 0) :
+    (h : ∀ f : C₀(X, ℂ), ∫ᶜ x, f x ∂μ = 0) :
     μ = 0 := by
   -- [Rudin 87, Theorem 6.19]
   -- Suppose `μ` is a regular complex Borel measure on `X`
@@ -320,8 +355,8 @@ lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMea
     let f : C_c(X, ℂ) := ⟨⟨g, hg_cont⟩, hg_support⟩
     -- start calc here
     have hfg : ∫ x, a x * g x ∂μ.variation = 0 := by
-      simpa [f, a, ComplexMeasure.integral, ComplexMeasure.ang, ComplexMeasure.var]
-        using h (f : C₀(X, ℂ))
+      rw [← integral_eq_integral_rnDeriv μ hg_int]
+      simpa [f] using h (f : C₀(X, ℂ))
     have haa : ∀ᵐ x ∂μ.variation, star (a x) * a x = 1 := by
       filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx
       rw [← show (Complex.normSq (a x) : ℂ) = star (a x) * a x by
@@ -371,16 +406,11 @@ that `μ`, `μ'` are complex Borel measures such that, `∀ f : C_0(X, ℂ)`, `�
 theorem rieszMeasure_unique [BorelSpace X] [NormalSpace X] {μ₁ μ₂ : ComplexMeasure X}
     [Measure.Regular (μ₁ - μ₂).variation]
     (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
-    (h₁ : ∀ f : C₀(X, ℂ), μ₁.integral f = Φ f) (h₂ : ∀ f : C₀(X, ℂ), μ₂.integral f = Φ f):
+    (h₁ : ∀ f : C₀(X, ℂ), ∫ᶜ x, f x ∂μ₁ = Φ f) (h₂ : ∀ f : C₀(X, ℂ), ∫ᶜ x, f x ∂μ₂ = Φ f) :
     μ₁ = μ₂ := by
-  let μ := μ₁ - μ₂
-  suffices μ = 0 by exact eq_of_sub_eq_zero this
-  refine eq_zero_of_integral_eq_zero (fun f ↦ ?_)
-  calc μ.integral f
-    _ = (μ₁ - μ₂).integral f := by rfl
-    _ = μ₁.integral f - μ₂.integral f := by exact ComplexMeasure.integral_sub _ _ _
-    _ = Φ f - Φ f := by rw [h₁, h₂]
-    _ = 0 := by exact sub_self _
+  refine eq_of_sub_eq_zero (eq_zero_of_integral_eq_zero fun f ↦ ?_)
+  have hf (ν : ComplexMeasure X) : ν.Integrable f := f.toBCF.integrable _
+  rw [VectorMeasure.integral_sub_vectorMeasure (hf μ₁) (hf μ₂), h₁, h₂, sub_self]
 
 variable (Φ : C₀(X, ℂ) →L[ℂ] ℂ)
 
@@ -624,7 +654,7 @@ noncomputable def rieszMeasure (Φ : C₀(X, ℂ) →L[ℂ] ℂ) : ComplexMeasur
 Let `Φ` be a bounded linear functional on `C₀(X, ℂ)`. Then there exists a complex Borel measure
 `μ` such that, `∀ f : C₀(X, ℂ)`, `Φ f = ∫ x, f x ∂μ`, (2) `‖Φ‖ = |μ|(X)`. -/
 theorem integral_rieszMeasure (f : C₀(X, ℂ)) :
-     Φ f = (rieszMeasure Φ).integral (f ·) := by
+     Φ f = ∫ᶜ x, f x ∂(rieszMeasure Φ) := by
   -- **Proof** [Rudin 87, Theorem 6.19]
   -- Assume `‖Φ‖ = 1`, without loss of generality.
   -- *Part 1:*

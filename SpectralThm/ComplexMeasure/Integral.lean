@@ -6,113 +6,61 @@ Authors: Oliver Butterley, Yoh Tanimoto
 module
 
 public import Mathlib
+public import SpectralThm.VectorMeasure.FiniteDimensional
 
 /-!
-# Integral with respect to a complex-valued measure
+# Integral of a complex function against a complex measure
 
-Three options come to mind for defining the integral with respect to a complex-valued measure:
-
-1. Define the integral with respect to a complex measure by decomposing the measure into real and imaginary parts and then using the definition of integral with respect to a signed measure. I.e.,
-```
-noncomputable def integral (μ : SignedMeasure α) (f : α → G) : G :=
-    ∫ a, f a ∂μ.toJordanDecomposition.posPart - ∫ a, f a ∂μ.toJordanDecomposition.negPart
-```
-In turn, the integral with respect to as signed measure is defined using the Jordan decomposition
-into positive and negative parts.
-
-2. Develop directly the integral with respect to any `VectorMeasure` by introducing simple
-functions, etc.
-
-3. Use the polar decomposition of a complex measure into total variation measure and angular
-function and hence use the definition of a Bochner integral.
-
-It is unclear what the best design choice is so at the moment we opt for using polar decomposition
-as the definition.
-
-Whatever the direction taken with these definitions, the different components should be separated
-into their own files.
-
-## Main definitions
-
-* `ComplexMeasure.integral`
+Mathlib defines the integral of `f : X → E` against a vector measure `μ : VectorMeasure X F` through
+a continuous bilinear pairing `B : E →L[ℝ] F →L[ℝ] G`, written `∫ᵛ x, f x ∂[B; μ]`
+(`MeasureTheory.VectorMeasure.integral`). For a complex function and a complex measure the pairing
+is multiplication, `ContinuousLinearMap.mul ℝ ℂ`.
 
 ## Notation
 
-* `∫ a, f a ∂μ` : integral of `f` with respect to a `ComplexMeasure` `μ`
+* `∫ᶜ x, f x ∂μ`: the integral `∫ᵛ x, f x ∂[ContinuousLinearMap.mul ℝ ℂ; μ]` of `f : X → ℂ` against
+  `μ : ComplexMeasure X`. Scoped in `MeasureTheory.ComplexMeasure`.
 
-## To do
+## Main results
 
-* Add many other relevant results.
+* `MeasureTheory.ComplexMeasure.integral_const_mul`: the integral is `ℂ`-linear in `f`.
+* `MeasureTheory.ComplexMeasure.norm_integral_le_integral_norm`: `‖∫ f dμ‖ ≤ ∫ ‖f‖ d|μ|`.
 
+The relation with the polar decomposition, `∫ f dμ = ∫ (dμ/d|μ|) f d|μ|`, is
+`ComplexRMK.integral_eq_integral_rnDeriv` in `SpectralThm/RieszMarkovKakutani/Complex.lean`.
 -/
 
 @[expose] public section
 
 namespace MeasureTheory.ComplexMeasure
 
-open MeasureTheory
+open ContinuousLinearMap
 
-variable {α : Type*} [MeasurableSpace α]
-variable {G : Type*} [NormedAddCommGroup G] [NormedSpace ℂ G]
+@[inherit_doc VectorMeasure.integral]
+scoped notation3 "∫ᶜ "(...)", "r:60:(scoped f => f)" ∂"μ:70 =>
+  VectorMeasure.integral μ r (ContinuousLinearMap.mul ℝ ℂ)
 
-/-! ## Polar decomposition of complex measures. -/
+variable {X : Type*} {mX : MeasurableSpace X} (μ : ComplexMeasure X)
 
-/-- The variation measure part in the polar decomposition of a complex measure. -/
-noncomputable def var (μ : ComplexMeasure α) := μ.variation
+/-- The integral against a complex measure is `ℂ`-linear. -/
+lemma integral_const_mul (c : ℂ) (f : X → ℂ) : ∫ᶜ x, c * f x ∂μ = c * ∫ᶜ x, f x ∂μ := by
+  by_cases hf : μ.Integrable f
+  · have h₁ := VectorMeasure.integral_continuousLinearMap_comp (B := mul ℝ ℂ) (μ := μ)
+      (C := mul ℝ ℂ c) hf
+    have h₂ := VectorMeasure.continuousLinearMap_apply_integral (B := mul ℝ ℂ) (μ := μ)
+      (C := mul ℝ ℂ c) hf
+    have h : mul ℝ ℂ ∘L mul ℝ ℂ c = (compL ℝ ℂ ℂ ℂ (mul ℝ ℂ c)) ∘L mul ℝ ℂ := by
+      ext x y; simp [mul_assoc]
+    exact (h₁.trans (h ▸ h₂.symm) :)
+  · rcases eq_or_ne c 0 with rfl | hc
+    · simp
+    rw [VectorMeasure.integral_undef hf, VectorMeasure.integral_undef, mul_zero]
+    exact fun h ↦ hf (by simpa [hc] using h.const_mul c⁻¹)
 
-@[simp]
-lemma var_neg (μ : ComplexMeasure α) : (-μ).var = μ.var := by
-  simp [var, MeasureTheory.VectorMeasure.variation_neg]
-
-/-- The angular part (density function) in the polar decomposition of a complex measure. -/
-noncomputable def ang (μ : ComplexMeasure α) := μ.rnDeriv μ.var
-
-@[simp]
-lemma ang_neg (μ : ComplexMeasure α) : (-μ).ang = -μ.ang := by
-  -- To do: adjust this statement to the `μ`-a.e. version.
-  sorry
-
-/-! ## Definition of the integral. -/
-
-/-- The integral with respect to a complex measure defined using the polar decomposition of the
-complex measure and the integral with respect to the total variation.-/
-noncomputable def integral (μ : ComplexMeasure α) (f : α → G) :=
-  ∫ x,  μ.ang x • f x ∂(μ.var)
-
-notation3 "∫ "(...)", "r:60:(scoped f => f)" ∂"μ:70 => integral μ r
-
-/-! ## Some lemmas related to the integral. -/
-
-/-- For complex measures `μ`, `ν` and integrable function `f`: `∫ f d(μ + ν) = ∫ f dμ + ∫ f dν` -/
-lemma integral_add (μ ν : ComplexMeasure α) (f : α → ℂ) :
-    ∫ a, f a ∂(μ + ν) = ∫ a, f a ∂μ + ∫ a, f a ∂ν := by
-  dsimp [integral]
-  /- **Proof outline**:
-  - Every complex measure `μ` has polar decomposition `μ = h · |μ|` where `|μ|` is
-    the total variation (positive measure) and `|h| = 1` a.e.
-  - By definition `∫ f dμ = ∫ (f · h) d|μ|`
-  - We use a common dominating measure to avoid relating different polar decompositions
-    Let `λ := |μ| + |ν| + |μ + ν|` (finite positive measure)
-  - By RN theorem, ∃ `g₁, g₂ ∈ L¹(λ)` such that:
-    - `dμ = g₁ dλ`
-    - `dν = g₂ dλ`
-    - `d(μ + ν) = (g₁ + g₂) dλ`
-  - Use linarity with respect to positive measures:
-    ∫ f d(μ + ν) = ∫ f(g₁ + g₂) dλ       -- by definition
-                  = ∫ fg₁ dλ + ∫ fg₂ dλ  -- linearity w.r.t. positive measure λ
-                  = ∫ f dμ + ∫ f dν      -- returning to the original measures
-  -/
-  sorry
-
-lemma integral_neg (μ  : ComplexMeasure α) (f : α → ℂ) :
-    ∫ a, f a ∂(-μ) = -∫ a, f a ∂μ := by
-  simp [integral, MeasureTheory.integral_neg]
-
-lemma integral_sub (μ₁ μ₂  : ComplexMeasure α) (f : α → ℂ) :
-    ∫ a, f a ∂(μ₁ - μ₂) = ∫ a, f a ∂μ₁ - ∫ a, f a ∂μ₂ := by
-  calc
-    _ = (μ₁ + (-μ₂)).integral f := by rfl
-    _ = μ₁.integral f + (-μ₂).integral f := by exact integral_add μ₁ (-μ₂) _
-    _ = _ := by rw [integral_neg, sub_eq_add_neg]
+/-- `‖∫ f dμ‖ ≤ ∫ ‖f‖ d|μ|`. -/
+lemma norm_integral_le_integral_norm (f : X → ℂ) :
+    ‖∫ᶜ x, f x ∂μ‖ ≤ ∫ x, ‖f x‖ ∂μ.variation :=
+  (VectorMeasure.norm_integral_le_integral_norm ..).trans <|
+    mul_le_of_le_one_left (integral_nonneg fun _ ↦ norm_nonneg _) (opNorm_mul_le ℝ ℂ)
 
 end MeasureTheory.ComplexMeasure

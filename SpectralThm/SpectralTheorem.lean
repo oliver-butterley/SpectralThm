@@ -13,6 +13,7 @@ public import SpectralThm.Resolutions
 @[expose] public section
 
 open InnerProductSpace ContinuousLinearMap ZeroAtInfty ZeroAtInftyContinuousMap MeasureTheory
+open scoped MeasureTheory.ComplexMeasure
 
 noncomputable section
 
@@ -101,7 +102,7 @@ def cfc_toComplexMeasure (x y : H) := ComplexRMK.rieszMeasure (compSL C₀((spec
 
 /-- The integral of `f` against `E_{a, x,y}` is bounded by `‖x‖ * ‖y‖ * ‖f‖`. -/
 lemma cfc_toComplexMeasure_bounded (x y : H) (f : C((spectrum ℂ a), ℂ)) :
-    ‖(cfc_toComplexMeasure ha x y).integral f‖ ≤ ‖x‖ * ‖y‖ * ‖f‖ := by
+    ‖∫ᶜ z, f z ∂(cfc_toComplexMeasure ha x y)‖ ≤ ‖x‖ * ‖y‖ * ‖f‖ := by
   sorry
 
 /-- The complex measure `E_{a, x,y}` has the total variation bounded by `‖x‖ * ‖y‖`.
@@ -112,11 +113,11 @@ lemma cfc_variation_toComplexMeasure_bounded (x y : H) :
   sorry
 
 /-- The integral of a Borel function `f` against `E_{a, x ,y}` is bounded by `‖x‖ * ‖y‖`.
-We should have an analogue of `MeasureTheory.lintegral_le_const` for `ComplexMeasure.integral`.
--/
+It should follow from `ComplexMeasure.norm_integral_le_integral_norm` and
+`cfc_variation_toComplexMeasure_bounded`. -/
 lemma bfc_bounded (x y : H) {C : ℝ} {f : (spectrum ℂ a) → ℂ}  (hf_bounded : ∀ x, ‖f x‖ ≤ C)
     (hX : @Measurable _ _ (borel (spectrum ℂ a)) _ f) :
-    ‖(cfc_toComplexMeasure ha x y).integral f‖ ≤ ‖x‖ * ‖y‖ * C := by
+    ‖∫ᶜ z, f z ∂(cfc_toComplexMeasure ha x y)‖ ≤ ‖x‖ * ‖y‖ * C := by
   sorry
 
 /-- The linear functional from bounded Borel functions `f` to `∫ f z ∂E_{a, x, y} z` as a bounded
@@ -125,7 +126,7 @@ the definition and `bfc_bounded`. -/
 def toBoundedBilin {C : ℝ} (f : (spectrum ℂ a) → ℂ)
   --(hf_bounded : ∀ x, ‖f x‖ ≤ C) (hf_measurable : @Measurable _ _ (borel (spectrum ℂ a)) _ f)
   : H →L⋆[ℂ] H →L[ℂ] ℂ where
-  toFun x := {  toFun y := (cfc_toComplexMeasure ha x y).integral f
+  toFun x := {  toFun y := ∫ᶜ z, f z ∂(cfc_toComplexMeasure ha x y)
                 map_add' := sorry
                 map_smul' := sorry
                 cont := sorry }
@@ -146,7 +147,7 @@ def toResolutionOfIdentity : ResolutionOfIdentity (spectrum ℂ a) H where
   IsStarProjection' := sorry
   empty' := by
     ext
-    simp [continuousLinearMapOfBilin, toBoundedBilin, cfc_toComplexMeasure, ComplexMeasure.integral]
+    simp [continuousLinearMapOfBilin, toBoundedBilin]
     rfl
   univ' := sorry
   not_measurable' := sorry
@@ -157,12 +158,11 @@ def toResolutionOfIdentity : ResolutionOfIdentity (spectrum ℂ a) H where
 /-- From a resolution of identity `E_{a}` and for each `x y : H`, the map `s => ⟪x, E_{a} s y⟫_ℂ`
 gives complex measure. The integraion of the identity map against it gives back the expectation
 value `⟪x, a y⟫_ℂ`. Check that
-`⟪x, cfcHom ha f y⟫_ℂ = (toComplexMeasure (toResolutionOfIdentity ha) x y).integral f` for step
+`⟪x, cfcHom ha f y⟫_ℂ = ∫ᶜ z, f z ∂(toComplexMeasure (toResolutionOfIdentity ha) x y)` for step
 functions `f`, and infer that it holds for all Borel/continuous functions. Apply it to the identity
 map.
 cf. Rudin "Functional Analysis" Theorem 12.21, Theorem 12.22.
 -/
 theorem SpectralDecomposition (x y : H) :
-    ⟪x, a y⟫_ℂ = ((toResolutionOfIdentity ha).toComplexMeasure x y).integral
-    (Subtype.val : spectrum ℂ a → ℂ) := by
+    ⟪x, a y⟫_ℂ = ∫ᶜ z, (z : ℂ) ∂((toResolutionOfIdentity ha).toComplexMeasure x y) := by
   sorry

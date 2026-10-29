@@ -201,6 +201,65 @@ lemma toComplexMeasure_absolutelyContinuous (x y : H) :
     rw [Measure.toENNRealVectorMeasure_apply_measurable hw, E.measure_eq_zero_iff hw] at h
     simp [h]
 
+lemma norm_inner_le (w : Set X) (x y : H) : ‖⟪x, E w y⟫_ℂ‖ ≤ ‖E w x‖ * ‖E w y‖ := by
+  have hp : IsStarProjection (E w) := E.IsStarProjection' w
+  have h : ⟪E w x, E w y⟫_ℂ = ⟪x, E w y⟫_ℂ := by
+    rw [← ContinuousLinearMap.adjoint_inner_right, hp.isSelfAdjoint.adjoint_eq,
+      ← mul_apply_eq_comp, hp.isIdempotentElem.eq]
+  exact h ▸ norm_inner_le_norm _ _
+
+/-- `|E_{x,y}| ≤ ½ (E_{x,x} + E_{y,y})`. -/
+lemma variation_toComplexMeasure_le (x y : H) :
+    (E.toComplexMeasure x y).variation ≤ (2 : ℝ≥0∞)⁻¹ • (E.toMeasure x + E.toMeasure y) := by
+  refine VectorMeasure.variation_le_of_forall_enorm_le fun w hw ↦ ?_
+  have key : ‖⟪x, E w y⟫_ℂ‖ ≤ (‖E w x‖ ^ 2 + ‖E w y‖ ^ 2) / 2 :=
+    (E.norm_inner_le w x y).trans (by nlinarith [sq_nonneg (‖E w x‖ - ‖E w y‖)])
+  simp only [toComplexMeasure_apply, Measure.smul_apply, Measure.add_apply,
+    toMeasure_apply E w hw, smul_eq_mul]
+  rw [← ofReal_norm, ← ENNReal.ofReal_add (by positivity) (by positivity)]
+  refine (ENNReal.ofReal_le_ofReal key).trans_eq ?_
+  rw [div_eq_inv_mul, ENNReal.ofReal_mul (by norm_num), ENNReal.ofReal_inv_of_pos two_pos,
+    ENNReal.ofReal_ofNat]
+
+/-- The variation of `E_{x,y}` is absolutely continuous with respect to `E.measure`. -/
+lemma variation_toComplexMeasure_absolutelyContinuous (x y : H) :
+    (E.toComplexMeasure x y).variation ≪ E.measure :=
+  (E.variation_toComplexMeasure_le x y).absolutelyContinuous.trans <|
+    ((E.toMeasure_absolutelyContinuous x).add_left (E.toMeasure_absolutelyContinuous y)).smul_left _
+
+lemma toComplexMeasure_smul {t : ℝ} (ht : t ≠ 0) (x y : H) :
+    E.toComplexMeasure ((t : ℂ) • x) ((t⁻¹ : ℂ) • y) = E.toComplexMeasure x y :=
+  VectorMeasure.ext fun w _ ↦ by
+    simp [ht]
+
+/-- `|E_{x,y}|(X) ≤ ‖x‖ ‖y‖`. -/
+lemma variation_toComplexMeasure_univ_le (x y : H) :
+    (E.toComplexMeasure x y).variation Set.univ ≤ ‖x‖ₑ * ‖y‖ₑ := by
+  have hbound (u v : H) :
+      (E.toComplexMeasure u v).variation Set.univ ≤ ENNReal.ofReal ((‖u‖ ^ 2 + ‖v‖ ^ 2) / 2) := by
+    refine (Measure.le_iff'.1 (E.variation_toComplexMeasure_le u v) _).trans_eq ?_
+    rw [Measure.smul_apply, Measure.add_apply, toMeasure_univ, toMeasure_univ, smul_eq_mul,
+      ← ofReal_norm, ← ofReal_norm, ← ENNReal.ofReal_pow (norm_nonneg _),
+      ← ENNReal.ofReal_pow (norm_nonneg _), ← ENNReal.ofReal_add (by positivity) (by positivity),
+      div_eq_inv_mul, ENNReal.ofReal_mul (by norm_num), ENNReal.ofReal_inv_of_pos two_pos,
+      ENNReal.ofReal_ofNat]
+  have hzero {u v : H} (h : u = 0 ∨ v = 0) : E.toComplexMeasure u v = 0 :=
+    VectorMeasure.ext fun w _ ↦ by rcases h with rfl | rfl <;> simp
+  rcases eq_or_ne x 0 with rfl | hx
+  · simp [hzero (.inl rfl)]
+  rcases eq_or_ne y 0 with rfl | hy
+  · simp [hzero (.inr rfl)]
+  set t := Real.sqrt (‖y‖ / ‖x‖)
+  have ht : 0 < t := Real.sqrt_pos.2 (div_pos (norm_pos_iff.2 hy) (norm_pos_iff.2 hx))
+  have hsq : t ^ 2 = ‖y‖ / ‖x‖ := Real.sq_sqrt (by positivity)
+  rw [← E.toComplexMeasure_smul ht.ne' x y, ← ofReal_norm, ← ofReal_norm,
+    ← ENNReal.ofReal_mul (norm_nonneg _)]
+  refine (hbound _ _).trans_eq (congrArg ENNReal.ofReal ?_)
+  rw [norm_smul, norm_smul, norm_inv, Complex.norm_real, Real.norm_of_nonneg ht.le, mul_pow,
+    mul_pow, inv_pow, hsq]
+  field_simp
+  ring
+
 /-- The algebra `L^∞(E)` (Rudin 12.20). Its elements are classes of bounded measurable functions
 modulo functions vanishing outside an `E`-null set (`ae_iff`), and its norm is Rudin's
 essential supremum `‖f‖_∞` with respect to `E`. -/
