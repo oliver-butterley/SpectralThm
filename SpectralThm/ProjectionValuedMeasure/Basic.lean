@@ -93,8 +93,6 @@ variable (p q : OrthogonalProjection H)
 
 def IsOrthogonalTo : Prop := p.val * q.val = 0
 
-#check p.IsOrthogonalTo q
-
 lemma IsOrthogonalTo.symm (h : p.IsOrthogonalTo q) : q.IsOrthogonalTo p := by
   unfold IsOrthogonalTo
   rw [← star_eq_zero]; simpa [p.property.isSelfAdjoint.star_eq, q.property.isSelfAdjoint.star_eq]
@@ -107,9 +105,6 @@ lemma add_isStarProjection_of_isOrthogonalTo (p q : OrthogonalProjection H)
 
 
 variable (ι : Type*) (p : ι → OrthogonalProjection H) (x : H)
-
-#check fun i ↦ ((p i).val.toPointwiseConvergenceCLM _ _ _ _)
-#check ContinuousLinearMap.toPointwiseConvergenceCLM _ _ _ _ q.val
 
 example : ContinuousLinearMap.toPointwiseConvergenceCLM _ _ _ _ q.val x = q.val x := by rfl
 

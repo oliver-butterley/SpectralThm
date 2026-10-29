@@ -148,7 +148,7 @@ end Lemmas
 
 namespace ComplexRMK
 
-variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
+variable {X : Type*} [MeasurableSpace X]
 
 -- TODO
 -- move ComplexMeasure in VectorMeasure
@@ -317,6 +317,8 @@ theorem integral_eq_integral_rnDeriv (μ : ComplexMeasure X) {f : X → ℂ}
     rw [← VectorMeasure.integral_congr_ae hfg, hPf]
     exact integral_congr_ae (hfg.mono fun x hx ↦ congrArg (a x * ·) hx)
 
+
+variable [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
 
 -- TODO remove `[NormalSpace X]` from `exists_hasCompactSupport_integral_sub_le`
 -- switch to `C_c`
