@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2026 Oliver Butterley. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Oliver Butterley, Yoh Tanimoto
+-/
 module
 
 public import Mathlib
@@ -35,7 +40,7 @@ sesquilinear in `(x, y)`, and `E(w)` with `⟪x, E(w) y⟫ = E_{x,y}(w)` defines
 * `IsStarNormal.eq_spectralMeasure`: uniqueness of the spectral measure (12.22 (a)).
 * `IsStarNormal.spectralMeasure_ne_zero`: `E(w) ≠ 0` for nonempty open `w` (12.22 (d)).
 * `IsStarNormal.forall_commute_spectralMeasure_iff`: `S` commutes with every `E(w)` iff it commutes
-  with `a` and `a⋆` (12.22 (e)).
+  with `a` (12.22 (e), using the Fuglede–Putnam–Rosenblum theorem from Mathlib).
 
 The general results of 12.21 (the integral is an isometric `*`-homomorphism of `L^∞(E)` with closed
 commutative range) are in `SpectralThm/ProjectionValuedMeasure/Integral.lean`.
@@ -47,12 +52,6 @@ open MeasureTheory ContinuousLinearMap ZeroAtInftyContinuousMap ZeroAtInfty
 open scoped InnerProductSpace MeasureTheory.ComplexMeasure ENNReal
 
 noncomputable section
-
-/-- A continuous function on a compact space is integrable against every complex measure. -/
-lemma MeasureTheory.ComplexMeasure.integrable_continuousMap {X : Type*} [TopologicalSpace X]
-    [CompactSpace X] [MeasurableSpace X] [OpensMeasurableSpace X] (μ : ComplexMeasure X)
-    (f : C(X, ℂ)) : μ.Integrable f :=
-  (BoundedContinuousFunction.mkOfCompact f).integrable _
 
 namespace IsStarNormal
 
@@ -324,20 +323,16 @@ theorem eq_spectralMeasure {E : ProjectionValuedMeasure (spectrum ℂ a) H}
   rw [inner_spectralMeasure_apply, ← hE, ProjectionValuedMeasure.toComplexMeasure_apply]
 
 
-/-- An operator commutes with every `E(w)` iff it commutes with `a` and `a⋆`
-(Rudin 12.22 (e)). -/
+/-- An operator commutes with every `E(w)` iff it commutes with `a` (Rudin 12.22 (e)). By the
+Fuglede–Putnam–Rosenblum theorem, commuting with `a` implies commuting with `a⋆`. -/
 theorem forall_commute_spectralMeasure_iff {S : H →L[ℂ] H} :
-    (∀ w, Commute S (ha.spectralMeasure w)) ↔ Commute S a ∧ Commute S (star a) := by
-  refine ⟨fun h ↦ ?_, fun ⟨h₁, h₂⟩ w ↦ ?_⟩
-  · have hS := ha.spectralMeasure.forall_commute_integral_iff.2 h
-    have hid := hS ((ha.spectralMeasure.memLp_continuousMap
-      ((ContinuousMap.id ℂ).restrict (spectrum ℂ a))).toLp _)
-    have hstar := hS ((ha.spectralMeasure.memLp_continuousMap
-      (star ((ContinuousMap.id ℂ).restrict (spectrum ℂ a)))).toLp _)
-    rw [integral_spectralMeasure_id] at hid
-    rw [integral_spectralMeasure_toLp, map_star, cfcHom_id] at hstar
-    exact ⟨hid, hstar⟩
-  · have hμ (x y : H) : ha.cfcMeasure x (S y) = ha.cfcMeasure (adjoint S x) y :=
+    (∀ w, Commute S (ha.spectralMeasure w)) ↔ Commute S a := by
+  refine ⟨fun h ↦ ?_, fun h₁ w ↦ ?_⟩
+  · have hid := ha.spectralMeasure.forall_commute_integral_iff.2 h <|
+      (ha.spectralMeasure.memLp_continuousMap ((ContinuousMap.id ℂ).restrict _)).toLp _
+    rwa [integral_spectralMeasure_id] at hid
+  · have h₂ := ha.commute_star_right h₁
+    have hμ (x y : H) : ha.cfcMeasure x (S y) = ha.cfcMeasure (adjoint S x) y :=
       (ha.eq_cfcMeasure fun f ↦ by
         rw [integral_cfcMeasure, adjoint_inner_left, ← mul_apply_eq_comp,
           ← (Commute.cfcHom ha h₁.symm h₂.symm f).eq, mul_apply_eq_comp]).symm

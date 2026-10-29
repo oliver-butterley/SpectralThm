@@ -25,9 +25,13 @@ is multiplication, `ContinuousLinearMap.mul ℝ ℂ`.
 
 * `MeasureTheory.ComplexMeasure.integral_const_mul`: the integral is `ℂ`-linear in `f`.
 * `MeasureTheory.ComplexMeasure.norm_integral_le_integral_norm`: `‖∫ f dμ‖ ≤ ∫ ‖f‖ d|μ|`.
+* `MeasureTheory.ComplexMeasure.integral_simpleFunc`: `∫ s dμ = ∑ a * μ (s ⁻¹' {a})`.
+* `MeasureTheory.ComplexMeasure.integrable_continuousMap`: continuous functions on a compact
+  space are integrable.
 
 The relation with the polar decomposition, `∫ f dμ = ∫ (dμ/d|μ|) f d|μ|`, is
-`ComplexRMK.integral_eq_integral_rnDeriv` in `SpectralThm/RieszMarkovKakutani/Complex.lean`.
+`MeasureTheory.ComplexMeasure.integral_eq_integral_rnDeriv` in
+`SpectralThm/ComplexMeasure/RadonNikodym.lean`.
 
 ## Notes
 
@@ -73,5 +77,18 @@ lemma norm_integral_le_integral_norm (f : X → ℂ) :
     ‖∫ᶜ x, f x ∂μ‖ ≤ ∫ x, ‖f x‖ ∂μ.variation :=
   (VectorMeasure.norm_integral_le_integral_norm ..).trans <|
     mul_le_of_le_one_left (integral_nonneg fun _ ↦ norm_nonneg _) (opNorm_mul_le ℝ ℂ)
+
+/-- The integral of a simple function against a complex measure. -/
+lemma integral_simpleFunc (s : SimpleFunc X ℂ) :
+    ∫ᶜ x, s x ∂μ = ∑ a ∈ s.range, a * μ (s ⁻¹' {a}) := by
+  rw [VectorMeasure.integral_eq_setToFun,
+    setToFun_simpleFunc _ s (SimpleFunc.integrable_of_isFiniteMeasure s)]
+  rfl
+
+/-- A continuous function on a compact space is integrable against every complex measure. -/
+lemma integrable_continuousMap {X : Type*} [TopologicalSpace X] [CompactSpace X]
+    [MeasurableSpace X] [OpensMeasurableSpace X] (μ : ComplexMeasure X) (f : C(X, ℂ)) :
+    μ.Integrable f :=
+  (BoundedContinuousFunction.mkOfCompact f).integrable _
 
 end MeasureTheory.ComplexMeasure

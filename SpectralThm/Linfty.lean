@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2026 Oliver Butterley. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Oliver Butterley, Yoh Tanimoto
+-/
 module
 
 public import Mathlib
@@ -224,7 +229,7 @@ lemma norm_setToLinfty_le (hT : DominatedLinftyAdditive μ T C)
     (h_smul : ∀ c : 𝕜, ∀ s x, T s (c • x) = c • T s x) (hC : 0 ≤ C) :
     ‖setToLinfty 𝕜 hT h_smul‖ ≤ C :=
   (ContinuousLinearMap.opNorm_extend_le _ Lp.simpleFunc.denseRange_top (N := 1)
-    fun x ↦ by simp; exact le_rfl).trans <| by
+    fun _ ↦ (one_mul _).symm.le).trans <| by
     rw [NNReal.coe_one, one_mul]
     exact LinearMap.mkContinuous_norm_le _ hC _
 

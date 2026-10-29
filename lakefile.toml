@@ -1,10 +1,14 @@
 name = "SpectralThm"
 defaultTargets = ["SpectralThm"]
+lintDriver = "batteries/runLinter"
 
 [leanOptions]
 pp.unicode.fun = true
 autoImplicit = false
 relaxedAutoImplicit = false
+maxSynthPendingDepth = 3
+# Mathlib's standard linter set (as in Mathlib's own `lakefile.lean`)
+weak.linter.mathlibStandardSet = true
 
 [[require]]
 name = "mathlib"

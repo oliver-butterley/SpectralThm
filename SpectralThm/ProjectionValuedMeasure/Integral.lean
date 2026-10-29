@@ -62,20 +62,6 @@ both hold trivially since `E` is additive on all measurable sets.
 open MeasureTheory ContinuousLinearMap Filter Topology
 open scoped InnerProductSpace ENNReal MeasureTheory.ComplexMeasure
 
-namespace MeasureTheory.ComplexMeasure
-
-variable {X : Type*} {mX : MeasurableSpace X}
-
--- TODO: move to `SpectralThm/ComplexMeasure/Integral.lean`.
-/-- The integral of a simple function against a complex measure. -/
-lemma integral_simpleFunc (μ : ComplexMeasure X) (s : SimpleFunc X ℂ) :
-    ∫ᶜ x, s x ∂μ = ∑ a ∈ s.range, a * μ (s ⁻¹' {a}) := by
-  rw [VectorMeasure.integral_eq_setToFun,
-    setToFun_simpleFunc _ s (SimpleFunc.integrable_of_isFiniteMeasure s)]
-  rfl
-
-end MeasureTheory.ComplexMeasure
-
 namespace ProjectionValuedMeasure
 
 variable {X : Type*} {mX : MeasurableSpace X}
@@ -159,7 +145,6 @@ lemma simpleIntegral_const (c : ℂ) : E.simpleIntegral (SimpleFunc.const X c) =
   rfl
 
 /-- `Ψ(𝟙_w) = E w`. -/
-@[simp]
 lemma simpleIntegral_indicator {w : Set X} (hw : MeasurableSet w) :
     E.simpleIntegral ((SimpleFunc.const X (1 : ℂ)).piecewise w hw (SimpleFunc.const X 0)) =
       E w := by

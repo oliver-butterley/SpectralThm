@@ -7,7 +7,10 @@ module
 
 public import Mathlib
 public import SpectralThm.ComplexMeasure.Integral
+public import SpectralThm.ComplexMeasure.RadonNikodym
+public import SpectralThm.MeasureTheory.Regular
 public import SpectralThm.VectorMeasure.FiniteDimensional
+public import SpectralThm.VectorMeasure.Variation
 
 /-!
 # Riesz–Markov–Kakutani representation theorem for complex linear functionals
@@ -46,10 +49,14 @@ used by Rudin:
 * with `ν = baseMeasure Φ` the sum of these four measures, Radon–Nikodym gives a bounded density
   `density Φ` with `Φ f = ∫ density Φ * f dν`, first for `f ∈ C_c(X, ℂ)` and then, by uniform
   approximation, for `f ∈ C₀(X, ℂ)` (`apply_eq_integral`);
-* `rieszMeasure Φ := ν.withDensityᵥ (density Φ)`, and `integral_withDensityᵥ` identifies the
-  integrals;
+* `rieszMeasure Φ := ν.withDensityᵥ (density Φ)`, and `ComplexMeasure.integral_withDensityᵥ`
+  identifies the integrals;
 * `|rieszMeasure Φ| = |density Φ| ν`, and `∫ |density Φ| dν = ‖Φ‖` by testing `Φ` against
   continuous approximations of the conjugate sign of `density Φ`.
+
+The uniqueness proof uses the polar decomposition of a complex measure
+(`ComplexMeasure.ae_norm_rnDeriv_variation_eq_one`, `ComplexMeasure.integral_eq_integral_rnDeriv`),
+which is in `SpectralThm/ComplexMeasure/RadonNikodym.lean`.
 
 ## Notes
 
@@ -61,7 +68,6 @@ used by Rudin:
 
 ## To do
 
-- Rudin 6.5 `NormedAddCommGroup` instance for `ComplexMeasure X`
 - Remove `[NormalSpace X]` from `rieszMeasure_unique` and `norm_eq_variation`, by generalising
   `Integrable.exists_hasCompactSupport_integral_sub_le` to locally compact Hausdorff spaces.
 - Prove that `(rieszMeasure Φ).variation` is regular, and more generally that differences of such
@@ -75,254 +81,13 @@ open NNReal ENNReal
 open ZeroAtInfty MeasureTheory CompactlySupported CompactlySupportedContinuousMap
 open scoped MeasureTheory.ComplexMeasure
 
-section Lemmas
-
-variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X]
-
-lemma outerRegular_add (μ₁ μ₂ : Measure X) [μ₁.OuterRegular] [μ₂.OuterRegular] :
-    (μ₁ + μ₂).OuterRegular := by
-  constructor
-  intro A hA r hr
-  simp only [Measure.coe_add, Pi.add_apply] at hr
-  obtain ⟨u, hu, v, hv, huv⟩ := ENNReal.exists_add_lt_of_add_lt hr
-  obtain ⟨U, hAU, hU, hμU⟩ := A.exists_isOpen_lt_of_lt u hu
-  obtain ⟨V, hAV, hV, hμV⟩ := A.exists_isOpen_lt_of_lt v hv
-  use U ∩ V
-  refine ⟨Set.subset_inter hAU hAV, hU.inter hV, ?_⟩
-  calc
-    (μ₁ + μ₂) (U ∩ V) ≤ μ₁ U + μ₂ V := by
-        simp only [Measure.coe_add, Pi.add_apply]
-        gcongr
-        · exact Set.inter_subset_left
-        · exact Set.inter_subset_right
-    _ < u + v := by gcongr
-    _ < r := by grind
-
-lemma innerRegular_add (μ₁ μ₂ : Measure X) [μ₁.Regular] [μ₂.Regular] :
-    (μ₁ + μ₂).InnerRegularWRT IsCompact IsOpen := by
-  intro U hU r hr
-  simp only [Measure.coe_add, Pi.add_apply] at hr
-  rcases eq_or_ne (μ₁ U) 0 with h₁ | h₁
-  · simp only [h₁, zero_add] at hr
-    obtain ⟨K, hKU, hK, hrK⟩ := hU.exists_lt_isCompact hr
-    exact ⟨K, hKU, hK, hrK.trans_le (by simp)⟩
-  rcases eq_or_ne (μ₂ U) 0 with h₂ | h₂
-  · simp only [h₂, add_zero] at hr
-    obtain ⟨K, hKU, hK, hrK⟩ := hU.exists_lt_isCompact hr
-    exact ⟨K, hKU, hK, hrK.trans_le (by simp)⟩
-  obtain ⟨u, hu, v, hv, huv⟩ := ENNReal.exists_lt_add_of_lt_add hr h₁ h₂
-  obtain ⟨K, hKU, hK, huK⟩ := hU.exists_lt_isCompact hu
-  obtain ⟨L, hLU, hL, hvL⟩ := hU.exists_lt_isCompact hv
-  use K ∪ L
-  refine ⟨Set.union_subset hKU hLU, hK.union hL, ?_⟩
-  calc
-    r < u + v := huv
-    _ < μ₁ K + μ₂ L := by gcongr
-    _ ≤ (μ₁ + μ₂) (K ∪ L) := by
-        simp only [Measure.coe_add, Pi.add_apply]
-        gcongr
-        · exact Set.subset_union_left
-        · exact Set.subset_union_right
-
-lemma regular_add (μ₁ μ₂ : Measure X) [μ₁.Regular] [μ₂.Regular] : (μ₁ + μ₂).Regular := by
-  let ⟨hOuter⟩ := outerRegular_add μ₁ μ₂
-  exact
-    { lt_top_of_isCompact := fun _K hK =>
-        ENNReal.add_lt_top.mpr ⟨hK.measure_lt_top, hK.measure_lt_top⟩
-      outerRegular := hOuter
-      innerRegular := innerRegular_add μ₁ μ₂ }
-
-lemma regular_finset_sum {ι : Type*} (s : Finset ι) (μ : ι → Measure X)
-    [∀ i, (μ i).Regular] : (∑ i ∈ s, μ i).Regular := by
-  classical
-  induction s using Finset.induction_on with
-  | empty =>
-      simpa [Finset.sum_empty] using Measure.Regular.zero
-  | insert i s hi ih =>
-      rw [Finset.sum_insert hi]
-      exact regular_add (μ i) (∑ j ∈ s, μ j)
-
--- adapt and generalize this to more outerRegular type classes
-
-end Lemmas
-
 namespace ComplexRMK
 
-variable {X : Type*} [MeasurableSpace X]
-
--- TODO
--- move ComplexMeasure in VectorMeasure
--- separate things about SignedMeasure in Basic in a separate file
--- counterexample: a L^∞ valued measure whose variation is not finite?
--- make a folder VectorMeasure/SignedMeasure, make a file Basic, a folder Decomposition
-
--- Rudin 6.4: `IsFiniteMeasure μ.variation` is in `SpectralThm/VectorMeasure/FiniteDimensional.lean`
-
--- Rudin 6.5
-
-@[simp] lemma variation_zero_iff_univ {V : Type*} [NormedAddCommGroup V] {μ : VectorMeasure X V} :
-    μ.variation Set.univ = 0 ↔ μ = 0 := by
-  simp
-
-noncomputable instance {V : Type*} [NormedAddCommGroup V] : EMetricSpace (VectorMeasure X V) where
-  edist μ ν := (μ - ν).variation Set.univ
-  edist_self := by intro; simp
-  edist_comm := by
-    intro _ _
-    rw [← MeasureTheory.VectorMeasure.variation_neg]
-    simp
-  edist_triangle := by
-    intro x y z
-    simpa using Measure.le_iff.mp (VectorMeasure.variation_add_le (μ := x - y) (ν := y - z))
-      Set.univ MeasurableSet.univ
-  eq_of_edist_eq_zero {x y} h := by
-    rw [variation_zero_iff_univ] at h
-    exact eq_of_sub_eq_zero h
-
-lemma edist_eq_variation_sub {V : Type*} [NormedAddCommGroup V] (μ ν : VectorMeasure X V) :
-    edist μ ν = (μ - ν).variation Set.univ := by rfl
-
-noncomputable instance {V : Type*} [NormedAddCommGroup V] :
-    ENormedAddCommMonoid (VectorMeasure X V) where
-  enorm μ := μ.variation Set.univ
-  continuous_enorm := by
-    have : Continuous (fun x : VectorMeasure X V ↦ edist x 0) := by
-      continuity
-    simpa [edist_eq_variation_sub, sub_zero] using this
-  enorm_zero := by simp
-  enorm_add_le x y := by
-    simpa using Measure.le_iff.mp (VectorMeasure.variation_add_le (μ := x) (ν := y)) Set.univ
-      MeasurableSet.univ
-  enorm_eq_zero x := variation_zero_iff_univ
-
--- Rudin 6.12 polar decomposition
-
-theorem ComplexMeasure.ext (μ ν : ComplexMeasure X) : μ.re = ν.re → μ.im = ν.im → μ = ν := by
-  intro hre him
-  apply Equiv.injective ComplexMeasure.equivSignedMeasure
-  simp [hre, him]
-
-theorem ComplexMeasure.ext_iff (μ ν : ComplexMeasure X) : μ = ν ↔ (μ.re = ν.re ∧ μ.im = ν.im) :=
-  ⟨fun h ↦ by constructor <;> rw [h], fun h ↦ ComplexMeasure.ext μ ν h.1 h.2⟩
-
-theorem re_withDensityᵥ_eq {μ : Measure X} {f : X → ℂ} (hf : Integrable f μ):
-    ComplexMeasure.re (μ.withDensityᵥ f) = μ.withDensityᵥ (Complex.re ∘ f) := by
-  ext E hE
-  rw [ComplexMeasure.re_apply,
-    MeasureTheory.VectorMeasure.mapRange_apply (μ.withDensityᵥ f) Complex.continuous_re,
-    MeasureTheory.withDensityᵥ_apply hf hE, LinearMap.toAddMonoidHom_coe, Complex.reLm_coe,
-    ← Complex.reCLM_apply, ← ContinuousLinearMap.integral_comp_comm _ hf.integrableOn,
-    MeasureTheory.withDensityᵥ_apply (f := Complex.re ∘ f)
-      (Complex.reCLM.integrable_comp hf) hE]
-  simp
-
-theorem im_withDensityᵥ_eq {μ : Measure X} {f : X → ℂ} (hf : Integrable f μ):
-    ComplexMeasure.im (μ.withDensityᵥ f) = μ.withDensityᵥ (Complex.im ∘ f) := by
-  ext E hE
-  rw [ComplexMeasure.im_apply,
-    MeasureTheory.VectorMeasure.mapRange_apply (μ.withDensityᵥ f) Complex.continuous_im,
-    MeasureTheory.withDensityᵥ_apply hf hE, LinearMap.toAddMonoidHom_coe, Complex.imLm_coe,
-    ← Complex.imCLM_apply, ← ContinuousLinearMap.integral_comp_comm _ hf.integrableOn,
-    MeasureTheory.withDensityᵥ_apply (f := Complex.im ∘ f)
-      (Complex.imCLM.integrable_comp hf) hE]
-  simp
-
-theorem re_rnDeriv_eq_rnDeriv_re (v : ComplexMeasure X) (μ : Measure X) :
-    Complex.re ∘ (v.rnDeriv μ) = v.re.rnDeriv μ := by rfl
-
-theorem im_rnDeriv_eq_rnDeriv_im (v : ComplexMeasure X) (μ : Measure X) :
-    Complex.im ∘ (v.rnDeriv μ) = v.im.rnDeriv μ := by rfl
-
-theorem absolutelyContinuous_re {v : ComplexMeasure X} {μ : Measure X}
-    (h : v ≪ᵥ μ.toENNRealVectorMeasure) : v.re ≪ᵥ μ.toENNRealVectorMeasure := by
-  intro E hE
-  rw [ComplexMeasure.re_apply, VectorMeasure.mapRange_apply v Complex.continuous_re]
-  simp [LinearMap.toAddMonoidHom_coe, Complex.reLm_coe, h hE]
-
-theorem absolutelyContinuous_im {v : ComplexMeasure X} {μ : Measure X}
-    (h : v ≪ᵥ μ.toENNRealVectorMeasure) : v.im ≪ᵥ μ.toENNRealVectorMeasure := by
-  intro E hE
-  rw [ComplexMeasure.im_apply, VectorMeasure.mapRange_apply v Complex.continuous_im]
-  simp [LinearMap.toAddMonoidHom_coe, Complex.imLm_coe, h hE]
-
-theorem MeasureTheory.ComplexMeasure.withDensityᵥ_rnDeriv_eq {v : ComplexMeasure X} {μ : Measure X}
-    [SigmaFinite μ] (h : v ≪ᵥ μ.toENNRealVectorMeasure) :
-    μ.withDensityᵥ (v.rnDeriv μ) = v := by
-  apply ComplexMeasure.ext
-  · rw [re_withDensityᵥ_eq (ComplexMeasure.integrable_rnDeriv v μ), re_rnDeriv_eq_rnDeriv_re]
-    exact MeasureTheory.SignedMeasure.withDensityᵥ_rnDeriv_eq _ _ (absolutelyContinuous_re h)
-  · rw [im_withDensityᵥ_eq (ComplexMeasure.integrable_rnDeriv v μ), im_rnDeriv_eq_rnDeriv_im]
-    exact MeasureTheory.SignedMeasure.withDensityᵥ_rnDeriv_eq _ _ (absolutelyContinuous_im h)
-
-theorem absolutelyContinuous_variation {V : Type} [TopologicalSpace V] [ENormedAddCommMonoid V]
-    [T2Space V] (μ : VectorMeasure X V) : μ ≪ᵥ μ.ennrealVariation := by
-  intro E hE
-  by_cases hEm : MeasurableSet E
-  · rw [MeasureTheory.VectorMeasure.ennrealVariation_apply _ hEm] at hE
-    rw [← enorm_eq_zero, ← le_zero_iff, ← hE]
-    exact VectorMeasure.enorm_measure_le_variation μ E
-  · exact VectorMeasure.not_measurable μ hEm
-
-theorem withDensityᵥ_variation_rnDeriv_eq (μ : ComplexMeasure X) :
-    μ.variation.withDensityᵥ (μ.rnDeriv μ.variation) = μ :=
-  MeasureTheory.ComplexMeasure.withDensityᵥ_rnDeriv_eq <| absolutelyContinuous_variation μ
-
-theorem exists_l1_eq_withDensity_variation (μ : ComplexMeasure X) :
-     ∀ᵐ x ∂μ.variation, ‖μ.rnDeriv μ.variation x‖ = 1 := by
-  have hDensity :
-      ((μ.variation).withDensityᵥ (μ.rnDeriv μ.variation)).variation
-        = VectorMeasure.variation μ := by
-      congr; exact withDensityᵥ_variation_rnDeriv_eq μ
-  rw [Measure.variation_withDensityᵥ (ComplexMeasure.integrable_rnDeriv μ μ.variation)]
-    at hDensity
-  have henorm : (fun x ↦ ‖μ.rnDeriv μ.variation x‖ₑ) =ᵐ[μ.variation] 1 := by
-    apply (MeasureTheory.withDensity_eq_iff_of_sigmaFinite
-      (ComplexMeasure.integrable_rnDeriv μ μ.variation).aestronglyMeasurable.enorm
-      aemeasurable_const).mp
-    simpa using hDensity
-  filter_upwards [henorm] with x h
-  simpa [← ofReal_norm, Pi.one_apply, ofReal_eq_one] using h
-
-/-- The integral against a complex measure in terms of its polar decomposition (Rudin RCA 6.18):
-`∫ f dμ = ∫ (dμ/d|μ|) f d|μ|`. -/
-theorem integral_eq_integral_rnDeriv (μ : ComplexMeasure X) {f : X → ℂ}
-    (hf : Integrable f μ.variation) :
-    ∫ᶜ x, f x ∂μ = ∫ x, μ.rnDeriv μ.variation x * f x ∂μ.variation := by
-  set a := μ.rnDeriv μ.variation
-  have ha : Integrable a μ.variation := ComplexMeasure.integrable_rnDeriv μ μ.variation
-  have ha_le : ∀ᵐ x ∂μ.variation, ‖a x‖ ≤ 1 := by
-    filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx using hx.le
-  have hmul {g : X → ℂ} (hg : Integrable g μ.variation) :
-      Integrable (fun x ↦ a x * g x) μ.variation :=
-    hg.bdd_mul ha.aestronglyMeasurable ha_le
-  refine hf.induction (P := fun f ↦ ∫ᶜ x, f x ∂μ = ∫ x, a x * f x ∂μ.variation) ?_ ?_ ?_ ?_
-  · intro c s hs _
-    have h : (fun x ↦ a x * s.indicator (fun _ ↦ c) x) = s.indicator (fun x ↦ a x * c) := by
-      ext x; by_cases hx : x ∈ s <;> simp [hx]
-    rw [VectorMeasure.integral_indicator_const _ hs, h, integral_indicator hs, integral_mul_const,
-      ← withDensityᵥ_apply ha hs, withDensityᵥ_variation_rnDeriv_eq, mul_comm]
-    rfl
-  · intro f g _ hf hg hPf hPg
-    simp only [Pi.add_apply, mul_add]
-    rw [VectorMeasure.integral_fun_add hf hg, integral_add (hmul hf) (hmul hg), hPf, hPg]
-  · refine isClosed_eq VectorMeasure.continuous_integral ?_
-    refine LipschitzWith.continuous (K := 1) (LipschitzWith.of_dist_le_mul fun g h ↦ ?_)
-    rw [dist_eq_norm, ← integral_sub (hmul (L1.integrable_coeFn g)) (hmul (L1.integrable_coeFn h)),
-      NNReal.coe_one, one_mul, dist_eq_norm, L1.norm_eq_integral_norm]
-    refine norm_integral_le_of_norm_le (L1.integrable_coeFn _).norm ?_
-    filter_upwards [ha_le, Lp.coeFn_sub g h] with x hx hgh
-    rw [← mul_sub, norm_mul, hgh, Pi.sub_apply]
-    exact mul_le_of_le_one_left (norm_nonneg _) hx
-  · intro f g hfg _ hPf
-    rw [← VectorMeasure.integral_congr_ae hfg, hPf]
-    exact integral_congr_ae (hfg.mono fun x hx ↦ congrArg (a x * ·) hx)
-
-
-variable [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
+variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpace X] [T2Space X]
 
 -- TODO remove `[NormalSpace X]` from `exists_hasCompactSupport_integral_sub_le`
 -- switch to `C_c`
-lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMeasure X}
+lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ : ComplexMeasure X}
     [Measure.Regular μ.variation]
     (h : ∀ f : C₀(X, ℂ), ∫ᶜ x, f x ∂μ = 0) :
     μ = 0 := by
@@ -339,8 +104,9 @@ lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMea
   -- depends on 3.13 `exists_hasCompactSupport_integral_sub_le`, this is written only for
   -- `NormalSpace α` and approximation given by bounded functions)
   -- It is easy to see that the difference of two regular complex Borel measures on `X` is regular.
-  rw [← variation_zero_iff_univ]
-  -- take a sequence `f n` which tends to `star μ.rnDeriv μ.variation` in the L^1 norm of `μ.variation`
+  rw [← VectorMeasure.variation_univ_eq_zero]
+  -- take a sequence `f n` which tends to `star μ.rnDeriv μ.variation` in the L^1 norm of
+  -- `μ.variation`
   -- calc
   --   μ.variation.real Set.univ = ∫ (x : X), 1 ∂(μ.variation) := by simp
   --   _ = ∫ (x : X), ‖μ.rnDeriv μ.variation x‖ ∂(μ.variation) := by sorry
@@ -350,7 +116,6 @@ lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMea
   --   _ = ∫ (x : X), ‖star μ.rnDeriv μ.variation x - f n‖ ∂ μ.variation := by sorry
   --   _ ≤ 0
   -- (actually the calc block below is almost ok)
-
   rw [← measureReal_eq_zero_iff]
   apply le_antisymm _ ENNReal.toReal_nonneg
   · apply _root_.le_of_forall_pos_le_add
@@ -364,10 +129,10 @@ lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMea
     let f : C_c(X, ℂ) := ⟨⟨g, hg_cont⟩, hg_support⟩
     -- start calc here
     have hfg : ∫ x, a x * g x ∂μ.variation = 0 := by
-      rw [← integral_eq_integral_rnDeriv μ hg_int]
+      rw [← ComplexMeasure.integral_eq_integral_rnDeriv μ hg_int]
       simpa [f] using h (f : C₀(X, ℂ))
     have haa : ∀ᵐ x ∂μ.variation, star (a x) * a x = 1 := by
-      filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx
+      filter_upwards [ComplexMeasure.ae_norm_rnDeriv_variation_eq_one μ] with x hx
       rw [← show (Complex.normSq (a x) : ℂ) = star (a x) * a x by
         simpa only [starRingEnd_apply] using Complex.normSq_eq_conj_mul_self]
       have hx' : ‖a x‖ = 1 := by simpa [a] using hx
@@ -376,7 +141,7 @@ lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMea
     have ha' : Integrable a μ.variation :=
       ComplexMeasure.integrable_rnDeriv μ μ.variation
     have ha_bound : ∀ᵐ x ∂μ.variation, ‖a x‖ ≤ 1 := by
-      filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx
+      filter_upwards [ComplexMeasure.ae_norm_rnDeriv_variation_eq_one μ] with x hx
       have hx' : ‖a x‖ = 1 := by simpa [a] using hx
       simp [hx']
     have hdiff : Integrable (fun x ↦ (star (a x) - g x) * a x) μ.variation :=
@@ -402,7 +167,7 @@ lemma eq_zero_of_integral_eq_zero [BorelSpace X] [NormalSpace X] {μ: ComplexMea
               _ = _ := by rw [hfg, add_zero]
       _ ≤ ∫ x, ‖star (a x) - g x‖ ∂μ.variation := by
             refine norm_integral_le_of_norm_le (ha.sub hg_int).norm ?_
-            filter_upwards [exists_l1_eq_withDensity_variation μ] with x hx
+            filter_upwards [ComplexMeasure.ae_norm_rnDeriv_variation_eq_one μ] with x hx
             have hx' : ‖a x‖ = 1 := by simpa [a] using hx
             simp [hx']
       _ ≤ ε := hg_approx
@@ -426,8 +191,7 @@ end ComplexRMK
 /-! ### Auxiliary lemmas
 
 The lemmas in this section are general facts which should eventually live elsewhere in Mathlib
-(`Topology/ContinuousMap/ZeroAtInfty`, `MeasureTheory/VectorMeasure/WithDensityVec`,
-`MeasureTheory/Integral/RieszMarkovKakutani/Real`). -/
+(`Topology/ContinuousMap/ZeroAtInfty`, `MeasureTheory/Integral/RieszMarkovKakutani/Real`). -/
 
 section compNorm
 
@@ -489,96 +253,6 @@ lemma exists_compactlySupported_norm_sub_le {E : Type*} [NormedAddCommGroup E] [
     rw [show f x - χ x • f x = (1 - χ x) • f x by rw [sub_smul, one_smul], norm_smul,
       Real.norm_of_nonneg (sub_nonneg.mpr (hχ01 x).2)]
     nlinarith [(hχ01 x).1, norm_nonneg (f x)]
-
-end ComplexRMK
-
-namespace ComplexRMK
-
-variable {X : Type*} [MeasurableSpace X]
-
-/-- The integral against the complex measure `ν.withDensityᵥ k` (i.e. `dμ = k dν`) is
-`∫ k f dν`. This generalises `integral_eq_integral_rnDeriv`. -/
-theorem integral_withDensityᵥ {ν : Measure X} {k : X → ℂ} (hk : Integrable k ν) {f : X → ℂ}
-    (hf : Integrable f (ν.withDensityᵥ k).variation) :
-    ∫ᶜ x, f x ∂(ν.withDensityᵥ k) = ∫ x, k x * f x ∂ν := by
-  have hρ : (ν.withDensityᵥ k).variation = ν.withDensity fun x ↦ (‖k x‖₊ : ℝ≥0∞) :=
-    Measure.variation_withDensityᵥ hk
-  have hkm : AEMeasurable (fun x ↦ ‖k x‖₊) ν := hk.aestronglyMeasurable.nnnorm.aemeasurable
-  have hmul {g : X → ℂ} (hg : Integrable g (ν.withDensityᵥ k).variation) :
-      Integrable (fun x ↦ k x * g x) ν := by
-    rw [hρ, integrable_withDensity_iff_integrable_smul₀ hkm] at hg
-    have hs : AEStronglyMeasurable (fun x ↦ k x / (‖k x‖ : ℂ)) ν :=
-      (hk.aemeasurable.div
-        (Complex.measurable_ofReal.comp_aemeasurable hk.aemeasurable.norm)).aestronglyMeasurable
-    refine (hg.bdd_mul (c := 1) hs (Filter.Eventually.of_forall fun x ↦ ?_)).congr
-      (Filter.Eventually.of_forall fun x ↦ ?_)
-    · simpa [norm_div] using div_self_le_one ‖k x‖
-    · rcases eq_or_ne (k x) 0 with h | h
-      · simp [h]
-      · have : (‖k x‖ : ℂ) ≠ 0 := by simpa using h
-        simp only [NNReal.smul_def, coe_nnnorm, Complex.real_smul]
-        field_simp
-  have hdist {g : X → ℂ} (hg : Integrable g (ν.withDensityᵥ k).variation) :
-      ‖∫ x, k x * g x ∂ν‖ ≤ ∫ x, ‖g x‖ ∂(ν.withDensityᵥ k).variation := by
-    rw [hρ, integral_withDensity_eq_integral_smul₀ hkm]
-    refine (norm_integral_le_integral_norm _).trans_eq (integral_congr_ae ?_)
-    filter_upwards with x
-    simp [NNReal.smul_def]
-  refine hf.induction (P := fun f ↦ ∫ᶜ x, f x ∂(ν.withDensityᵥ k) = ∫ x, k x * f x ∂ν)
-    ?_ ?_ ?_ ?_
-  · intro c s hs _
-    have h : (fun x ↦ k x * s.indicator (fun _ ↦ c) x) = s.indicator (fun x ↦ k x * c) := by
-      ext x; by_cases hx : x ∈ s <;> simp [hx]
-    rw [VectorMeasure.integral_indicator_const _ hs, h, integral_indicator hs, integral_mul_const,
-      ← withDensityᵥ_apply hk hs, mul_comm]
-    rfl
-  · intro f g _ hf hg hPf hPg
-    simp only [Pi.add_apply, mul_add]
-    rw [VectorMeasure.integral_fun_add hf hg, integral_add (hmul hf) (hmul hg), hPf, hPg]
-  · refine isClosed_eq VectorMeasure.continuous_integral ?_
-    refine LipschitzWith.continuous (K := 1) (LipschitzWith.of_dist_le_mul fun g h ↦ ?_)
-    have hg := L1.integrable_coeFn g
-    have hh := L1.integrable_coeFn h
-    rw [dist_eq_norm, ← integral_sub (hmul hg) (hmul hh), NNReal.coe_one, one_mul, dist_eq_norm,
-      L1.norm_eq_integral_norm]
-    calc ‖∫ x, k x * g x - k x * h x ∂ν‖ = ‖∫ x, k x * (⇑g - ⇑h) x ∂ν‖ := by
-          simp [mul_sub]
-      _ ≤ ∫ x, ‖(⇑g - ⇑h) x‖ ∂(ν.withDensityᵥ k).variation := hdist (hg.sub hh)
-      _ = _ := integral_congr_ae <| by
-          filter_upwards [Lp.coeFn_sub g h] with x hx
-          rw [hx]
-  · intro f g hfg _ hPf
-    rw [← VectorMeasure.integral_congr_ae hfg, hPf]
-    rw [hρ, Filter.EventuallyEq, ae_withDensity_iff' hkm.coe_nnreal_ennreal] at hfg
-    refine integral_congr_ae ?_
-    filter_upwards [hfg] with x hx
-    rcases eq_or_ne (k x) 0 with h | h
-    · simp [h]
-    · rw [hx (by simpa using h)]
-
-section RadonNikodym
-
-variable {ν m : Measure X} [IsFiniteMeasure ν]
-
-/-- If `m ≤ ν` then `(dm/dν) g` is `ν`-integrable for any `m`-integrable `g`. -/
-lemma integrable_rnDeriv_mul (h : m ≤ ν) {g : X → ℂ} (hg : Integrable g m) :
-    Integrable (fun x ↦ ((m.rnDeriv ν x).toReal : ℂ) * g x) ν := by
-  have : IsFiniteMeasure m := isFiniteMeasure_of_le ν h
-  simpa [Complex.real_smul] using
-    (integrable_rnDeriv_smul_iff (Measure.absolutelyContinuous_of_le h)).mpr hg
-
-/-- If `m ≤ ν` then `∫ (dm/dν) g dν = ∫ g dm`. -/
-lemma integral_rnDeriv_mul (h : m ≤ ν) (g : X → ℂ) :
-    ∫ x, ((m.rnDeriv ν x).toReal : ℂ) * g x ∂ν = ∫ x, g x ∂m := by
-  have : IsFiniteMeasure m := isFiniteMeasure_of_le ν h
-  simpa [Complex.real_smul] using
-    integral_rnDeriv_smul (Measure.absolutelyContinuous_of_le h) (f := g)
-
-lemma toReal_rnDeriv_mem_Icc (h : m ≤ ν) : ∀ᵐ x ∂ν, (m.rnDeriv ν x).toReal ∈ Set.Icc 0 1 := by
-  filter_upwards [Measure.rnDeriv_le_one_of_le h] with x hx
-  exact ⟨ENNReal.toReal_nonneg, ENNReal.toReal_le_of_le_ofReal zero_le_one (by simpa using hx)⟩
-
-end RadonNikodym
 
 end ComplexRMK
 
@@ -867,9 +541,7 @@ noncomputable def baseMeasure : Measure X :=
 
 instance : IsFiniteMeasure (baseMeasure Φ) := by unfold baseMeasure; infer_instance
 
-instance : (baseMeasure Φ).Regular := by
-  unfold baseMeasure
-  exact regular_add _ _
+instance : (baseMeasure Φ).Regular := by unfold baseMeasure; infer_instance
 
 
 lemma posMeasure_re_le : posMeasure (reFunctional_le Φ) ≤ baseMeasure Φ :=
@@ -898,9 +570,10 @@ lemma integrable_density : Integrable (density Φ) (baseMeasure Φ) := by
   exact ((h _).sub (h _)).add (((h _).sub (h _)).const_mul I)
 
 lemma norm_density_le : ∀ᵐ x ∂baseMeasure Φ, ‖density Φ x‖ ≤ 2 := by
-  filter_upwards [toReal_rnDeriv_mem_Icc (posMeasure_re_le Φ),
-    toReal_rnDeriv_mem_Icc (negMeasure_re_le Φ), toReal_rnDeriv_mem_Icc (posMeasure_im_le Φ),
-    toReal_rnDeriv_mem_Icc (negMeasure_im_le Φ)] with x h₁ h₂ h₃ h₄
+  filter_upwards [Measure.toReal_rnDeriv_mem_Icc_of_le (posMeasure_re_le Φ),
+    Measure.toReal_rnDeriv_mem_Icc_of_le (negMeasure_re_le Φ),
+    Measure.toReal_rnDeriv_mem_Icc_of_le (posMeasure_im_le Φ),
+    Measure.toReal_rnDeriv_mem_Icc_of_le (negMeasure_im_le Φ)] with x h₁ h₂ h₃ h₄
   refine (norm_add_le _ _).trans ?_
   rw [norm_mul, norm_I, one_mul, ← Complex.ofReal_sub, ← Complex.ofReal_sub, norm_real, norm_real,
     Real.norm_eq_abs, Real.norm_eq_abs]
@@ -931,7 +604,7 @@ lemma apply_toComplex_eq_integral (u : C_c(X, ℝ)) :
   set r : Measure X → X → ℂ := fun m x ↦ ((m.rnDeriv ν x).toReal : ℂ)
   have hint {m : Measure X} (h : m ≤ ν) : Integrable (fun x ↦ r m x * u x) ν :=
     have : IsFiniteMeasure m := isFiniteMeasure_of_le ν h
-    integrable_rnDeriv_mul h (hu m)
+    Measure.integrable_rnDeriv_mul_of_le h (hu m)
   set m₁ := posMeasure (reFunctional_le Φ)
   set m₂ := negMeasure (reFunctional_le Φ)
   set m₃ := posMeasure (imFunctional_le Φ)
@@ -946,8 +619,10 @@ lemma apply_toComplex_eq_integral (u : C_c(X, ℝ)) :
   rw [hd, integral_add h₁₂ (h₃₄.const_mul I), integral_const_mul,
     integral_sub (hint (posMeasure_re_le Φ)) (hint (negMeasure_re_le Φ)),
     integral_sub (hint (posMeasure_im_le Φ)) (hint (negMeasure_im_le Φ))]
-  rw [integral_rnDeriv_mul (posMeasure_re_le Φ), integral_rnDeriv_mul (negMeasure_re_le Φ),
-    integral_rnDeriv_mul (posMeasure_im_le Φ), integral_rnDeriv_mul (negMeasure_im_le Φ)]
+  rw [Measure.integral_rnDeriv_mul_of_le (posMeasure_re_le Φ),
+    Measure.integral_rnDeriv_mul_of_le (negMeasure_re_le Φ),
+    Measure.integral_rnDeriv_mul_of_le (posMeasure_im_le Φ),
+    Measure.integral_rnDeriv_mul_of_le (negMeasure_im_le Φ)]
   simp only [integral_complex_ofReal]
   push_cast
   ring
@@ -1054,7 +729,7 @@ lemma variation_rieszMeasure :
 linear functional `Φ` on `C₀(X, ℂ)` is integration against the complex measure `rieszMeasure Φ`. -/
 theorem integral_rieszMeasure (f : C₀(X, ℂ)) : Φ f = ∫ᶜ x, f x ∂(rieszMeasure Φ) := by
   rw [apply_eq_integral, rieszMeasure,
-    integral_withDensityᵥ (integrable_density Φ) (integrable_of_zeroAtInfty f _)]
+    ComplexMeasure.integral_withDensityᵥ (integrable_density Φ) (integrable_of_zeroAtInfty f _)]
 
 lemma variation_rieszMeasure_univ :
     (rieszMeasure Φ).variation Set.univ =
@@ -1200,20 +875,21 @@ end ComplexRMK
 
 open ZeroAtInftyContinuousMap
 
-namespace ZeroAtInftyContinuousMap
-
 section NormedAddGroupHom
 
 variable {α : Type*} {β : Type*} [TopologicalSpace α] [CompactSpace α]
   [SeminormedAddCommGroup β]
 
+/-- `ContinuousMap.liftZeroAtInfty` as a normed additive group hom. -/
 def ContinuousMap.liftZeroAtInftyNAGH : NormedAddGroupHom C(α, β) C₀(α, β) where
   toFun := ContinuousMap.liftZeroAtInfty
-  map_add' x y := rfl
-  bound' := ⟨1, by intro v; simp; apply le_of_eq; rfl⟩
+  map_add' _ _ := rfl
+  bound' := ⟨1, fun v ↦ (one_mul ‖v‖).symm.le⟩
 
 @[simp]
-lemma liftZeroAtInftyNAGH_apply (f : C(α, β)) : f.liftZeroAtInftyNAGH = f.liftZeroAtInfty := rfl
+lemma ContinuousMap.liftZeroAtInftyNAGH_apply (f : C(α, β)) :
+    f.liftZeroAtInftyNAGH = f.liftZeroAtInfty :=
+  rfl
 
 end NormedAddGroupHom
 
@@ -1222,10 +898,12 @@ section ContinuousLinearEquiv
 variable {α : Type*} {β : Type*} {R : Type*} [TopologicalSpace α] [CompactSpace α]
   [SeminormedAddCommGroup β] [Semiring R] [Module R β] [ContinuousConstSMul R β]
 
+/-- `ContinuousMap.liftZeroAtInfty` as a continuous linear equivalence: on a compact space,
+`C(α, β)` and `C₀(α, β)` coincide. -/
 noncomputable def ContinuousMap.liftZeroAtInftyCLE : C(α, β) ≃L[R] C₀(α, β) :=
   { toFun := ContinuousMap.liftZeroAtInftyNAGH
-    map_add' x y := rfl
-    map_smul' c x := rfl
+    map_add' _ _ := rfl
+    map_smul' _ _ := rfl
     invFun f := f
     continuous_invFun := Isometry.continuous fun _ ↦ congrFun rfl
   }

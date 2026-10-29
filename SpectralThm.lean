@@ -1,12 +1,15 @@
 import SpectralThm.ComplexMeasure.Conj
 import SpectralThm.ComplexMeasure.Integral
 import SpectralThm.ComplexMeasure.Operations
+import SpectralThm.ComplexMeasure.RadonNikodym
 import SpectralThm.VectorMeasure.FiniteDimensional
+import SpectralThm.VectorMeasure.Variation
+import SpectralThm.MeasureTheory.Regular
 import SpectralThm.Linfty
 import SpectralThm.RieszMarkovKakutani.Complex
-import SpectralThm.Projections
 import SpectralThm.ProjectionValuedMeasure.Basic
 import SpectralThm.ProjectionValuedMeasure.Integral
 import SpectralThm.SpectralTheorem
 import SpectralThm.BorelFunctionalCalculus
-import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
+import SpectralThm.BorelFunctionalCalculus.Spectrum
+import SpectralThm.Linfty.Algebra

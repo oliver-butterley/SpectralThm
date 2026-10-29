@@ -1,8 +1,13 @@
+/-
+Copyright (c) 2026 Oliver Butterley. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Oliver Butterley, Yoh Tanimoto
+-/
 module
 
 public import Mathlib
 public import SpectralThm.Linfty
-public import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
+public import SpectralThm.Linfty.Algebra
 
 /-!
 # Projection-valued measures
@@ -20,14 +25,30 @@ additive in operator norm and has infinite variation in general.
   `Set X → H →L[ℂ] H`.
 * `ProjectionValuedMeasure.toComplexMeasure E x y`: the complex measure `E_{x,y} w = ⟪x, E w y⟫`.
 * `ProjectionValuedMeasure.toMeasure E x`: the finite measure `E_{x,x} w = ‖E w x‖ ^ 2`.
+* `ProjectionValuedMeasure.applyVectorMeasure E x`: the `H`-valued measure `w ↦ E w x`.
 * `ProjectionValuedMeasure.measure E`: a scalar measure with the same null sets as `E`.
 * `ProjectionValuedMeasure.Linfty E`: the algebra `L^∞(E)` (Rudin 12.20).
+
+## Main results
+
+* `ProjectionValuedMeasure.hasSum_apply_iUnion`: `E` is countably additive in the strong operator
+  topology, `E (⋃ i, w i) x = ∑ i, E (w i) x` in norm. The definition only asks for the weak
+  operator topology; the strong version follows since `‖E w x‖ ^ 2 = E_{x,x} w`.
+
+## Implementation notes
+
+`E` is a vector measure in the weak operator topology rather than in `H →Lₚₜ[ℂ] H` (pointwise
+convergence): this is the weaker requirement, it is what the construction of the spectral measure
+gives directly, and the strong version is a theorem (`hasSum_apply_iUnion`,
+`applyVectorMeasure`). The `H`-valued measure `w ↦ E w x` has finite `∑ ‖E wᵢ x‖ ^ 2` but its
+variation `sup ∑ ‖E wᵢ x‖` can be infinite, so Mathlib's `VectorMeasure.integral` (which
+integrates against the variation) does not compute `(∫ f dE) x` from it in general.
 -/
 
 @[expose] public section
 
 open scoped Function InnerProductSpace
-open MeasureTheory BigOperators ENNReal ContinuousLinearMapWOT
+open MeasureTheory BigOperators ENNReal ContinuousLinearMapWOT Filter Topology
 
 section Def
 
@@ -65,57 +86,6 @@ lemma IsStarProjection.inner_apply_self {𝕜 H : Type*} [RCLike 𝕜] [NormedAd
     ⟪x, p x⟫_𝕜 = (‖p x‖ : 𝕜) ^ 2 := by
   rw [← inner_self_eq_norm_sq_to_K, ← ContinuousLinearMap.adjoint_inner_right,
     hp.isSelfAdjoint.adjoint_eq, ← mul_apply_eq_comp, hp.isIdempotentElem.eq]
-
-section OrthogonalProjection
-
-section Def
-
-variable (H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-
-def OrthogonalProjection := { p : H →L[ℂ] H // IsStarProjection p }
-
-end Def
-
-namespace OrthogonalProjection
-
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-
-lemma norm_le_of_le (x : H) {p q : H →L[ℂ] H} (hp : IsStarProjection p) (hq : IsStarProjection q)
-    (h : p ≤ q) : ‖p x‖ ≤ ‖q x‖ := by
-  calc
-    ‖p x‖ = ‖(p * q) x‖ := by rw [hp.le_iff_mul_eq_left hq |>.mp h]
-    _ = ‖p (q x)‖ := by rw [mul_apply_eq_comp]
-    _ ≤ ‖p‖ * ‖q x‖ := p.le_opNorm (q x)
-    _ ≤ 1 * ‖q x‖ := mul_le_mul_of_nonneg_right (hp.norm_le p) (norm_nonneg _)
-    _ = ‖q x‖ := one_mul _
-
-variable (p q : OrthogonalProjection H)
-
-def IsOrthogonalTo : Prop := p.val * q.val = 0
-
-lemma IsOrthogonalTo.symm (h : p.IsOrthogonalTo q) : q.IsOrthogonalTo p := by
-  unfold IsOrthogonalTo
-  rw [← star_eq_zero]; simpa [p.property.isSelfAdjoint.star_eq, q.property.isSelfAdjoint.star_eq]
-
-lemma add_isStarProjection_of_isOrthogonalTo (p q : OrthogonalProjection H)
-    (h : p.IsOrthogonalTo q) : IsStarProjection (p.val + q.val) := by
-  refine ⟨?_, IsSelfAdjoint.add p.property.isSelfAdjoint q.property.isSelfAdjoint⟩
-  refine IsIdempotentElem.add p.property.isIdempotentElem q.property.isIdempotentElem ?_
-  rw [h, h.symm]; simp
-
-
-variable (ι : Type*) (p : ι → OrthogonalProjection H) (x : H)
-
-example : ContinuousLinearMap.toPointwiseConvergenceCLM _ _ _ _ q.val x = q.val x := by rfl
-
--- TODO
--- define the union of ranges of `p`
--- show that if `(p : ι → OrthogonalProjection H)`, then
--- `HasSum (fun i ↦ (p i).val.toPointwiseConvergenceCLM)
-
-end OrthogonalProjection
-
-end OrthogonalProjection
 
 namespace ProjectionValuedMeasure
 
@@ -222,7 +192,6 @@ lemma toMeasure_apply (w : Set X) (hw : MeasurableSet w) (x : H) :
     E.toMeasure x w = ENNReal.ofReal (‖E w x‖ ^ 2) :=
   Measure.ofMeasurable_apply w hw
 
-@[simp]
 lemma toMeasure_univ (x : H) : E.toMeasure x Set.univ = ‖x‖ₑ ^ 2 := by
   simp [ENNReal.ofReal_pow, ofReal_norm]
 
@@ -231,6 +200,59 @@ instance (x : H) : IsFiniteMeasure (E.toMeasure x) :=
 
 lemma zero_iff (w : Set X) (h : MeasurableSet w) : E w  = 0 ↔ ∀ x, (toMeasure E x) w = 0 := by
   simp [ContinuousLinearMap.ext_iff, toMeasure_apply E w h]
+
+/-- `‖E w x‖ ^ 2 = E_{x,x} w`. -/
+lemma norm_apply_sq {w : Set X} (hw : MeasurableSet w) (x : H) :
+    ‖E w x‖ ^ 2 = (E.toMeasure x).real w := by
+  rw [measureReal_def, toMeasure_apply E w hw, ENNReal.toReal_ofReal (by positivity)]
+
+/-- `E` is countably additive in the strong operator topology:
+`E (⋃ i, w i) x = ∑ i, E (w i) x` in norm. -/
+theorem hasSum_apply_iUnion {w : ℕ → Set X} (hw : ∀ i, MeasurableSet (w i))
+    (hd : Pairwise (Disjoint on w)) (x : H) :
+    HasSum (fun i ↦ E (w i) x) (E (⋃ i, w i) x) := by
+  have hU : MeasurableSet (⋃ i, w i) := .iUnion hw
+  have hs (s : Finset ℕ) : MeasurableSet (⋃ i ∈ s, w i) := s.measurableSet_biUnion fun i _ ↦ hw i
+  have hsum (s : Finset ℕ) : ∑ i ∈ s, E (w i) x = E (⋃ i ∈ s, w i) x := by
+    rw [E.apply_biUnion_finset (fun i _ ↦ hw i) (fun i _ j _ hij ↦ hd hij), _root_.sum_apply]
+  have hdiff (s : Finset ℕ) :
+      E (⋃ i ∈ s, w i) x - E (⋃ i, w i) x = -E ((⋃ i, w i) \ ⋃ i ∈ s, w i) x := by
+    have hsub : (⋃ i ∈ s, w i) ⊆ ⋃ i, w i := Set.iUnion₂_subset fun i _ ↦ Set.subset_iUnion w i
+    conv_lhs => rw [← Set.union_sdiff_cancel hsub, E.apply_union (hs s) (hU.diff (hs s))
+      Set.disjoint_sdiff_right]
+    simp
+  -- `E_{x,x}` of the remainder `⋃ i, w i \ ⋃ i ∈ s, w i` tends to `0`
+  have hmeas : Tendsto (fun s : Finset ℕ ↦ E.toMeasure x ((⋃ i, w i) \ ⋃ i ∈ s, w i))
+      atTop (𝓝 0) := by
+    have h := tendsto_measure_iInter_atTop (μ := E.toMeasure x)
+      (s := fun s : Finset ℕ ↦ (⋃ i, w i) \ ⋃ i ∈ s, w i)
+      (fun s ↦ (hU.diff (hs s)).nullMeasurableSet)
+      (fun s t hst ↦ Set.sdiff_subset_sdiff_right (Set.biUnion_subset_biUnion_left hst))
+      ⟨∅, measure_ne_top _ _⟩
+    have h0 : (⋂ s : Finset ℕ, (⋃ i, w i) \ ⋃ i ∈ s, w i) = ∅ := by
+      refine Set.eq_empty_of_forall_notMem fun z hz ↦ ?_
+      obtain ⟨i, hi⟩ := Set.mem_iUnion.1 (Set.mem_iInter.1 hz ∅).1
+      exact (Set.mem_iInter.1 hz {i}).2 (by simpa using hi)
+    rwa [h0, measure_empty] at h
+  rw [HasSum, tendsto_iff_norm_sub_tendsto_zero]
+  simp_rw [hsum, hdiff, norm_neg]
+  have hnorm (s : Finset ℕ) : ‖E ((⋃ i, w i) \ ⋃ i ∈ s, w i) x‖ =
+      √((E.toMeasure x ((⋃ i, w i) \ ⋃ i ∈ s, w i)).toReal) := by
+    rw [← measureReal_def, ← E.norm_apply_sq (hU.diff (hs s)), Real.sqrt_sq (norm_nonneg _)]
+  simp_rw [hnorm]
+  simpa using ((ENNReal.tendsto_toReal ENNReal.zero_ne_top).comp hmeas).sqrt
+
+/-- The `H`-valued measure `w ↦ E w x`, countably additive in norm (`hasSum_apply_iUnion`). Its
+variation can be infinite. -/
+noncomputable def applyVectorMeasure (x : H) : VectorMeasure X H where
+  measureOf' w := E w x
+  empty' := by simp
+  not_measurable' w hw := by simp [E.apply_of_not_measurableSet hw]
+  m_iUnion' w hw hd := E.hasSum_apply_iUnion hw hd x
+
+@[simp]
+lemma applyVectorMeasure_apply (x : H) (w : Set X) : E.applyVectorMeasure x w = E w x :=
+  rfl
 
 /-- A scalar measure with the same null sets as `E` (see `measure_eq_zero_iff`): the sum of the
 measures `E_{x,x}` over all `x : H`. It only takes the values `0` and `∞` on measurable sets and is
@@ -356,19 +378,3 @@ lemma exists_eLpNorm_top_eq [Nontrivial H] (s : SimpleFunc X ℂ) :
   exact s.exists_eLpNorm_top_eq E.measure_ne_zero
 
 end ProjectionValuedMeasure
-
-/- TODO
-
-- From a self-adjoint operator `a`, by `IsStarNormal.instContinuousFunctionalCalculus` you can do
-the continuous functional calculus: it is a *-isomorphism from the space of continuous functions
-on the spectrum to B(H). This is denoted by `cfcHom` (in Rudin it is the map from \hat T to T in
-Theorem 12.22).
-- Applying vectors `x y` we get bounded complex linear functionals, and by ComplexRMK we get
-measures `E_{x, y}`. So the linear functionals can be extended to Borel functions, and it is still
-bounded.
-- Theorem 12.8 which gives an operator from a bounded sesquilinear form is already there
-`InnerProductSpace.continuousLinearMapOfBilin`, and this, combined with ComplexRMK, should give the
-resolution of identity from a operator.
-- From a resolution of identity, we should define \Psi(f) by Theorem 12.21
-- Finally we should prove that \Psi equals the extension of cfcHom. This is the spectral theorem
-.-/

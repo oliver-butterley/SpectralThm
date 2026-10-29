@@ -29,10 +29,19 @@ restriction of `f` to `σ(a)` is not in `L^∞(E)`.
 * `IsStarNormal.bfc_congr_ae`: `f(a)` only depends on `f` up to `E`-null sets.
 * `IsStarNormal.norm_bfc_le`: `‖f(a)‖ ≤ sup_{σ(a)} |f|`.
 * `IsStarNormal.inner_bfc`: `⟪x, f(a) y⟫ = ∫ f dE_{x,y}`.
-* `IsStarNormal.commute_bfc`: an operator commuting with `a` and `a⋆` commutes with `f(a)`.
+* `IsStarNormal.commute_bfc`: an operator commuting with `a` commutes with `f(a)` (by
+  Fuglede's theorem).
 * `IsStarNormal.tendsto_bfc_apply`: the bounded convergence theorem, if `fᵢ → g` pointwise on
   `σ(a)` with `|fᵢ| ≤ C`, then `fᵢ(a) → g(a)` in the strong operator topology.
 * `IsStarNormal.bfc_mem_vonNeumannAlgebra`: `f(a)` lies in every von Neumann algebra containing `a`.
+* `IsStarNormal.isSelfAdjoint_bfc`, `IsStarNormal.bfc_nonneg`, `IsStarNormal.isStarProjection_bfc`:
+  `f(a)` is self-adjoint (resp. nonnegative, an orthogonal projection) if `f` is real (resp.
+  nonnegative, `{0, 1}`-valued) on `σ(a)`; `IsStarNormal.bfc_mono`: monotonicity.
+* `IsStarNormal.eq_bfc`: uniqueness, any assignment `f ↦ Φ f` which is linear on bounded measurable
+  functions, extends `cfc` and satisfies the bounded convergence theorem in the weak operator
+  topology agrees with `bfc` on functions which are measurable and bounded on `σ(a)`. Its proof uses
+  `MeasureTheory.ComplexMeasure.exists_integral_eq_of_tendsto`: a linear functional on bounded
+  measurable functions satisfying bounded convergence is the integral against a complex measure.
 
 ## Implementation notes
 
@@ -44,7 +53,97 @@ reserved for an abstract Borel functional calculus class, of which this would be
 @[expose] public section
 
 open MeasureTheory ContinuousLinearMap Filter Topology
-open scoped InnerProductSpace MeasureTheory.ComplexMeasure ENNReal
+open scoped InnerProductSpace MeasureTheory.ComplexMeasure ENNReal ComplexOrder
+
+namespace MeasureTheory.ComplexMeasure
+
+variable {X : Type*} [MeasurableSpace X]
+
+/-- A functional `L` on bounded measurable functions which is linear and satisfies the bounded
+convergence theorem is the integral against a complex measure. -/
+theorem exists_integral_eq_of_tendsto {L : (X → ℂ) → ℂ}
+    (hadd : ∀ f g, Measurable f → Measurable g → (∃ C, ∀ x, ‖f x‖ ≤ C) →
+      (∃ C, ∀ x, ‖g x‖ ≤ C) → L (f + g) = L f + L g)
+    (hsmul : ∀ (c : ℂ) f, Measurable f → (∃ C, ∀ x, ‖f x‖ ≤ C) → L (c • f) = c * L f)
+    (hlim : ∀ (f : ℕ → X → ℂ) (g : X → ℂ) (C : ℝ), (∀ n, Measurable (f n)) →
+      (∀ n x, ‖f n x‖ ≤ C) → (∀ x, Tendsto (f · x) atTop (𝓝 (g x))) →
+      Tendsto (fun n ↦ L (f n)) atTop (𝓝 (L g))) :
+    ∃ μ : ComplexMeasure X, ∀ f, Measurable f → (∃ C, ∀ x, ‖f x‖ ≤ C) →
+      ∫ᶜ x, f x ∂μ = L f := by
+  classical
+  -- `B f`: `f` is measurable and bounded.
+  let B : (X → ℂ) → Prop := fun f ↦ Measurable f ∧ ∃ C, ∀ x, ‖f x‖ ≤ C
+  have hB_ind {w : Set X} (hw : MeasurableSet w) (c : ℂ) : B (w.indicator fun _ ↦ c) :=
+    ⟨measurable_const.indicator hw, ‖c‖, fun x ↦ norm_indicator_le_norm_self _ _⟩
+  have hB_one {w : Set X} (hw : MeasurableSet w) : B (w.indicator 1) := hB_ind hw 1
+  have hB_sum {ι : Type} (s : Finset ι) {f : ι → X → ℂ} (hf : ∀ i ∈ s, B (f i)) :
+      B (∑ i ∈ s, f i) := by
+    refine Finset.sum_induction _ B (fun f g ⟨hf, C, hC⟩ ⟨hg, D, hD⟩ ↦ ⟨hf.add hg, C + D,
+      fun x ↦ (norm_add_le _ _).trans (add_le_add (hC x) (hD x))⟩) ⟨measurable_const, 0, by simp⟩ hf
+  have hL_zero : L 0 = 0 := by simpa using hsmul 0 0 measurable_const ⟨0, by simp⟩
+  have hL_sum {ι : Type} (s : Finset ι) {f : ι → X → ℂ} (hf : ∀ i ∈ s, B (f i)) :
+      L (∑ i ∈ s, f i) = ∑ i ∈ s, L (f i) := by
+    induction s using Finset.induction_on with
+    | empty => simp [hL_zero]
+    | insert i s hi ih =>
+      have hs : ∀ j ∈ s, B (f j) := fun j hj ↦ hf j (Finset.mem_insert_of_mem hj)
+      obtain ⟨hfi, hfiC⟩ := hf i (Finset.mem_insert_self i s)
+      obtain ⟨hsum, hsumC⟩ := hB_sum s hs
+      rw [Finset.sum_insert hi, Finset.sum_insert hi, hadd _ _ hfi hsum hfiC hsumC, ih hs]
+  let m : Set X → ℂ := fun w ↦ if MeasurableSet w then L (w.indicator 1) else 0
+  have hm {w : Set X} (hw : MeasurableSet w) : m w = L (w.indicator 1) :=
+    ite_eq_left_iff.2 fun h ↦ absurd hw h
+  let μ : ComplexMeasure X :=
+    { measureOf' := m
+      empty' := (hm .empty).trans (by rw [Set.indicator_empty]; exact hL_zero)
+      not_measurable' := fun w hw ↦ ite_eq_right_iff.2 fun h ↦ absurd h hw
+      m_iUnion' := fun w hw hd ↦ by
+        have hsum (s : Finset ℕ) :
+            ∑ i ∈ s, m (w i) = L ((⋃ i ∈ s, w i).indicator 1) := by
+          rw [Finset.indicator_biUnion _ _ fun i _ j _ hij ↦ hd hij]
+          simp_rw [hm (hw _)]
+          rw [← hL_sum s fun i _ ↦ hB_one (hw i)]
+          congr 1
+          ext x
+          simp
+        rw [hm (.iUnion hw), HasSum]
+        simp_rw [hsum]
+        refine tendsto_of_seq_tendsto fun u hu ↦ hlim _ _ 1
+          (fun n ↦ measurable_one.indicator (Finset.measurableSet_biUnion _ fun i _ ↦ hw i))
+          (fun n x ↦ ?_) fun x ↦ ?_
+        · simpa using norm_indicator_le_norm_self (1 : X → ℂ) x
+        · exact ((tendsto_indicator_biUnion_finset w 1 x).comp hu).mono_right (pure_le_nhds _) }
+  have hsimple (s : SimpleFunc X ℂ) : ∫ᶜ x, s x ∂μ = L s := by
+    have hs : (s : X → ℂ) = ∑ c ∈ s.range, (s ⁻¹' {c}).indicator fun _ ↦ c := by
+      funext x
+      rw [Finset.sum_apply, Finset.sum_eq_single (s x)]
+      · simp
+      · intro c _ hc
+        simp [Ne.symm hc]
+      · exact fun h ↦ absurd (s.mem_range_self x) h
+    rw [integral_simpleFunc]
+    conv_rhs => rw [hs, hL_sum _ fun c _ ↦ hB_ind (s.measurableSet_preimage _) c]
+    refine Finset.sum_congr rfl fun c _ ↦ ?_
+    have hc : ((s ⁻¹' {c}).indicator fun _ ↦ c) = c • (s ⁻¹' {c}).indicator 1 := by
+      ext x
+      by_cases hx : s x = c <;> simp [hx]
+    obtain ⟨hc₁, hc₂⟩ := hB_one (s.measurableSet_preimage {c})
+    rw [hc, hsmul _ _ hc₁ hc₂]
+    exact congrArg (c * ·) (hm (s.measurableSet_preimage _))
+  refine ⟨μ, fun f hf ⟨C, hC⟩ ↦ ?_⟩
+  have hC' (x : X) : ‖f x‖ ≤ max C 0 := (hC x).trans (le_max_left _ _)
+  let s := hf.stronglyMeasurable.approxBounded (max C 0)
+  have hs_le : ∀ n x, ‖s n x‖ ≤ max C 0 :=
+    hf.stronglyMeasurable.norm_approxBounded_le (le_max_right _ _)
+  have hs_lim (x : X) : Tendsto (fun n ↦ s n x) atTop (𝓝 (f x)) :=
+    hf.stronglyMeasurable.tendsto_approxBounded_of_norm_le (hC' x)
+  refine tendsto_nhds_unique ?_ (hlim (fun n ↦ s n) f _ (fun n ↦ (s n).measurable) hs_le hs_lim)
+  simp_rw [← hsimple]
+  exact VectorMeasure.tendsto_integral_filter_of_norm_le_const
+    (.of_forall fun n ↦ (s n).aestronglyMeasurable) ⟨_, .of_forall fun n ↦ ae_of_all _ (hs_le n)⟩
+    (ae_of_all _ hs_lim)
+
+end MeasureTheory.ComplexMeasure
 
 namespace IsStarNormal
 
@@ -103,9 +202,12 @@ lemma bfc_id : ha.bfc id = a := by
 lemma bfc_id' : ha.bfc (fun z ↦ z) = a :=
   ha.bfc_id
 
-@[simp]
 lemma bfc_star_id : ha.bfc (star · : ℂ → ℂ) = star a := by
   rw [ha.bfc_eq_cfc continuous_star.continuousOn, cfc_star_id a]
+
+@[simp]
+lemma bfc_conj : ha.bfc (fun z ↦ (starRingEnd ℂ) z) = star a :=
+  ha.bfc_star_id
 
 @[simp]
 lemma bfc_const (c : ℂ) : ha.bfc (fun _ ↦ c) = algebraMap ℂ (H →L[ℂ] H) c := by
@@ -115,7 +217,6 @@ lemma bfc_const (c : ℂ) : ha.bfc (fun _ ↦ c) = algebraMap ℂ (H →L[ℂ] H
 lemma bfc_one : ha.bfc 1 = 1 := by
   rw [ha.bfc_eq_cfc (f := 1) continuousOn_const, cfc_one ℂ a]
 
-@[simp]
 lemma bfc_const_one : ha.bfc (fun _ ↦ 1) = 1 :=
   ha.bfc_one
 
@@ -123,7 +224,6 @@ lemma bfc_const_one : ha.bfc (fun _ ↦ 1) = 1 :=
 lemma bfc_zero : ha.bfc 0 = 0 := by
   rw [ha.bfc_eq_cfc (f := 0) continuousOn_const, cfc_zero ℂ a]
 
-@[simp]
 lemma bfc_const_zero : ha.bfc (fun _ ↦ 0) = 0 :=
   ha.bfc_zero
 
@@ -200,13 +300,13 @@ theorem bfc_indicator {s : Set ℂ} (hs : MeasurableSet s) :
   funext z
   by_cases hz : (z : ℂ) ∈ s <;> simp [F, hz]
 
-/-- An operator commuting with `a` and `a⋆` commutes with `f(a)`. -/
-theorem commute_bfc {S : H →L[ℂ] H} (h₁ : Commute S a) (h₂ : Commute S (star a)) (f : ℂ → ℂ) :
+/-- An operator commuting with `a` commutes with `f(a)`. -/
+theorem commute_bfc {S : H →L[ℂ] H} (h : Commute S a) (f : ℂ → ℂ) :
     Commute S (ha.bfc f) := by
   by_cases hf : MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure
   · rw [ha.bfc_eq_integral hf]
     exact ha.spectralMeasure.commute_integral_of_forall_commute
-      ((ha.forall_commute_spectralMeasure_iff).2 ⟨h₁, h₂⟩) _
+      (ha.forall_commute_spectralMeasure_iff.2 h) _
   · rw [ha.bfc_of_not_memLp hf]
     exact Commute.zero_right S
 
@@ -240,13 +340,148 @@ theorem tendsto_bfc_apply {ι : Type*} {l : Filter ι} [l.IsCountablyGenerated] 
   exact ha.spectralMeasure.tendsto_integral_toLp_apply hf hg
     (hC.mono fun i hi ↦ ae_of_all _ fun z ↦ hi z z.2) (ae_of_all _ fun z ↦ hlim z z.2) x
 
+/-! ### Self-adjointness, positivity and projections -/
+
+/-- `f(a)` is self-adjoint if `f` is real on `σ(a)`. -/
+lemma isSelfAdjoint_bfc (hf : ∀ z ∈ spectrum ℂ a, star (f z) = f z) :
+    IsSelfAdjoint (ha.bfc f) := by
+  by_cases hfm : MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure
+  · rw [IsSelfAdjoint, ← ha.bfc_star hfm]
+    exact ha.bfc_congr hf
+  · rw [ha.bfc_of_not_memLp hfm]
+    exact .zero _
+
+/-- `f(a)` is nonnegative if `f` is nonnegative on `σ(a)`. -/
+lemma bfc_nonneg (hf : ∀ z ∈ spectrum ℂ a, 0 ≤ f z) : 0 ≤ ha.bfc f := by
+  by_cases hfm : MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure
+  swap
+  · rw [ha.bfc_of_not_memLp hfm]
+  -- `f = star g * g` on `σ(a)`, with `g = √f`.
+  set g : ℂ → ℂ := fun z ↦ (Real.sqrt (f z).re : ℂ)
+  have hg : MemLp (fun z : spectrum ℂ a ↦ g z) ∞ ha.spectralMeasure.measure := by
+    refine ((memLp_top_const (1 : ℂ)).add hfm).of_le ?_ (ae_of_all _ fun z ↦ ?_)
+    · exact (by fun_prop : Continuous fun w : ℂ ↦ (Real.sqrt w.re : ℂ)).comp_aestronglyMeasurable
+        hfm.aestronglyMeasurable
+    · obtain ⟨hre, him⟩ := Complex.nonneg_iff.1 (hf z z.2)
+      have hfz : f z = ((f z).re : ℂ) := Complex.ext rfl (by simp [him])
+      simp only [g, Pi.add_apply]
+      rw [hfz, ← Complex.ofReal_one, ← Complex.ofReal_add, Complex.norm_real, Complex.norm_real,
+        Complex.ofReal_re, Real.norm_of_nonneg (Real.sqrt_nonneg _),
+        Real.norm_of_nonneg (by positivity)]
+      nlinarith [Real.sq_sqrt hre, Real.sqrt_nonneg (f z).re]
+  have hfg : ha.bfc f = star (ha.bfc g) * ha.bfc g := by
+    rw [← ha.bfc_star hg, ← ha.bfc_mul hg.star hg]
+    refine ha.bfc_congr fun z hz ↦ ?_
+    obtain ⟨hre, him⟩ := Complex.nonneg_iff.1 (hf z hz)
+    simp only [g, Complex.star_def, Complex.conj_ofReal, ← Complex.ofReal_mul,
+      Real.mul_self_sqrt hre]
+    exact Complex.ext rfl (by simp [him])
+  rw [hfg]
+  exact star_mul_self_nonneg _
+
+/-- The Borel functional calculus is monotone on real functions. -/
+lemma bfc_mono (h : ∀ z ∈ spectrum ℂ a, f z ≤ g z)
+    (hf : MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure)
+    (hg : MemLp (fun z : spectrum ℂ a ↦ g z) ∞ ha.spectralMeasure.measure) :
+    ha.bfc f ≤ ha.bfc g := by
+  rw [← sub_nonneg, ← ha.bfc_sub hg hf]
+  exact ha.bfc_nonneg fun z hz ↦ sub_nonneg.2 (h z hz)
+
+/-- `f(a)` is an orthogonal projection if `f` takes values in `{0, 1}` on `σ(a)`. -/
+lemma isStarProjection_bfc (hf : ∀ z ∈ spectrum ℂ a, IsStarProjection (f z)) :
+    IsStarProjection (ha.bfc f) := by
+  refine ⟨?_, ha.isSelfAdjoint_bfc fun z hz ↦ (hf z hz).isSelfAdjoint⟩
+  by_cases hfm : MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure
+  · rw [IsIdempotentElem, ← ha.bfc_mul hfm hfm]
+    exact ha.bfc_congr fun z hz ↦ (hf z hz).isIdempotentElem
+  · rw [ha.bfc_of_not_memLp hfm]
+    exact .zero
+
 /-- `f(a)` lies in every von Neumann algebra containing `a`. -/
 theorem bfc_mem_vonNeumannAlgebra {M : VonNeumannAlgebra H} (haM : a ∈ M) (f : ℂ → ℂ) :
     ha.bfc f ∈ M := by
   rw [← SetLike.mem_coe, ← M.centralizer_centralizer]
-  intro S hS
-  have h₁ : Commute S a := (hS a haM).symm
-  have h₂ : Commute S (star a) := (hS _ (star_mem haM)).symm
-  exact (ha.commute_bfc h₁ h₂ f).eq
+  exact fun S hS ↦ (ha.commute_bfc (hS a haM).symm f).eq
+
+/-! ### Uniqueness -/
+
+/-- **Uniqueness of the Borel functional calculus**: an assignment `Φ` of operators to functions
+which is linear on bounded measurable functions, extends the continuous functional calculus, and
+satisfies the bounded convergence theorem in the weak operator topology (for bounded measurable
+`fₙ → g` pointwise on `σ(a)`), agrees with the Borel functional calculus on functions which are
+measurable and bounded on `σ(a)`. -/
+theorem eq_bfc {Φ : (ℂ → ℂ) → H →L[ℂ] H}
+    (hadd : ∀ f g, Measurable f → Measurable g → (∃ C, ∀ z, ‖f z‖ ≤ C) →
+      (∃ C, ∀ z, ‖g z‖ ≤ C) → Φ (f + g) = Φ f + Φ g)
+    (hsmul : ∀ (c : ℂ) f, Measurable f → (∃ C, ∀ z, ‖f z‖ ≤ C) → Φ (c • f) = c • Φ f)
+    (hcfc : ∀ f, Continuous f → Φ f = cfc f a)
+    (hlim : ∀ (f : ℕ → ℂ → ℂ) (g : ℂ → ℂ) (C : ℝ), (∀ n, Measurable (f n)) → Measurable g →
+      (∀ n z, ‖f n z‖ ≤ C) → (∀ z ∈ spectrum ℂ a, Tendsto (f · z) atTop (𝓝 (g z))) →
+      ∀ x y, Tendsto (fun n ↦ ⟪x, Φ (f n) y⟫_ℂ) atTop (𝓝 ⟪x, Φ g y⟫_ℂ))
+    (hf : Measurable f) {C : ℝ} (hC : ∀ z ∈ spectrum ℂ a, ‖f z‖ ≤ C) :
+    Φ f = ha.bfc f := by
+  have hσ : IsClosed (spectrum ℂ a) := spectrum.isClosed a
+  -- `Φ f` only depends on the values of `f` on `σ(a)`.
+  have hloc {F G : ℂ → ℂ} (hF : Measurable F) (hFC : ∃ C, ∀ z, ‖F z‖ ≤ C) (hG : Measurable G)
+      (h : Set.EqOn F G (spectrum ℂ a)) : Φ F = Φ G := by
+    obtain ⟨C, hC⟩ := hFC
+    refine ContinuousLinearMap.ext fun y ↦ ext_inner_left ℂ fun x ↦ tendsto_nhds_unique
+      tendsto_const_nhds (hlim (fun _ ↦ F) G C (fun _ ↦ hF) hG (fun _ ↦ hC) (fun z hz ↦ ?_) x y)
+    simp only [h hz]
+    exact tendsto_const_nhds
+  -- The extension by zero of functions on `σ(a)`.
+  let ext (g : spectrum ℂ a → ℂ) : ℂ → ℂ := Function.extend Subtype.val g 0
+  have ext_apply (g : spectrum ℂ a → ℂ) (z : ℂ) (hz : z ∈ spectrum ℂ a) : ext g z = g ⟨z, hz⟩ :=
+    Subtype.val_injective.extend_apply _ _ (⟨z, hz⟩ : spectrum ℂ a)
+  have ext_meas {g : spectrum ℂ a → ℂ} (hg : Measurable g) : Measurable (ext g) :=
+    (MeasurableEmbedding.subtype_coe hσ.measurableSet).measurable_extend hg measurable_const
+  have norm_ext_le {g : spectrum ℂ a → ℂ} {C : ℝ} (hC : ∀ z, ‖g z‖ ≤ C) (z : ℂ) :
+      ‖ext g z‖ ≤ max C 0 := by
+    by_cases hz : z ∈ spectrum ℂ a
+    · rw [ext_apply g z hz]
+      exact (hC _).trans (le_max_left _ _)
+    · have h0 : ext g z = 0 := Function.extend_apply' g (0 : ℂ → ℂ) z fun ⟨w, hw⟩ ↦ hz (hw ▸ w.2)
+      simp [h0]
+  have ext_bdd {g : spectrum ℂ a → ℂ} {C : ℝ} (hC : ∀ z, ‖g z‖ ≤ C) :
+      ∃ C, ∀ z, ‖ext g z‖ ≤ C :=
+    ⟨_, norm_ext_le hC⟩
+  -- `⟪x, Φ g y⟫ = ∫ g dE_{x,y}` for `g` bounded and measurable on `σ(a)`.
+  have key (x y : H) (g : spectrum ℂ a → ℂ) (hg : Measurable g) (hgC : ∃ C, ∀ z, ‖g z‖ ≤ C) :
+      ⟪x, Φ (ext g) y⟫_ℂ = ∫ᶜ z, g z ∂(ha.cfcMeasure x y) := by
+    refine (ComplexMeasure.exists_integral_eq_of_tendsto
+      (L := fun g ↦ ⟪x, Φ (ext g) y⟫_ℂ) ?_ ?_ ?_).elim fun μ hμ ↦ ?_
+    · intro g g' hg hg' ⟨C, hC⟩ ⟨D, hD⟩
+      rw [hloc (ext_meas (hg.add hg')) (ext_bdd fun z ↦ (norm_add_le _ _).trans
+          (add_le_add (hC z) (hD z))) ((ext_meas hg).add (ext_meas hg')) fun z hz ↦ ?_,
+        hadd _ _ (ext_meas hg) (ext_meas hg') (ext_bdd hC) (ext_bdd hD), add_apply,
+        inner_add_right]
+      simp [ext_apply _ z hz]
+    · intro c g hg ⟨C, hC⟩
+      rw [hloc (ext_meas (hg.const_smul c)) (ext_bdd fun z ↦ (norm_smul_le c (g z)).trans
+          (mul_le_mul_of_nonneg_left (hC z) (norm_nonneg c))) ((ext_meas hg).const_smul c)
+          fun z hz ↦ ?_, hsmul _ _ (ext_meas hg) (ext_bdd hC), smul_apply, inner_smul_right]
+      simp [ext_apply _ z hz]
+    · intro f g C hf hC hlim'
+      refine hlim _ _ _ (fun n ↦ ext_meas (hf n))
+        (ext_meas (measurable_of_tendsto_metrizable hf (tendsto_pi_nhds.2 hlim')))
+        (fun n ↦ norm_ext_le (hC n)) (fun z hz ↦ ?_) x y
+      simpa [ext_apply _ z hz] using hlim' ⟨z, hz⟩
+    · have hμc : μ = ha.cfcMeasure x y := by
+        refine ha.eq_cfcMeasure fun F ↦ ?_
+        obtain ⟨G, hG⟩ := F.exists_restrict_eq hσ
+        rw [hμ F F.continuous.measurable ⟨‖F‖, F.norm_coe_le_norm⟩,
+          hloc (ext_meas F.continuous.measurable) (ext_bdd F.norm_coe_le_norm)
+            G.continuous.measurable fun z hz ↦ (ext_apply F z hz).trans (congr($hG ⟨z, hz⟩)).symm,
+          hcfc G G.continuous, cfc_apply G a ha G.continuous.continuousOn]
+        congr
+        ext z
+        exact congr($hG z)
+      rw [← hμc]
+      exact (hμ g hg hgC).symm
+  refine ContinuousLinearMap.ext fun y ↦ ext_inner_left ℂ fun x ↦ ?_
+  have hfσ : Measurable fun z : spectrum ℂ a ↦ f z := hf.comp measurable_subtype_coe
+  rw [ha.inner_bfc (ha.memLp_of_bound hf hC), ← key x y _ hfσ ⟨C, fun z ↦ hC z z.2⟩,
+    hloc (ext_meas hfσ) (ext_bdd fun z ↦ hC z z.2) hf fun z hz ↦ ext_apply _ z hz]
+
 
 end IsStarNormal
