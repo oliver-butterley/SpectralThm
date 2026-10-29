@@ -8,4 +8,5 @@ import SpectralThm.Projections
 import SpectralThm.ProjectionValuedMeasure.Basic
 import SpectralThm.ProjectionValuedMeasure.Integral
 import SpectralThm.SpectralTheorem
+import SpectralThm.BorelFunctionalCalculus
 import SpectralThm.WStarAlgebra.BorelFunctionalCalculus

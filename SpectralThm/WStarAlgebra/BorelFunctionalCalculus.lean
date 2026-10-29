@@ -70,6 +70,13 @@ noncomputable instance : Mul (Lp R ∞ μ) where
 lemma Linfty.coeFn_mul (f g : Lp R ∞ μ) : f * g =ᵐ[μ] ⇑f * g :=
   Lp.coeFn_lpSMul f g
 
+lemma Linfty.toLp_mul {f g : α → R} (hf : MemLp f ∞ μ) (hg : MemLp g ∞ μ) :
+    (hf.mul hg).toLp (f * g) = hf.toLp f * hg.toLp g :=
+  Lp.ext <| (MemLp.coeFn_toLp _).trans <| by
+    filter_upwards [hf.coeFn_toLp, hg.coeFn_toLp, coeFn_mul (hf.toLp f) (hg.toLp g)]
+      with z h₁ h₂ h₃
+    simp [h₁, h₂, h₃]
+
 end Mul
 
 section Const
@@ -247,6 +254,12 @@ noncomputable instance : StarRing (Lp R ∞ μ) where
   star_add := star_add
 
 end StarRing
+
+lemma MemLp.toLp_star [StarRing R] [NormedStarGroup R] {p : ℝ≥0∞} {f : α → R} (hf : MemLp f p μ) :
+    hf.star.toLp (star f) = star (hf.toLp f) :=
+  Lp.ext <| (MemLp.coeFn_toLp _).trans <| by
+    filter_upwards [hf.coeFn_toLp, Lp.coeFn_star (hf.toLp f)] with z h₁ h₂
+    simp [h₁, h₂]
 
 open scoped NNReal
 

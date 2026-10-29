@@ -6,7 +6,7 @@ Authors: Oliver Butterley, Yoh Tanimoto
 module
 
 public import SpectralThm.ProjectionValuedMeasure.Basic
-public import SpectralThm.ComplexMeasure.Integral
+public import SpectralThm.ComplexMeasure.Operations
 
 /-!
 # Integral against a projection-valued measure
@@ -45,7 +45,10 @@ is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue o
   `∫ f dE` iff it commutes with every `E w`.
 * `ProjectionValuedMeasure.inner_integral`: `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` (Rudin 12.21 (1)).
 * `ProjectionValuedMeasure.norm_integral_apply_sq`: `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}`
-  (Rudin 12.21 (2)).
+  (Rudin 12.21 (2)); `norm_integral_apply_sq_eq_integral` states it for the finite measure
+  `E.toMeasure x`.
+* `ProjectionValuedMeasure.tendsto_integral_toLp_apply`: the bounded convergence theorem, if
+  `fᵢ → g` `E`-a.e. with `‖fᵢ‖ ≤ C` then `∫ fᵢ dE → ∫ g dE` in the strong operator topology.
 
 ## Implementation notes
 
@@ -56,7 +59,7 @@ both hold trivially since `E` is additive on all measurable sets.
 
 @[expose] public section
 
-open MeasureTheory ContinuousLinearMap
+open MeasureTheory ContinuousLinearMap Filter Topology
 open scoped InnerProductSpace ENNReal MeasureTheory.ComplexMeasure
 
 namespace MeasureTheory.ComplexMeasure
@@ -438,6 +441,58 @@ theorem range_integralCLM_eq_topologicalClosure_span :
       exact zero_mem _
   · rw [LinearMap.coe_range]
     exact E.isClosed_range_integral
+
+/-! ### The bounded convergence theorem -/
+
+lemma toComplexMeasure_self (x : H) :
+    E.toComplexMeasure x x = (E.toMeasure x).toComplexMeasure :=
+  VectorMeasure.ext fun w hw ↦ by
+    rw [toComplexMeasure_apply, Measure.toComplexMeasure_apply _ hw, measureReal_def,
+      toMeasure_apply E w hw, ENNReal.toReal_ofReal (by positivity), inner_apply_self]
+    push_cast
+    rfl
+
+/-- `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}`, with `E_{x,x}` the finite measure `E.toMeasure x`. -/
+theorem norm_integral_apply_sq_eq_integral (f : E.Linfty) (x : H) :
+    ‖E.integral f x‖ ^ 2 = ∫ z, ‖f z‖ ^ 2 ∂(E.toMeasure x) := by
+  have h := E.norm_integral_apply_sq f x
+  rw [toComplexMeasure_self, Measure.integral_toComplexMeasure, integral_complex_ofReal] at h
+  exact_mod_cast h
+
+/-- The bounded convergence theorem: if `fᵢ → g` `E`-a.e. with `‖fᵢ‖ ≤ C`, then
+`(∫ fᵢ dE) x → (∫ g dE) x` for every `x`, i.e. `∫ fᵢ dE → ∫ g dE` in the strong operator
+topology. -/
+theorem tendsto_integral_toLp_apply {ι : Type*} {l : Filter ι} [l.IsCountablyGenerated]
+    {f : ι → X → ℂ} {g : X → ℂ} (hf : ∀ i, MemLp (f i) ∞ E.measure) (hg : MemLp g ∞ E.measure)
+    {C : ℝ} (hC : ∀ᶠ i in l, ∀ᵐ z ∂E.measure, ‖f i z‖ ≤ C)
+    (hlim : ∀ᵐ z ∂E.measure, Tendsto (f · z) l (𝓝 (g z))) (x : H) :
+    Tendsto (fun i ↦ E.integral ((hf i).toLp (f i)) x) l (𝓝 (E.integral (hg.toLp g) x)) := by
+  set D := ‖hg.toLp g‖
+  have hgD : ∀ᵐ z ∂E.measure, ‖g z‖ ≤ D := by
+    filter_upwards [Lp.ae_norm_le_norm (hg.toLp g), hg.coeFn_toLp] with z h₁ h₂
+    rwa [← h₂]
+  have hac := E.toMeasure_absolutelyContinuous x
+  have heq (i : ι) : ‖E.integral ((hf i).toLp (f i)) x - E.integral (hg.toLp g) x‖ ^ 2 =
+      ∫ z, ‖f i z - g z‖ ^ 2 ∂(E.toMeasure x) := by
+    rw [← sub_apply, ← map_sub, ← MemLp.toLp_sub, norm_integral_apply_sq_eq_integral]
+    refine integral_congr_ae (hac.ae_le ?_)
+    filter_upwards [((hf i).sub hg).coeFn_toLp] with z hz
+    simp [hz]
+  have hsq : Tendsto (fun i ↦ ∫ z, ‖f i z - g z‖ ^ 2 ∂(E.toMeasure x)) l
+      (𝓝 (∫ z, ‖(0 : ℂ)‖ ^ 2 ∂(E.toMeasure x))) := by
+    refine tendsto_integral_filter_of_dominated_convergence (fun _ ↦ (C + D) ^ 2)
+      (.of_forall fun i ↦
+        (((hf i).aestronglyMeasurable.sub hg.aestronglyMeasurable).norm.pow 2).mono_ac hac)
+      ?_ (integrable_const _) ?_
+    · filter_upwards [hC] with i hi
+      filter_upwards [hac.ae_le hi, hac.ae_le hgD] with z h₁ h₂
+      rw [Real.norm_of_nonneg (by positivity)]
+      gcongr
+      exact (norm_sub_le _ _).trans (add_le_add h₁ h₂)
+    · filter_upwards [hac.ae_le hlim] with z hz
+      simpa using (hz.sub_const (g z)).norm.pow 2
+  rw [tendsto_iff_norm_sub_tendsto_zero]
+  simpa [← heq] using hsq.sqrt
 
 end ProjectionValuedMeasure
 
