@@ -1,4 +1,5 @@
 import SpectralThm.ComplexMeasure.Integral
+import SpectralThm.VectorMeasure.FiniteDimensional
 import SpectralThm.Linfty
 import SpectralThm.RieszMarkovKakutani.Complex
 import SpectralThm.Projections

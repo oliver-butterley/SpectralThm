@@ -7,6 +7,7 @@ module
 
 public import Mathlib
 public import SpectralThm.ComplexMeasure.Integral
+public import SpectralThm.VectorMeasure.FiniteDimensional
 
 /-!
 # Riesz–Markov–Kakutani representation theorem for complex linear functionals
@@ -47,7 +48,6 @@ case.
 
 ## To do
 
-- Rudin 6.4 `IsFiniteMeasure μ.variation`
 - Rudin 6.5 `NormedAddCommGroup` instance for `ComplexMeasure X`
 (- Rudin 6.9 lemma, not needed?)
 - Rudin 6.12 polar decomposition `exists_l1_eq_withDensity_variation`
@@ -148,8 +148,7 @@ variable {X : Type*} [MeasurableSpace X] [TopologicalSpace X] [LocallyCompactSpa
 -- counterexample: a L^∞ valued measure whose variation is not finite?
 -- make a folder VectorMeasure/SignedMeasure, make a file Basic, a folder Decomposition
 
--- Rudin 6.4
-instance (μ : ComplexMeasure X) : IsFiniteMeasure μ.variation := sorry
+-- Rudin 6.4: `IsFiniteMeasure μ.variation` is in `SpectralThm/VectorMeasure/FiniteDimensional.lean`
 
 -- Rudin 6.5
 
