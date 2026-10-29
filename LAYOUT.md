@@ -5,11 +5,7 @@ The repository is organized as follows:
 - [`.github`](.github) contains GitHub-specific configuration files and workflows.
     - [`workflows`](.github/workflows) contains GitHub Actions workflow files.
         - [`build-project.yml`](.github/workflows/build-project.yml) defines the workflow for building
-        the Lean project on pushes, pull requests, and manual triggers. This is a minimalistic build
-        workflow which is not necessary if you decide to generate a blueprint (see instructions below)
-        and can be manually disabled by clicking on the **Actions** tab, selecting **Build Project**
-        in the left sidebar, then clicking the horizontal triple dots (⋯) on the right,
-        and choosing **Disable workflow**.
+        the Lean project on pushes, pull requests, and manual triggers.
         - [`create-release.yml`](.github/workflows/create-release.yml): defines the workflow for creating a new Git tag and GitHub release when the `lean-toolchain` file is updated in the `main` branch. Ensure the following settings are configured under **Settings > Actions > General > Workflow permissions**: "Read and write permissions" and "Allow GitHub Actions to create and approve pull requests".
         - [`update-dependencies.yml`](.github/workflows/update-dependencies.yml) is the dependency
         update workflow to be triggered manually by default. [It's not documented yet, but it will be soon.]
@@ -34,5 +30,3 @@ project.
 Lean projects.
 - [`lean-toolchain`](lean-toolchain) specifies the Lean version and toolchain used for the project.
 - ['LAYOUT.md'](LAYOUT.md) is this file describing the repo layout
-- [blueprint/src/content.tex](blueprint/src/content.tex) is the `tex` source file which produces the [lean blueprint](https://github.com/PatrickMassot/leanblueprint) of the project.
-- [docs/index.md](docs/index.md) is the source of the home page of the project.

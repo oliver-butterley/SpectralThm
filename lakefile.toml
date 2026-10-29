@@ -10,9 +10,5 @@ relaxedAutoImplicit = false
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4.git"
 
-[[require]]
-name = "checkdecls"
-git = "https://github.com/PatrickMassot/checkdecls.git"
-
 [[lean_lib]]
 name = "SpectralThm"
