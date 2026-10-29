@@ -6,6 +6,7 @@ Authors: Oliver Butterley, Yoh Tanimoto
 module
 
 public import SpectralThm.ProjectionValuedMeasure.Basic
+public import SpectralThm.ComplexMeasure.Integral
 
 /-!
 # Integral against a projection-valued measure
@@ -40,6 +41,9 @@ is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue o
   the range is closed and commutative.
 * `ProjectionValuedMeasure.forall_commute_integral_iff`: an operator commutes with every
   `∫ f dE` iff it commutes with every `E w`.
+* `ProjectionValuedMeasure.inner_integral`: `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` (Rudin 12.21 (1)).
+* `ProjectionValuedMeasure.norm_integral_apply_sq`: `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}`
+  (Rudin 12.21 (2)).
 
 ## Implementation notes
 
@@ -51,7 +55,21 @@ both hold trivially since `E` is additive on all measurable sets.
 @[expose] public section
 
 open MeasureTheory ContinuousLinearMap
-open scoped InnerProductSpace ENNReal
+open scoped InnerProductSpace ENNReal MeasureTheory.ComplexMeasure
+
+namespace MeasureTheory.ComplexMeasure
+
+variable {X : Type*} {mX : MeasurableSpace X}
+
+-- TODO: move to `SpectralThm/ComplexMeasure/Integral.lean`.
+/-- The integral of a simple function against a complex measure. -/
+lemma integral_simpleFunc (μ : ComplexMeasure X) (s : SimpleFunc X ℂ) :
+    ∫ᶜ x, s x ∂μ = ∑ a ∈ s.range, a * μ (s ⁻¹' {a}) := by
+  rw [VectorMeasure.integral_eq_setToFun,
+    setToFun_simpleFunc _ s (SimpleFunc.integrable_of_isFiniteMeasure s)]
+  rfl
+
+end MeasureTheory.ComplexMeasure
 
 namespace ProjectionValuedMeasure
 
@@ -337,4 +355,63 @@ lemma forall_commute_integral_iff {Q : H →L[ℂ] H} :
     rwa [integral_toLp, simpleIntegral_indicator] at this
   · simp [E.apply_of_not_measurableSet hw]
 
+/-! ### The integral against the complex measures `E_{x,y}` -/
+
+/-- An element of `L^∞(E)` is integrable with respect to `|E_{x,y}|`. -/
+lemma integrable_toComplexMeasure (f : E.Linfty) (x y : H) :
+    (E.toComplexMeasure x y).Integrable f :=
+  .of_bound (Lp.stronglyMeasurable f).aestronglyMeasurable ‖f‖
+    ((E.variation_toComplexMeasure_absolutelyContinuous x y).ae_le (Lp.ae_norm_le_norm f))
+
+/-- `|∫ f dE_{x,y}| ≤ ‖f‖_∞ ‖x‖ ‖y‖`. -/
+lemma norm_integral_toComplexMeasure_le (f : E.Linfty) (x y : H) :
+    ‖∫ᶜ z, f z ∂(E.toComplexMeasure x y)‖ ≤ ‖f‖ * (‖x‖ * ‖y‖) := by
+  refine (VectorMeasure.norm_integral_le_of_norm_le_const
+    ((E.variation_toComplexMeasure_absolutelyContinuous x y).ae_le (Lp.ae_norm_le_norm f))).trans ?_
+  rw [mul_assoc]
+  refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg _)
+  calc ‖ContinuousLinearMap.mul ℝ ℂ‖ * (E.toComplexMeasure x y).variation.real Set.univ
+      ≤ 1 * (‖x‖ * ‖y‖) := by
+        gcongr
+        · exact ContinuousLinearMap.opNorm_mul_le ℝ ℂ
+        · refine ENNReal.toReal_le_of_le_ofReal (by positivity) ?_
+          rw [ENNReal.ofReal_mul (norm_nonneg _), ofReal_norm, ofReal_norm]
+          exact E.variation_toComplexMeasure_univ_le x y
+    _ = ‖x‖ * ‖y‖ := one_mul _
+
+/-- `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` (Rudin 12.21 (1)). -/
+theorem inner_integral (f : E.Linfty) (x y : H) :
+    ⟪x, E.integral f y⟫_ℂ = ∫ᶜ z, f z ∂(E.toComplexMeasure x y) := by
+  have hae {u v : X → ℂ} (h : u =ᵐ[E.measure] v) : u =ᵐ[(E.toComplexMeasure x y).variation] v :=
+    (E.variation_toComplexMeasure_absolutelyContinuous x y).ae_le h
+  refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f : E.Linfty ↦
+    ⟪x, E.integral f y⟫_ℂ = ∫ᶜ z, f z ∂(E.toComplexMeasure x y)) f
+    (isClosed_eq ?_ ?_) fun a ↦ ?_
+  · exact continuous_const.inner
+      ((ContinuousLinearMap.apply ℂ H y).continuous.comp E.integralCLM.continuous)
+  · refine (LipschitzWith.of_dist_le_mul (K := ⟨‖x‖ * ‖y‖, by positivity⟩) fun f g ↦ ?_).continuous
+    rw [dist_eq_norm, dist_eq_norm,
+      ← VectorMeasure.integral_sub (E.integrable_toComplexMeasure f x y)
+        (E.integrable_toComplexMeasure g x y),
+      VectorMeasure.integral_congr_ae (hae (Lp.coeFn_sub f g)).symm, mul_comm]
+    exact E.norm_integral_toComplexMeasure_le (f - g) x y
+  · have h := Lp.simpleFunc.toSimpleFunc_eq_toFun a
+    rw [E.integral_eq_simpleIntegral h.symm, inner_simpleIntegral,
+      VectorMeasure.integral_congr_ae (hae h).symm, ComplexMeasure.integral_simpleFunc]
+
+/-- `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}` (Rudin 12.21 (2)). -/
+theorem norm_integral_apply_sq (f : E.Linfty) (x : H) :
+    ((‖E.integral f x‖ ^ 2 : ℝ) : ℂ) =
+      ∫ᶜ z, ((‖f z‖ ^ 2 : ℝ) : ℂ) ∂(E.toComplexMeasure x x) := by
+  have h : ((‖E.integral f x‖ ^ 2 : ℝ) : ℂ) = ⟪x, E.integral (star f * f) x⟫_ℂ := by
+    rw [map_mul, map_star, star_eq_adjoint, mul_apply_eq_comp, adjoint_inner_right,
+      inner_self_eq_norm_sq_to_K]
+    norm_cast
+  rw [h, inner_integral]
+  refine VectorMeasure.integral_congr_ae
+    ((E.variation_toComplexMeasure_absolutelyContinuous x x).ae_le ?_)
+  filter_upwards [Linfty.coeFn_mul (star f) f, Lp.coeFn_star f] with z h₁ h₂
+  simp [h₁, h₂, Complex.conj_mul']
+
 end ProjectionValuedMeasure
+
