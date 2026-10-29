@@ -3,7 +3,7 @@ import SpectralThm.VectorMeasure.FiniteDimensional
 import SpectralThm.Linfty
 import SpectralThm.RieszMarkovKakutani.Complex
 import SpectralThm.Projections
-import SpectralThm.Resolutions
-import SpectralThm.SimpleIntegral
+import SpectralThm.ProjectionValuedMeasure.Basic
+import SpectralThm.ProjectionValuedMeasure.Integral
 import SpectralThm.SpectralTheorem
 import SpectralThm.WStarAlgebra.BorelFunctionalCalculus

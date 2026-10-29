@@ -5,47 +5,57 @@ public import SpectralThm.Linfty
 public import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
 /-!
-# Resoltuions of the identity
+# Projection-valued measures
 
+A projection-valued measure (also called a *spectral measure*, or a *resolution of the identity*
+in Rudin, *Functional Analysis*, 12.17) on a measurable space `X` with values in a complex Hilbert
+space `H` assigns to every measurable set `w` an orthogonal projection `E w`, such that
+`E (w₁ ∩ w₂) = E w₁ * E w₂`, `E univ = 1`, and `E` is countably additive in the weak operator
+topology. It is a `VectorMeasure X (H →WOT[ℂ] H)` with these extra properties; it is not countably
+additive in operator norm and has infinite variation in general.
 
+## Main definitions
 
+* `ProjectionValuedMeasure X H`: projection-valued measures on `X` acting on `H`. It coerces to
+  `Set X → H →L[ℂ] H`.
+* `ProjectionValuedMeasure.toComplexMeasure E x y`: the complex measure `E_{x,y} w = ⟪x, E w y⟫`.
+* `ProjectionValuedMeasure.toMeasure E x`: the finite measure `E_{x,x} w = ‖E w x‖ ^ 2`.
+* `ProjectionValuedMeasure.measure E`: a scalar measure with the same null sets as `E`.
+* `ProjectionValuedMeasure.Linfty E`: the algebra `L^∞(E)` (Rudin 12.20).
 -/
 
 @[expose] public section
 
 open scoped Function InnerProductSpace
-open MeasureTheory BigOperators ENNReal
+open MeasureTheory BigOperators ENNReal ContinuousLinearMapWOT
 
 section Def
 
 variable (X : Type*) [MeasurableSpace X]
   (H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 
-structure ResolutionOfIdentity where
-  /-- The projection-valued measure of sets -/
-  measureOf' : Set X → (H →L[ℂ] H)
-  /-- Each element is an orthogonal projection -/
-  IsStarProjection' : ∀ w, IsStarProjection (measureOf' w)
-  /-- The empty set has measure zero -/
-  empty' : measureOf' ∅ = 0
-  /-- The whole space has measure the identity -/
-  univ' : measureOf' Set.univ = 1
-  /-- Non-measurable sets have measure zero -/
-  not_measurable' ⦃i : Set X⦄ : ¬MeasurableSet i → measureOf' i = 0
-  /-- The measure is additive -/
-  m_Union' ⦃w₁ w₂ : Set X⦄ : MeasurableSet w₁ → MeasurableSet w₂ → Disjoint w₁ w₂ →
-    measureOf' (w₁ ∪ w₂) = measureOf' w₁ + measureOf' w₂
-  /-- The measure of the intersection is the intersection of the measures -/
-  m_Inter' ⦃w₁ w₂ : Set X⦄ : MeasurableSet w₁ → MeasurableSet w₂ → measureOf' (w₁ ∩ w₂) =
-    measureOf' w₁ * measureOf' w₂
-  /-- The measure is weakly countably additive -/
-  m_iUnion' {x y : H} ⦃w : ℕ → Set X⦄ : (∀ i, MeasurableSet (w i)) → Pairwise (Disjoint on w) →
-    HasSum (fun i => ⟪x, measureOf' (w i) y⟫_ℂ) (⟪x, measureOf' (⋃ i, w i) y⟫_ℂ)
+/-- A projection-valued measure on `X` acting on `H`: a vector measure with values in `H →WOT[ℂ] H`
+(so countably additive in the weak operator topology) whose values are orthogonal projections,
+multiplicative on intersections and with `E univ = 1`. Rudin calls it a resolution of the
+identity. -/
+structure ProjectionValuedMeasure extends VectorMeasure X (H →WOT[ℂ] H) where
+  /-- Each value is an orthogonal projection. -/
+  isStarProjection' (w : Set X) : IsStarProjection (measureOf' w).toCLM
+  /-- The projection of an intersection is the product of the projections. -/
+  measureOf_inter' ⦃w₁ w₂ : Set X⦄ : MeasurableSet w₁ → MeasurableSet w₂ →
+    measureOf' (w₁ ∩ w₂) = measureOf' w₁ * measureOf' w₂
+  /-- The whole space has measure the identity. -/
+  measureOf_univ' : measureOf' Set.univ = 1
 
-instance ResolutionOfIdentity.instFunLike : FunLike (ResolutionOfIdentity X H)
-    (Set X) (H →L[ℂ] H) where
-  coe E := E.measureOf'
-  coe_injective | ⟨_, _, _, _, _, _, _, _⟩, ⟨_, _, _, _, _, _, _, _⟩, rfl => rfl
+instance ProjectionValuedMeasure.instFunLike :
+    FunLike (ProjectionValuedMeasure X H) (Set X) (H →L[ℂ] H) where
+  coe E w := (E.measureOf' w).toCLM
+  coe_injective E F h := by
+    obtain ⟨⟨_⟩, _⟩ := E
+    obtain ⟨⟨_⟩, _⟩ := F
+    congr
+    funext w
+    exact toCLM_injective (congrFun h w)
 
 end Def
 
@@ -112,34 +122,46 @@ end OrthogonalProjection
 
 end OrthogonalProjection
 
-namespace ResolutionOfIdentity
+namespace ProjectionValuedMeasure
 
 variable {X : Type*} {mX : MeasurableSpace X}
- {H : Type*} {nacgH : NormedAddCommGroup H} {ipsH : InnerProductSpace ℂ H} {csH : CompleteSpace H}
- (E : ResolutionOfIdentity X H)
+  {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
+  (E : ProjectionValuedMeasure X H)
 
-lemma apply (w : Set X) : E w = E.measureOf' w := by rfl
+lemma isStarProjection (w : Set X) : IsStarProjection (E w) :=
+  E.isStarProjection' w
 
 @[simp]
-lemma m_Union {w₁ w₂ : Set X} (h1 : MeasurableSet w₁) (h2 : MeasurableSet w₂) (h : Disjoint w₁ w₂) :
-    E.measureOf' (w₁ ∪ w₂) = E.measureOf' w₁ + E.measureOf' w₂ :=
-  E.m_Union' (w₁ := w₁) (w₂ := w₂) h1 h2 h
+lemma apply_empty : E (∅ : Set X) = 0 := by
+  change (E.toVectorMeasure ∅).toCLM = 0
+  simp
 
-lemma subset_iff_le (w₁ w₂ : Set X) (h1 : MeasurableSet w₁) (h2 : MeasurableSet w₂) (h : w₁ ⊆ w₂) :
-    E w₁ ≤ E w₂ := by
-  rw [apply, apply, ← Set.union_sdiff_cancel h, E.m_Union' h1 (h2.diff h1) Set.disjoint_sdiff_right]
-  simpa using (E.IsStarProjection' (w₂ \ w₁)).nonneg
+@[simp]
+lemma apply_univ : E (Set.univ : Set X) = 1 := by
+  change (E.measureOf' _).toCLM = 1
+  rw [E.measureOf_univ']
+  rfl
 
-lemma apply_of_not_measurableSet {w : Set X} (hw : ¬MeasurableSet w) : E w = 0 :=
-  E.not_measurable' hw
+lemma apply_of_not_measurableSet {w : Set X} (hw : ¬MeasurableSet w) : E w = 0 := by
+  change (E.toVectorMeasure w).toCLM = 0
+  simp [E.toVectorMeasure.not_measurable hw]
 
 lemma apply_union {w₁ w₂ : Set X} (h₁ : MeasurableSet w₁) (h₂ : MeasurableSet w₂)
-    (h : Disjoint w₁ w₂) : E (w₁ ∪ w₂) = E w₁ + E w₂ :=
-  E.m_Union' h₁ h₂ h
+    (h : Disjoint w₁ w₂) : E (w₁ ∪ w₂) = E w₁ + E w₂ := by
+  change (E.toVectorMeasure _).toCLM = (E.toVectorMeasure _).toCLM + (E.toVectorMeasure _).toCLM
+  rw [E.toVectorMeasure.of_union h h₁ h₂]
+  rfl
 
 lemma apply_inter {w₁ w₂ : Set X} (h₁ : MeasurableSet w₁) (h₂ : MeasurableSet w₂) :
-    E (w₁ ∩ w₂) = E w₁ * E w₂ :=
-  E.m_Inter' h₁ h₂
+    E (w₁ ∩ w₂) = E w₁ * E w₂ := by
+  change (E.measureOf' _).toCLM = _
+  rw [E.measureOf_inter' h₁ h₂]
+  rfl
+
+lemma apply_mono {w₁ w₂ : Set X} (h₁ : MeasurableSet w₁) (h₂ : MeasurableSet w₂) (h : w₁ ⊆ w₂) :
+    E w₁ ≤ E w₂ := by
+  rw [← Set.union_sdiff_cancel h, E.apply_union h₁ (h₂.diff h₁) Set.disjoint_sdiff_right]
+  simpa using (E.isStarProjection (w₂ \ w₁)).nonneg
 
 /-- The projections `E w` commute with each other (Rudin 12.17). -/
 lemma commute (w₁ w₂ : Set X) : Commute (E w₁) (E w₂) := by
@@ -153,7 +175,7 @@ lemma commute (w₁ w₂ : Set X) : Commute (E w₁) (E w₂) := by
 lemma mul_eq_zero_of_disjoint {w₁ w₂ : Set X} (h : Disjoint w₁ w₂) : E w₁ * E w₂ = 0 := by
   by_cases h₁ : MeasurableSet w₁
   · by_cases h₂ : MeasurableSet w₂
-    · rw [← E.apply_inter h₁ h₂, Set.disjoint_iff_inter_eq_empty.1 h, apply, E.empty']
+    · rw [← E.apply_inter h₁ h₂, Set.disjoint_iff_inter_eq_empty.1 h, apply_empty]
     · simp [E.apply_of_not_measurableSet h₂]
   · simp [E.apply_of_not_measurableSet h₁]
 
@@ -163,7 +185,7 @@ lemma apply_biUnion_finset {ι : Type*} {s : Finset ι} {w : ι → Set X}
     E (⋃ i ∈ s, w i) = ∑ i ∈ s, E (w i) := by
   classical
   induction s using Finset.induction_on with
-  | empty => simp [apply, E.empty']
+  | empty => simp
   | insert i s hi ih =>
     have hws : ∀ j ∈ s, MeasurableSet (w j) := fun j hj ↦ hw j (Finset.mem_insert_of_mem hj)
     have hdisj : Disjoint (w i) (⋃ j ∈ s, w j) :=
@@ -172,26 +194,31 @@ lemma apply_biUnion_finset {ι : Type*} {s : Finset ι} {w : ι → Set X}
       E.apply_union (hw i (Finset.mem_insert_self i s)) (Finset.measurableSet_biUnion s hws) hdisj,
       ih hws (hd.subset (by simp))]
 
-noncomputable def toComplexMeasure (x y : H) : ComplexMeasure X where
-  measureOf' w := ⟪x, E.measureOf' w y⟫_ℂ
-  empty' := by simp [E.empty', zero_apply, inner_zero_right]
-  not_measurable' w h := by simp [E.not_measurable' h, zero_apply, inner_zero_right]
-  m_iUnion' := E.m_iUnion'
-
-lemma inner_apply_self (w : Set X) (x : H) : ⟪x, E w x⟫_ℂ = (‖E w x‖ : ℂ) ^ 2 :=
-  (E.IsStarProjection' w).inner_apply_self x
+/-- The complex measure `E_{x,y} w = ⟪x, E w y⟫`. -/
+noncomputable def toComplexMeasure (x y : H) : ComplexMeasure X :=
+  E.toVectorMeasure.mapRange ⟨⟨fun A ↦ ⟪x, A y⟫_ℂ, by simp⟩, fun A B ↦ by simp⟩
+    (continuous_dual_apply y (innerSL ℂ x))
 
 @[simp]
 lemma toComplexMeasure_apply (x y : H) (w : Set X) : E.toComplexMeasure x y w = ⟪x, E w y⟫_ℂ :=
   rfl
 
+/-- `E` is countably additive in the weak operator topology. -/
+lemma hasSum_inner_apply_iUnion (x y : H) {w : ℕ → Set X} (hw : ∀ i, MeasurableSet (w i))
+    (hd : Pairwise (Disjoint on w)) :
+    HasSum (fun i ↦ ⟪x, E (w i) y⟫_ℂ) ⟪x, E (⋃ i, w i) y⟫_ℂ :=
+  (E.toComplexMeasure x y).m_iUnion hw hd
+
+lemma inner_apply_self (w : Set X) (x : H) : ⟪x, E w x⟫_ℂ = (‖E w x‖ : ℂ) ^ 2 :=
+  (E.isStarProjection w).inner_apply_self x
+
 /-- The positive measure `E_{x,x} w = ⟪x, E w x⟫ = ‖E w x‖ ^ 2` (Rudin 12.17). -/
 noncomputable def toMeasure (x : H) : Measure X := Measure.ofMeasurable
   (fun w _ ↦ ENNReal.ofReal (‖E w x‖ ^ 2))
-  (by simp [apply, E.empty'])
+  (by simp)
   (fun f hf hd ↦ by
-    have h := E.m_iUnion' (x := x) (y := x) hf hd
-    simp_rw [← apply, inner_apply_self, ← Complex.ofReal_pow] at h
+    have h := E.hasSum_inner_apply_iUnion x x hf hd
+    simp_rw [inner_apply_self, ← Complex.ofReal_pow] at h
     have h' := Complex.hasSum_ofReal.mp h
     rw [← h'.tsum_eq, ENNReal.ofReal_tsum_of_nonneg (fun _ ↦ by positivity) h'.summable])
 
@@ -202,7 +229,7 @@ lemma toMeasure_apply (w : Set X) (hw : MeasurableSet w) (x : H) :
 
 @[simp]
 lemma toMeasure_univ (x : H) : E.toMeasure x Set.univ = ‖x‖ₑ ^ 2 := by
-  simp [apply, E.univ', ENNReal.ofReal_pow, ofReal_norm]
+  simp [ENNReal.ofReal_pow, ofReal_norm]
 
 instance (x : H) : IsFiniteMeasure (E.toMeasure x) :=
   ⟨by simp⟩
@@ -244,7 +271,7 @@ lemma toComplexMeasure_absolutelyContinuous (x y : H) :
     simp [h]
 
 lemma norm_inner_le (w : Set X) (x y : H) : ‖⟪x, E w y⟫_ℂ‖ ≤ ‖E w x‖ * ‖E w y‖ := by
-  have hp : IsStarProjection (E w) := E.IsStarProjection' w
+  have hp := E.isStarProjection w
   have h : ⟪E w x, E w y⟫_ℂ = ⟪x, E w y⟫_ℂ := by
     rw [← ContinuousLinearMap.adjoint_inner_right, hp.isSelfAdjoint.adjoint_eq,
       ← mul_apply_eq_comp, hp.isIdempotentElem.eq]
@@ -317,7 +344,7 @@ lemma lintegral_enorm_sq_le (f : X → ℂ) (x : H) :
   exact hy.trans eLpNormEssSup_le_eLpNorm_top
 
 lemma measure_ne_zero [Nontrivial H] : E.measure ≠ 0 := by
-  rw [Ne, ← Measure.measure_univ_eq_zero, E.measure_eq_zero_iff .univ, apply, E.univ']
+  rw [Ne, ← Measure.measure_univ_eq_zero, E.measure_eq_zero_iff .univ, apply_univ]
   exact one_ne_zero
 
 /-- The `L^∞(E)` norm of a simple function `s` is the supremum of `‖a‖ₑ` over the values `a` of
@@ -333,7 +360,7 @@ lemma exists_eLpNorm_top_eq [Nontrivial H] (s : SimpleFunc X ℂ) :
   simp_rw [Ne, ← E.measure_eq_zero_iff (s.measurableSet_preimage _)]
   exact s.exists_eLpNorm_top_eq E.measure_ne_zero
 
-end ResolutionOfIdentity
+end ProjectionValuedMeasure
 
 /- TODO
 

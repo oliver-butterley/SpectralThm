@@ -5,36 +5,47 @@ Authors: Oliver Butterley, Yoh Tanimoto
 -/
 module
 
-public import SpectralThm.Resolutions
+public import SpectralThm.ProjectionValuedMeasure.Basic
 
 /-!
-# Integral of simple functions against a resolution of the identity
+# Integral against a projection-valued measure
 
-For a resolution of the identity `E` and a simple function `s = ∑ a • 𝟙_{s⁻¹{a}}`, define
-`Ψ(s) = ∑ a • E (s ⁻¹' {a})` (Rudin, *Functional Analysis*, proof of 12.21). This is a unital
-`*`-homomorphism from simple functions to `H →L[ℂ] H`, it only depends on the class of `s` modulo
-`E`-null sets, and `‖Ψ(s)‖ = ‖s‖_∞`. It is the starting point of the construction of
-`Ψ : L^∞(E) → H →L[ℂ] H`.
+For a projection-valued measure `E` on `X` acting on `H`, we define the integral
+`∫ f dE : H →L[ℂ] H` of functions `f ∈ L^∞(E)` (Rudin, *Functional Analysis*, 12.21, where it is
+called `Ψ`). It is an isometric `*`-homomorphism `L^∞(E) → H →L[ℂ] H` with closed commutative
+range.
+
+The construction follows Mathlib's Bochner integral: on simple functions it is
+`SimpleFunc.setToSimpleFunc` applied to `w ↦ (c ↦ c • E w)` (compare `SimpleFunc.integral`), and it
+is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue of `setToL1`.
 
 ## Main definitions
 
-* `ResolutionOfIdentity.weightedSMul`: the set function `w ↦ (c ↦ c • E w)`.
-* `ResolutionOfIdentity.simpleIntegral`: `Ψ` as a `StarAlgHom` from simple functions.
+* `ProjectionValuedMeasure.weightedSMul`: the set function `w ↦ (c ↦ c • E w)`.
+* `ProjectionValuedMeasure.simpleIntegral`: the integral of simple functions, a `StarAlgHom`.
+* `ProjectionValuedMeasure.integralCLM`: the integral as a continuous linear map on `L^∞(E)`.
+* `ProjectionValuedMeasure.integral`: the integral as a `StarAlgHom` on `L^∞(E)`.
 
 ## Main results
 
-* `ResolutionOfIdentity.simpleIntegral_apply`: `Ψ(s) = ∑ a ∈ s.range, a • E (s ⁻¹' {a})`.
-* `ResolutionOfIdentity.simpleIntegral_congr_ae`: `Ψ(s)` only depends on the `E`-a.e. class of `s`.
-* `ResolutionOfIdentity.inner_simpleIntegral`: `⟪x, Ψ(s) y⟫ = ∑ a * E_{x,y}(s ⁻¹' {a})`.
-* `ResolutionOfIdentity.norm_simpleIntegral_apply_sq`: `‖Ψ(s) x‖² = ∑ ‖a‖² ‖E (s ⁻¹' {a}) x‖²`.
-* `ResolutionOfIdentity.norm_simpleIntegral`: `‖Ψ(s)‖ = ‖s‖_∞`.
+* `ProjectionValuedMeasure.simpleIntegral_apply`: `∫ s dE = ∑ a ∈ s.range, a • E (s ⁻¹' {a})`.
+* `ProjectionValuedMeasure.simpleIntegral_congr_ae`: `∫ s dE` only depends on the `E`-a.e. class
+  of `s`.
+* `ProjectionValuedMeasure.inner_simpleIntegral`: `⟪x, (∫ s dE) y⟫ = ∑ a * E_{x,y}(s ⁻¹' {a})`.
+* `ProjectionValuedMeasure.norm_simpleIntegral_apply_sq`:
+  `‖(∫ s dE) x‖² = ∑ ‖a‖² ‖E (s ⁻¹' {a}) x‖²`.
+* `ProjectionValuedMeasure.norm_simpleIntegral`, `ProjectionValuedMeasure.norm_integral`:
+  `‖∫ f dE‖ = ‖f‖_∞`.
+* `ProjectionValuedMeasure.isClosed_range_integral`, `ProjectionValuedMeasure.commute_integral`:
+  the range is closed and commutative.
+* `ProjectionValuedMeasure.forall_commute_integral_iff`: an operator commutes with every
+  `∫ f dE` iff it commutes with every `E w`.
 
 ## Implementation notes
 
-`Ψ` is defined with Mathlib's `SimpleFunc.setToSimpleFunc`, which gives additivity and
-well-definedness from finite additivity of `E`. These lemmas are stated relative to a measure `μ`
-and require `FinMeasAdditive μ T` and integrability with respect to `μ`; we use the zero measure,
-for which both hold trivially since `E` is additive on all measurable sets.
+`SimpleFunc.setToSimpleFunc` lemmas are stated relative to a measure `μ` and require
+`FinMeasAdditive μ T` and integrability with respect to `μ`; we use the zero measure, for which
+both hold trivially since `E` is additive on all measurable sets.
 -/
 
 @[expose] public section
@@ -42,11 +53,11 @@ for which both hold trivially since `E` is additive on all measurable sets.
 open MeasureTheory ContinuousLinearMap
 open scoped InnerProductSpace ENNReal
 
-namespace ResolutionOfIdentity
+namespace ProjectionValuedMeasure
 
 variable {X : Type*} {mX : MeasurableSpace X}
   {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-  (E : ResolutionOfIdentity X H)
+  (E : ProjectionValuedMeasure X H)
 
 /-- The set function `w ↦ (c ↦ c • E w)`, analogous to `MeasureTheory.weightedSMul`. -/
 noncomputable def weightedSMul (w : Set X) : ℂ →L[ℝ] H →L[ℂ] H :=
@@ -56,7 +67,7 @@ noncomputable def weightedSMul (w : Set X) : ℂ →L[ℝ] H →L[ℂ] H :=
 lemma weightedSMul_apply (w : Set X) (c : ℂ) : E.weightedSMul w c = c • E w := rfl
 
 lemma weightedSMul_empty : E.weightedSMul ∅ = 0 := by
-  ext; simp [apply, E.empty']
+  ext; simp
 
 lemma finMeasAdditive_weightedSMul (μ : Measure X) : FinMeasAdditive μ E.weightedSMul :=
   fun _ _ h₁ h₂ _ _ h ↦ by ext c : 1; simp [E.apply_union h₁ h₂ h, smul_add]
@@ -78,7 +89,7 @@ private lemma setToSimpleFunc_pair_map (s t : SimpleFunc X ℂ) {g : ℂ × ℂ 
     (Finset.sum_congr rfl fun p _ ↦ ?_)
   · obtain ⟨x, rfl⟩ := SimpleFunc.mem_range.1 hp
     exact Finset.mem_product.2 ⟨SimpleFunc.mem_range_self s x, SimpleFunc.mem_range_self t x⟩
-  · simp [(SimpleFunc.preimage_eq_empty_iff _ _).2 hp, apply, E.empty']
+  · simp [(SimpleFunc.preimage_eq_empty_iff _ _).2 hp]
   · rw [← SimpleFunc.pair_preimage_singleton]
 
 /-- `Ψ(s) = ∑ a • E (s ⁻¹' {a})` for a simple function `s` (Rudin 12.21). It is a unital
@@ -91,7 +102,7 @@ noncomputable def simpleIntegral : SimpleFunc X ℂ →⋆ₐ[ℂ] H →L[ℂ] H
   map_one' := by
     change (SimpleFunc.const X (1 : ℂ)).setToSimpleFunc _ = 1
     rw [SimpleFunc.setToSimpleFunc_const _ E.weightedSMul_empty, weightedSMul_apply, one_smul,
-      apply, E.univ']
+      apply_univ]
   map_mul' s t := by
     have hst : s * t = (s.pair t).map fun p ↦ p.1 * p.2 := SimpleFunc.ext fun _ ↦ rfl
     simp only [hst, E.setToSimpleFunc_pair_map s t (g := fun p ↦ p.1 * p.2) (by simp)]
@@ -100,11 +111,11 @@ noncomputable def simpleIntegral : SimpleFunc X ℂ →⋆ₐ[ℂ] H →L[ℂ] H
   commutes' c := by
     change (algebraMap ℂ (SimpleFunc X ℂ) c).setToSimpleFunc _ = _
     rw [← SimpleFunc.const_algebraMap, SimpleFunc.setToSimpleFunc_const _ E.weightedSMul_empty,
-      weightedSMul_apply, apply, E.univ', Algebra.algebraMap_self, RingHom.id_apply,
+      weightedSMul_apply, apply_univ, Algebra.algebraMap_self, RingHom.id_apply,
       Algebra.algebraMap_eq_smul_one]
   map_star' s := by
     rw [show star s = s.map star from rfl, E.setToSimpleFunc_map s (star_zero _)]
-    have h (w : Set X) : star (E w) = E w := (E.IsStarProjection' w).isSelfAdjoint.star_eq
+    have h (w : Set X) : star (E w) = E w := (E.isStarProjection w).isSelfAdjoint.star_eq
     simp [SimpleFunc.setToSimpleFunc, star_sum, star_smul, h]
 
 lemma simpleIntegral_apply (s : SimpleFunc X ℂ) :
@@ -148,13 +159,13 @@ lemma simpleIntegral_congr_ae {s t : SimpleFunc X ℂ} (h : s =ᵐ[E.measure] t)
 /-- `Ψ(s)` acts on the range of `E (s ⁻¹' {a})` as multiplication by `a`. -/
 lemma simpleIntegral_apply_fiber (s : SimpleFunc X ℂ) (a : ℂ) (x : H) :
     E.simpleIntegral s (E (s ⁻¹' {a}) x) = a • E (s ⁻¹' {a}) x := by
-  have hp : IsStarProjection (E (s ⁻¹' {a})) := E.IsStarProjection' _
+  have hp := E.isStarProjection (s ⁻¹' {a})
   by_cases ha : a ∈ s.range
   · rw [simpleIntegral_apply_apply, Finset.sum_eq_single_of_mem a ha fun b _ hba ↦ ?_,
       ← mul_apply_eq_comp, hp.isIdempotentElem.eq]
     rw [← mul_apply_eq_comp, E.mul_eq_zero_of_disjoint ((Set.disjoint_singleton.2 hba).preimage s),
       zero_apply, smul_zero]
-  · simp [(SimpleFunc.preimage_eq_empty_iff _ _).2 ha, apply, E.empty']
+  · simp [(SimpleFunc.preimage_eq_empty_iff _ _).2 ha]
 
 /-- `⟪x, Ψ(s) y⟫ = ∑ a * E_{x,y}(s ⁻¹' {a})`. -/
 lemma inner_simpleIntegral (s : SimpleFunc X ℂ) (x y : H) :
@@ -219,4 +230,111 @@ lemma commute_simpleIntegral {Q : H →L[ℂ] H} (h : ∀ w, Commute Q (E w)) (s
   rw [simpleIntegral_apply]
   exact Commute.sum_right _ _ _ fun a _ ↦ (h _).smul_right a
 
-end ResolutionOfIdentity
+/-! ### The integral of `L^∞(E)` functions -/
+
+lemma weightedSMul_smul (c : ℂ) (w : Set X) (z : ℂ) :
+    E.weightedSMul w (c • z) = c • E.weightedSMul w z := by
+  simp [mul_smul]
+
+lemma dominatedLinftyAdditive_weightedSMul :
+    DominatedLinftyAdditive E.measure E.weightedSMul 1 where
+  add s t hs ht h := (E.finMeasAdditive_weightedSMul 0) s t hs ht (by simp) (by simp) h
+  eq_zero_of_measure_zero w hw h := by
+    ext c : 1
+    simp [(E.measure_eq_zero_iff hw).1 h]
+  norm_setToSimpleFunc_le s := (E.norm_simpleIntegral s).trans_le (one_mul _).symm.le
+
+/-- The integral against `E` as a continuous linear map `L^∞(E) →L[ℂ] H →L[ℂ] H`. -/
+noncomputable def integralCLM : E.Linfty →L[ℂ] H →L[ℂ] H :=
+  setToLinfty ℂ E.dominatedLinftyAdditive_weightedSMul E.weightedSMul_smul
+
+lemma integralCLM_eq_simpleIntegral {f : E.Linfty} {s : SimpleFunc X ℂ}
+    (h : f =ᵐ[E.measure] s) : E.integralCLM f = E.simpleIntegral s := by
+  rw [show f = (s.memLp_top _).toLp s from Lp.ext (h.trans (MemLp.coeFn_toLp _).symm)]
+  exact setToLinfty_toLp _ _ s
+
+lemma integralCLM_coe (f : Lp.simpleFunc ℂ ∞ E.measure) :
+    E.integralCLM f = E.simpleIntegral (Lp.simpleFunc.toSimpleFunc f) :=
+  E.integralCLM_eq_simpleIntegral (Lp.simpleFunc.toSimpleFunc_eq_toFun f).symm
+
+/-- The integral against a projection-valued measure `E`, as a `*`-homomorphism
+`L^∞(E) → H →L[ℂ] H` (Rudin 12.21, where it is called `Ψ`). It extends `E.simpleIntegral` and is
+an isometry (`norm_integral`). -/
+noncomputable def integral : E.Linfty →⋆ₐ[ℂ] H →L[ℂ] H where
+  toFun := E.integralCLM
+  map_zero' := map_zero _
+  map_add' := map_add _
+  map_one' := by
+    rw [E.integralCLM_eq_simpleIntegral (s := 1) Linfty.coeFn_one, map_one]
+  map_mul' f g := by
+    refine Lp.simpleFunc.denseRange_top.induction_on₂ (p := fun f g ↦
+      E.integralCLM (f * g) = E.integralCLM f * E.integralCLM g) ?_ (fun a b ↦ ?_) f g
+    · exact isClosed_eq (E.integralCLM.continuous.comp continuous_mul)
+        ((E.integralCLM.continuous.comp continuous_fst).mul
+          (E.integralCLM.continuous.comp continuous_snd))
+    · rw [E.integralCLM_coe, E.integralCLM_coe, ← map_mul,
+        E.integralCLM_eq_simpleIntegral]
+      filter_upwards [Linfty.coeFn_mul (a : E.Linfty) b, Lp.simpleFunc.toSimpleFunc_eq_toFun a,
+        Lp.simpleFunc.toSimpleFunc_eq_toFun b] with x h hx hy
+      simp [h, hx, hy]
+  commutes' c := by
+    rw [Algebra.algebraMap_eq_smul_one, map_smul, E.integralCLM_eq_simpleIntegral (s := 1)
+      Linfty.coeFn_one, map_one, Algebra.algebraMap_eq_smul_one]
+  map_star' f := by
+    refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f ↦
+      E.integralCLM (star f) = star (E.integralCLM f)) f ?_ fun a ↦ ?_
+    · exact isClosed_eq (E.integralCLM.continuous.comp continuous_star)
+        (continuous_star.comp E.integralCLM.continuous)
+    · rw [E.integralCLM_coe, ← map_star, E.integralCLM_eq_simpleIntegral]
+      filter_upwards [Lp.coeFn_star (a : E.Linfty), Lp.simpleFunc.toSimpleFunc_eq_toFun a]
+        with x h hx
+      simp [h, hx]
+
+lemma integral_apply (f : E.Linfty) : E.integral f = E.integralCLM f := rfl
+
+/-- On the class of a simple function, the integral is `E.simpleIntegral`. -/
+lemma integral_eq_simpleIntegral {f : E.Linfty} {s : SimpleFunc X ℂ} (h : f =ᵐ[E.measure] s) :
+    E.integral f = E.simpleIntegral s :=
+  E.integralCLM_eq_simpleIntegral h
+
+@[simp]
+lemma integral_toLp (s : SimpleFunc X ℂ) :
+    E.integral ((s.memLp_top E.measure).toLp s) = E.simpleIntegral s :=
+  E.integral_eq_simpleIntegral (MemLp.coeFn_toLp _)
+
+/-- The integral is an isometry: `‖∫ f dE‖ = ‖f‖_∞` (Rudin 12.21 (15)). -/
+@[simp]
+lemma norm_integral (f : E.Linfty) : ‖E.integral f‖ = ‖f‖ :=
+  norm_setToLinfty_apply _ _ E.norm_simpleIntegral f
+
+lemma isometry_integral : Isometry E.integral :=
+  AddMonoidHomClass.isometry_of_norm E.integral E.norm_integral
+
+/-- The range of the integral is closed (Rudin 12.21). -/
+lemma isClosed_range_integral : IsClosed (Set.range E.integral) :=
+  E.isometry_integral.isClosedEmbedding.isClosed_range
+
+/-- The range of the integral is commutative (Rudin 12.21). -/
+lemma commute_integral (f g : E.Linfty) : Commute (E.integral f) (E.integral g) := by
+  rw [Commute, SemiconjBy, ← map_mul, ← map_mul, mul_comm]
+
+/-- If `Q` commutes with every `E w`, it commutes with every `∫ f dE` (Rudin 12.21). -/
+lemma commute_integral_of_forall_commute {Q : H →L[ℂ] H} (h : ∀ w, Commute Q (E w))
+    (f : E.Linfty) : Commute Q (E.integral f) := by
+  refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f ↦ Commute Q (E.integral f)) f
+    (isClosed_eq (continuous_const.mul (E.integralCLM.continuous))
+      ((E.integralCLM.continuous).mul continuous_const)) fun a ↦ ?_
+  rw [E.integral_eq_simpleIntegral (Lp.simpleFunc.toSimpleFunc_eq_toFun a).symm]
+  exact E.commute_simpleIntegral h _
+
+/-- An operator commutes with every `∫ f dE` iff it commutes with every `E w` (Rudin 12.21). -/
+lemma forall_commute_integral_iff {Q : H →L[ℂ] H} :
+    (∀ f : E.Linfty, Commute Q (E.integral f)) ↔ ∀ w, Commute Q (E w) := by
+  refine ⟨fun h w ↦ ?_, fun h f ↦ E.commute_integral_of_forall_commute h f⟩
+  by_cases hw : MeasurableSet w
+  · have := h ((((SimpleFunc.const X (1 : ℂ)).piecewise w hw (SimpleFunc.const X 0)).memLp_top
+      E.measure).toLp _)
+    rwa [integral_toLp, simpleIntegral_indicator] at this
+  · simp [E.apply_of_not_measurableSet hw]
+
+end ProjectionValuedMeasure

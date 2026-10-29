@@ -2,7 +2,7 @@ module
 
 public import Mathlib
 public import SpectralThm.RieszMarkovKakutani.Complex
-public import SpectralThm.Resolutions
+public import SpectralThm.ProjectionValuedMeasure.Integral
 
 /-!
 # The Spectral Theorem
@@ -134,34 +134,34 @@ def toBoundedBilin {C : ℝ} (f : (spectrum ℂ a) → ℂ)
   cont := sorry
 
 /-- For each indicator function `χ s` of a set `s`, the bounded sesquilinear form
-`x, y => ∫ f z ∂E_{a, x ,y} z` gives an orthogonal projection `E_{a} s`. Define the map
-`s => E_{a} s` as a resolution of identity`.
+`x, y => ∫ f z ∂E_{a, x ,y} z` gives an orthogonal projection `E_{a} s`. The map `s => E_{a} s` is
+the projection-valued measure (spectral measure) of `a`.
 Probably `s` should be restricted to measurable set (otherwise defined to be `0`) to assure
 `not_measurable'`.
 cf. Rudin "Functional Analysis" Theorem 12.22, the definition (9) and later.
 -/
-def toResolutionOfIdentity : ResolutionOfIdentity (spectrum ℂ a) H where
-  measureOf' s := InnerProductSpace.continuousLinearMapOfBilin
+def toProjectionValuedMeasure : ProjectionValuedMeasure (spectrum ℂ a) H where
+  measureOf' s := ContinuousLinearMapWOT.ofCLM <| InnerProductSpace.continuousLinearMapOfBilin
     (@toBoundedBilin _ _ _ _ _ ha 1 (Set.indicator s (1 : (spectrum ℂ a) → ℂ)))
-  IsStarProjection' := sorry
   empty' := by
+    apply ContinuousLinearMapWOT.toCLM_injective
     ext
     simp [continuousLinearMapOfBilin, toBoundedBilin]
     rfl
-  univ' := sorry
   not_measurable' := sorry
-  m_Union' := sorry
-  m_Inter' := sorry
   m_iUnion' := sorry
+  isStarProjection' := sorry
+  measureOf_inter' := sorry
+  measureOf_univ' := sorry
 
-/-- From a resolution of identity `E_{a}` and for each `x y : H`, the map `s => ⟪x, E_{a} s y⟫_ℂ`
-gives complex measure. The integraion of the identity map against it gives back the expectation
-value `⟪x, a y⟫_ℂ`. Check that
-`⟪x, cfcHom ha f y⟫_ℂ = ∫ᶜ z, f z ∂(toComplexMeasure (toResolutionOfIdentity ha) x y)` for step
-functions `f`, and infer that it holds for all Borel/continuous functions. Apply it to the identity
-map.
+/-- From the projection-valued measure `E_{a}` and for each `x y : H`, the map
+`s => ⟪x, E_{a} s y⟫_ℂ` gives complex measure. The integraion of the identity map against it gives
+back the expectation value `⟪x, a y⟫_ℂ`. Check that
+`⟪x, cfcHom ha f y⟫_ℂ = ∫ᶜ z, f z ∂(toComplexMeasure (toProjectionValuedMeasure ha) x y)`
+for step functions `f`, and infer that it holds for all Borel/continuous functions. Apply it to the
+identity map.
 cf. Rudin "Functional Analysis" Theorem 12.21, Theorem 12.22.
 -/
 theorem SpectralDecomposition (x y : H) :
-    ⟪x, a y⟫_ℂ = ∫ᶜ z, (z : ℂ) ∂((toResolutionOfIdentity ha).toComplexMeasure x y) := by
+    ⟪x, a y⟫_ℂ = ∫ᶜ z, (z : ℂ) ∂((toProjectionValuedMeasure ha).toComplexMeasure x y) := by
   sorry
