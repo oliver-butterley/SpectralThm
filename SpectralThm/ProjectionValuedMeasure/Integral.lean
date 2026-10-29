@@ -7,6 +7,7 @@ module
 
 public import SpectralThm.ProjectionValuedMeasure.Basic
 public import SpectralThm.ComplexMeasure.Operations
+public import SpectralThm.Linfty.Spectrum
 
 /-!
 # Integral against a projection-valued measure
@@ -36,7 +37,7 @@ is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue o
 * `ProjectionValuedMeasure.norm_simpleIntegral_apply_sq`:
   `‖(∫ s dE) x‖² = ∑ ‖a‖² ‖E (s ⁻¹' {a}) x‖²`.
 * `ProjectionValuedMeasure.norm_simpleIntegral`, `ProjectionValuedMeasure.norm_integral`:
-  `‖∫ f dE‖ = ‖f‖_∞`.
+  `‖∫ f dE‖ = ‖f‖_∞`; `lipschitzWith_integral_apply`: `f ↦ (∫ f dE) x` is `‖x‖`-Lipschitz.
 * `ProjectionValuedMeasure.isClosed_range_integral`, `ProjectionValuedMeasure.commute_integral`:
   the range is closed and commutative.
 * `ProjectionValuedMeasure.range_integralCLM_eq_topologicalClosure_span`: the range of the
@@ -47,6 +48,8 @@ is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue o
 * `ProjectionValuedMeasure.norm_integral_apply_sq`: `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}`
   (Rudin 12.21 (2)); `norm_integral_apply_sq_eq_integral` states it for the finite measure
   `E.toMeasure x`.
+* `ProjectionValuedMeasure.spectrum_integral`, `spectrum_integral_eq_essRange`: the spectrum of
+  `∫ f dE` is the spectrum of `f` in `L^∞(E)`, i.e. the essential range of `f`.
 * `ProjectionValuedMeasure.tendsto_integral_toLp_apply`: the bounded convergence theorem, if
   `fᵢ → g` `E`-a.e. with `‖fᵢ‖ ≤ C` then `∫ fᵢ dE → ∫ g dE` in the strong operator topology.
 
@@ -315,6 +318,17 @@ lemma integral_toLp (s : SimpleFunc X ℂ) :
 lemma norm_integral (f : E.Linfty) : ‖E.integral f‖ = ‖f‖ :=
   norm_setToLinfty_apply _ _ E.norm_simpleIntegral f
 
+/-- `‖(∫ f dE) x‖ ≤ ‖f‖_∞ ‖x‖`. -/
+lemma norm_integral_apply_le (f : E.Linfty) (x : H) : ‖E.integral f x‖ ≤ ‖f‖ * ‖x‖ :=
+  E.norm_integral f ▸ (E.integral f).le_opNorm x
+
+/-- For fixed `x`, `f ↦ (∫ f dE) x` is Lipschitz on `L^∞(E)` with constant `‖x‖`. -/
+lemma lipschitzWith_integral_apply (x : H) :
+    LipschitzWith ‖x‖₊ fun f : E.Linfty ↦ E.integral f x :=
+  .of_dist_le_mul fun f g ↦ by
+    rw [dist_eq_norm, dist_eq_norm, ← sub_apply, ← map_sub, coe_nnnorm, mul_comm]
+    exact E.norm_integral_apply_le _ x
+
 lemma isometry_integral : Isometry E.integral :=
   AddMonoidHomClass.isometry_of_norm E.integral E.norm_integral
 
@@ -478,6 +492,21 @@ theorem tendsto_integral_toLp_apply {ι : Type*} {l : Filter ι} [l.IsCountablyG
       simpa using (hz.sub_const (g z)).norm.pow 2
   rw [tendsto_iff_norm_sub_tendsto_zero]
   simpa [← heq] using hsq.sqrt
+
+/-! ### The spectrum -/
+
+/-- The spectrum of `∫ f dE` is the spectrum of `f` in `L^∞(E)`, since the integral is an
+injective `*`-homomorphism with closed range (spectral permanence). -/
+theorem spectrum_integral (f : E.Linfty) : spectrum ℂ (E.integral f) = spectrum ℂ f := by
+  have : IsClosed (E.integral.range : Set (H →L[ℂ] H)) := E.isClosed_range_integral
+  rw [← AlgEquiv.spectrum_eq (StarAlgEquiv.ofInjective E.integral
+    E.isometry_integral.injective) f, StarSubalgebra.spectrum_eq]
+  rfl
+
+/-- The spectrum of `∫ f dE` is the essential range of `f` with respect to `E`. -/
+theorem spectrum_integral_eq_essRange (f : E.Linfty) :
+    spectrum ℂ (E.integral f) = E.measure.essRange f := by
+  rw [spectrum_integral, Linfty.spectrum_eq_essRange]
 
 end ProjectionValuedMeasure
 

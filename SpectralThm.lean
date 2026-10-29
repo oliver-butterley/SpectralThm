@@ -13,3 +13,4 @@ import SpectralThm.SpectralTheorem
 import SpectralThm.BorelFunctionalCalculus
 import SpectralThm.BorelFunctionalCalculus.Spectrum
 import SpectralThm.Linfty.Algebra
+import SpectralThm.Linfty.Spectrum

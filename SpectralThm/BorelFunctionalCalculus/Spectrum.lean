@@ -17,143 +17,18 @@ consequence, the continuous functional calculus of `f(a)` is the Borel functiona
 
 ## Main results
 
-* `MeasureTheory.Measure.notMem_essRange_iff`: `z` is not in the essential range of `f` iff `f`
-  stays a positive distance away from `z` almost everywhere.
-* `MeasureTheory.Measure.ae_mem_essRange`: `f` takes values in its essential range a.e.
-* `MeasureTheory.Linfty.isUnit_iff`: `f` is invertible in `L^∞` iff `|f|` is bounded away from
-  `0` almost everywhere.
-* `MeasureTheory.Linfty.spectrum_eq_essRange`: the spectrum of `f` in `L^∞` is its essential
-  range.
-* `ProjectionValuedMeasure.spectrum_integral`: `σ(∫ f dE) = σ(f)`, the spectrum in `L^∞(E)`.
 * `IsStarNormal.spectrum_bfc`: `σ(f(a))` is the essential range of `f` on `σ(a)` with respect
   to `E`.
 * `IsStarNormal.spectrum_bfc_subset_closure_image`: `σ(f(a)) ⊆ closure (f '' σ(a))`.
 * `IsStarNormal.cfc_bfc`: `g(f(a)) = (g ∘ f)(a)` for `g` continuous on `σ(f(a))`.
+* `IsStarNormal.bfc_comp`: `(g ∘ f)(a) = g(f(a))` for `f` bounded measurable on `σ(a)` and `g`
+  bounded measurable on `σ(f(a))`, both in the Borel functional calculus.
 -/
 
 @[expose] public section
 
 open MeasureTheory Filter Topology
 open scoped ENNReal
-
-namespace MeasureTheory
-
-variable {X : Type*} {mX : MeasurableSpace X} {μ : Measure X}
-
-/-! ### The essential range -/
-
-namespace Measure
-
-variable {Y : Type*} [MeasurableSpace Y] {f : X → Y}
-
-/-- A function takes values in its essential range almost everywhere. -/
-lemma ae_mem_essRange [TopologicalSpace Y] [HereditarilyLindelofSpace Y] (hf : AEMeasurable f μ) :
-    ∀ᵐ x ∂μ, f x ∈ μ.essRange f :=
-  ae_of_ae_map hf support_mem_ae
-
-/-- `z` is not in the essential range of `f` iff `f` stays a positive distance away from `z`
-almost everywhere. -/
-lemma notMem_essRange_iff [PseudoMetricSpace Y] [OpensMeasurableSpace Y] (hf : AEMeasurable f μ)
-    {z : Y} : z ∉ μ.essRange f ↔ ∃ δ > 0, ∀ᵐ x ∂μ, δ ≤ dist z (f x) := by
-  have key (δ : ℝ) : map f μ (Metric.ball z δ) = 0 ↔ ∀ᵐ x ∂μ, δ ≤ dist z (f x) := by
-    rw [map_apply_of_aemeasurable hf measurableSet_ball, measure_eq_zero_iff_ae_notMem]
-    simp [dist_comm]
-  rw [essRange, notMem_support_iff_exists]
-  constructor
-  · rintro ⟨U, hU, hU0⟩
-    obtain ⟨δ, hδ, hδU⟩ := Metric.mem_nhds_iff.1 hU
-    exact ⟨δ, hδ, (key δ).1 (measure_mono_null hδU hU0)⟩
-  · rintro ⟨δ, hδ, h⟩
-    exact ⟨_, Metric.ball_mem_nhds z hδ, (key δ).2 h⟩
-
-/-- The essential range of `f` is contained in the closure of its range. -/
-lemma essRange_subset_closure_range [TopologicalSpace Y] [OpensMeasurableSpace Y]
-    (hf : AEMeasurable f μ) : μ.essRange f ⊆ closure (Set.range f) :=
-  support_subset_of_isClosed isClosed_closure <| (mem_ae_map_iff hf
-    isClosed_closure.measurableSet).2 <| univ_mem' fun x ↦ subset_closure (Set.mem_range_self x)
-
-end Measure
-
-/-! ### The spectrum in `L^∞` -/
-
-namespace Linfty
-
-variable {𝕜 : Type*} [NormedField 𝕜]
-
-lemma coeFn_algebraMap (c : 𝕜) : ⇑(algebraMap 𝕜 (Lp 𝕜 ∞ μ) c) =ᵐ[μ] fun _ ↦ c := by
-  rw [Algebra.algebraMap_eq_smul_one]
-  filter_upwards [Lp.coeFn_smul c (1 : Lp 𝕜 ∞ μ), coeFn_one (R := 𝕜) (μ := μ)] with x h₁ h₂
-  simp [h₁, h₂]
-
-/-- An element of `L^∞` is invertible iff its absolute value is bounded away from `0` almost
-everywhere. -/
-lemma isUnit_iff {f : Lp 𝕜 ∞ μ} : IsUnit f ↔ ∃ δ > 0, ∀ᵐ x ∂μ, δ ≤ ‖f x‖ := by
-  constructor
-  · rintro ⟨u, rfl⟩
-    refine ⟨(‖(↑u⁻¹ : Lp 𝕜 ∞ μ)‖ + 1)⁻¹, by positivity, ?_⟩
-    filter_upwards [Linfty.coeFn_mul (↑u⁻¹ : Lp 𝕜 ∞ μ) u, coeFn_one (R := 𝕜) (μ := μ),
-      Lp.ae_norm_le_norm (↑u⁻¹ : Lp 𝕜 ∞ μ)] with x hmul hone hle
-    rw [Units.inv_mul, hone, Pi.mul_apply] at hmul
-    have h₁ : 1 = ‖(↑u⁻¹ : Lp 𝕜 ∞ μ) x‖ * ‖(u : Lp 𝕜 ∞ μ) x‖ := by
-      rw [← norm_mul, ← hmul, Pi.one_apply, norm_one]
-    have h₀ : 0 < ‖(u : Lp 𝕜 ∞ μ) x‖ := by
-      refine norm_pos_iff.2 fun h ↦ ?_
-      simp [h] at h₁
-    rw [inv_le_iff_one_le_mul₀' (by positivity), h₁]
-    nlinarith
-  · rintro ⟨δ, hδ, h⟩
-    have hinv : MemLp (fun x ↦ (f x)⁻¹) ∞ μ := by
-      refine memLp_top_of_bound (Lp.aestronglyMeasurable f).inv₀ δ⁻¹ ?_
-      filter_upwards [h] with x hx
-      rw [norm_inv]
-      exact inv_anti₀ hδ hx
-    refine .of_mul_eq_one (hinv.toLp _) (Lp.ext ?_)
-    filter_upwards [Linfty.coeFn_mul f (hinv.toLp _), hinv.coeFn_toLp,
-      coeFn_one (R := 𝕜) (μ := μ), h] with x hmul hx hone hδx
-    rw [hmul, hone, Pi.mul_apply, hx, mul_inv_cancel₀ (norm_pos_iff.1 (hδ.trans_le hδx))]
-    rfl
-
-/-- The spectrum of an element of `L^∞` is its essential range. -/
-theorem spectrum_eq_essRange (f : Lp ℂ ∞ μ) : spectrum ℂ f = μ.essRange f := by
-  ext z
-  rw [spectrum.mem_iff, ← not_iff_not, not_not,
-    Measure.notMem_essRange_iff (Lp.aestronglyMeasurable f).aemeasurable, isUnit_iff]
-  have h : ⇑(algebraMap ℂ (Lp ℂ ∞ μ) z - f) =ᵐ[μ] fun x ↦ z - f x := by
-    filter_upwards [Lp.coeFn_sub (algebraMap ℂ (Lp ℂ ∞ μ) z) f, coeFn_algebraMap (μ := μ) z]
-      with x h₁ h₂
-    rw [h₁, Pi.sub_apply, h₂]
-  refine exists_congr fun δ ↦ and_congr_right fun _ ↦ ⟨fun h' ↦ ?_, fun h' ↦ ?_⟩
-  · filter_upwards [h, h'] with x hx hx'
-    rwa [dist_eq_norm, ← hx]
-  · filter_upwards [h, h'] with x hx hx'
-    rwa [hx, ← dist_eq_norm]
-
-end Linfty
-
-end MeasureTheory
-
-/-! ### The spectrum of the integral against a projection-valued measure -/
-
-namespace ProjectionValuedMeasure
-
-variable {X : Type*} {mX : MeasurableSpace X}
-  {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-  (E : ProjectionValuedMeasure X H)
-
-/-- The spectrum of `∫ f dE` is the spectrum of `f` in `L^∞(E)`, since the integral is an
-injective `*`-homomorphism with closed range (spectral permanence). -/
-theorem spectrum_integral (f : E.Linfty) : spectrum ℂ (E.integral f) = spectrum ℂ f := by
-  have : IsClosed (E.integral.range : Set (H →L[ℂ] H)) := E.isClosed_range_integral
-  rw [← AlgEquiv.spectrum_eq (StarAlgEquiv.ofInjective E.integral
-    E.isometry_integral.injective) f, StarSubalgebra.spectrum_eq]
-  rfl
-
-/-- The spectrum of `∫ f dE` is the essential range of `f` with respect to `E`. -/
-theorem spectrum_integral_eq_essRange (f : E.Linfty) :
-    spectrum ℂ (E.integral f) = E.measure.essRange f := by
-  rw [spectrum_integral, Linfty.spectrum_eq_essRange]
-
-end ProjectionValuedMeasure
 
 /-! ### The spectrum of `f(a)` -/
 
@@ -261,5 +136,42 @@ theorem cfc_bfc {g : ℂ → ℂ} (hg : ContinuousOn g (spectrum ℂ (ha.bfc f))
   rfl
 
 end Comp
+
+/-! ### Composition -/
+
+section BorelComp
+
+variable {g : ℂ → ℂ}
+
+omit hf in
+/-- Composition in the Borel functional calculus: `(g ∘ f)(a) = g(f(a))` for `f` measurable and
+bounded on `σ(a)` and `g` measurable and bounded on `σ(f(a))`. This follows from the uniqueness
+theorem `eq_bfc` applied to `f(a)` and `g ↦ (g ∘ f)(a)`. -/
+theorem bfc_comp (hf : Measurable f) {C : ℝ} (hC : ∀ z ∈ spectrum ℂ a, ‖f z‖ ≤ C)
+    (hg : Measurable g) {D : ℝ} (hD : ∀ z ∈ spectrum ℂ (ha.bfc f), ‖g z‖ ≤ D) :
+    ha.bfc (fun z ↦ g (f z)) = (ha.isStarNormal_bfc f).bfc g := by
+  have hfL := ha.memLp_of_bound hf hC
+  have hcomp {k : ℂ → ℂ} (hk : Measurable k) (hkC : ∃ C, ∀ z, ‖k z‖ ≤ C) :
+      MemLp (fun z : spectrum ℂ a ↦ k (f z)) ∞ ha.spectralMeasure.measure :=
+    ha.memLp_of_bound (hk.comp hf) fun z _ ↦ hkC.choose_spec (f z)
+  refine (ha.isStarNormal_bfc f).eq_bfc (Φ := fun k ↦ ha.bfc fun z ↦ k (f z)) ?_ ?_ ?_ ?_ hg hD
+  · intro k k' hk hk' hkC hk'C
+    exact ha.bfc_add (hcomp hk hkC) (hcomp hk' hk'C)
+  · intro c k hk hkC
+    exact ha.bfc_smul (hcomp hk hkC) c
+  · intro k hk
+    exact (ha.cfc_bfc hfL hk.continuousOn).symm
+  · intro k k₀ C' hk hk₀ hkC hlim x y
+    have hmem := ha.ae_mem_spectrum_bfc hfL
+    have hk₀L : MemLp (fun z : spectrum ℂ a ↦ k₀ (f z)) ∞ ha.spectralMeasure.measure := by
+      refine memLp_top_of_bound ((hk₀.comp hf).comp measurable_subtype_coe).aestronglyMeasurable
+        C' ?_
+      filter_upwards [hmem] with z hz
+      exact le_of_tendsto' (hlim (f z) hz).norm fun n ↦ hkC n _
+    exact tendsto_const_nhds.inner (ha.tendsto_bfc_apply_of_ae (f := fun n z ↦ k n (f z))
+      (g := fun z ↦ k₀ (f z)) (fun n ↦ hcomp (hk n) ⟨C', hkC n⟩) hk₀L
+      (.of_forall fun n ↦ ae_of_all _ fun _ ↦ hkC n _) (hmem.mono fun z hz ↦ hlim (f z) hz) y)
+
+end BorelComp
 
 end IsStarNormal

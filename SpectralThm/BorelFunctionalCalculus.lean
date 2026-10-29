@@ -32,7 +32,9 @@ restriction of `f` to `σ(a)` is not in `L^∞(E)`.
 * `IsStarNormal.commute_bfc`: an operator commuting with `a` commutes with `f(a)` (by
   Fuglede's theorem).
 * `IsStarNormal.tendsto_bfc_apply`: the bounded convergence theorem, if `fᵢ → g` pointwise on
-  `σ(a)` with `|fᵢ| ≤ C`, then `fᵢ(a) → g(a)` in the strong operator topology.
+  `σ(a)` with `|fᵢ| ≤ C`, then `fᵢ(a) → g(a)` in the strong operator topology; also
+  `tendsto_bfc_apply_of_ae` (a.e. hypotheses) and `tendsto_toPointwiseConvergenceCLM_bfc`
+  (convergence in `H →Lₚₜ[ℂ] H`).
 * `IsStarNormal.bfc_mem_vonNeumannAlgebra`: `f(a)` lies in every von Neumann algebra containing `a`.
 * `IsStarNormal.isSelfAdjoint_bfc`, `IsStarNormal.bfc_nonneg`, `IsStarNormal.isStarProjection_bfc`:
   `f(a)` is self-adjoint (resp. nonnegative, an orthogonal projection) if `f` is real (resp.
@@ -54,96 +56,6 @@ reserved for an abstract Borel functional calculus class, of which this would be
 
 open MeasureTheory ContinuousLinearMap Filter Topology
 open scoped InnerProductSpace MeasureTheory.ComplexMeasure ENNReal ComplexOrder
-
-namespace MeasureTheory.ComplexMeasure
-
-variable {X : Type*} [MeasurableSpace X]
-
-/-- A functional `L` on bounded measurable functions which is linear and satisfies the bounded
-convergence theorem is the integral against a complex measure. -/
-theorem exists_integral_eq_of_tendsto {L : (X → ℂ) → ℂ}
-    (hadd : ∀ f g, Measurable f → Measurable g → (∃ C, ∀ x, ‖f x‖ ≤ C) →
-      (∃ C, ∀ x, ‖g x‖ ≤ C) → L (f + g) = L f + L g)
-    (hsmul : ∀ (c : ℂ) f, Measurable f → (∃ C, ∀ x, ‖f x‖ ≤ C) → L (c • f) = c * L f)
-    (hlim : ∀ (f : ℕ → X → ℂ) (g : X → ℂ) (C : ℝ), (∀ n, Measurable (f n)) →
-      (∀ n x, ‖f n x‖ ≤ C) → (∀ x, Tendsto (f · x) atTop (𝓝 (g x))) →
-      Tendsto (fun n ↦ L (f n)) atTop (𝓝 (L g))) :
-    ∃ μ : ComplexMeasure X, ∀ f, Measurable f → (∃ C, ∀ x, ‖f x‖ ≤ C) →
-      ∫ᶜ x, f x ∂μ = L f := by
-  classical
-  -- `B f`: `f` is measurable and bounded.
-  let B : (X → ℂ) → Prop := fun f ↦ Measurable f ∧ ∃ C, ∀ x, ‖f x‖ ≤ C
-  have hB_ind {w : Set X} (hw : MeasurableSet w) (c : ℂ) : B (w.indicator fun _ ↦ c) :=
-    ⟨measurable_const.indicator hw, ‖c‖, fun x ↦ norm_indicator_le_norm_self _ _⟩
-  have hB_one {w : Set X} (hw : MeasurableSet w) : B (w.indicator 1) := hB_ind hw 1
-  have hB_sum {ι : Type} (s : Finset ι) {f : ι → X → ℂ} (hf : ∀ i ∈ s, B (f i)) :
-      B (∑ i ∈ s, f i) := by
-    refine Finset.sum_induction _ B (fun f g ⟨hf, C, hC⟩ ⟨hg, D, hD⟩ ↦ ⟨hf.add hg, C + D,
-      fun x ↦ (norm_add_le _ _).trans (add_le_add (hC x) (hD x))⟩) ⟨measurable_const, 0, by simp⟩ hf
-  have hL_zero : L 0 = 0 := by simpa using hsmul 0 0 measurable_const ⟨0, by simp⟩
-  have hL_sum {ι : Type} (s : Finset ι) {f : ι → X → ℂ} (hf : ∀ i ∈ s, B (f i)) :
-      L (∑ i ∈ s, f i) = ∑ i ∈ s, L (f i) := by
-    induction s using Finset.induction_on with
-    | empty => simp [hL_zero]
-    | insert i s hi ih =>
-      have hs : ∀ j ∈ s, B (f j) := fun j hj ↦ hf j (Finset.mem_insert_of_mem hj)
-      obtain ⟨hfi, hfiC⟩ := hf i (Finset.mem_insert_self i s)
-      obtain ⟨hsum, hsumC⟩ := hB_sum s hs
-      rw [Finset.sum_insert hi, Finset.sum_insert hi, hadd _ _ hfi hsum hfiC hsumC, ih hs]
-  let m : Set X → ℂ := fun w ↦ if MeasurableSet w then L (w.indicator 1) else 0
-  have hm {w : Set X} (hw : MeasurableSet w) : m w = L (w.indicator 1) :=
-    ite_eq_left_iff.2 fun h ↦ absurd hw h
-  let μ : ComplexMeasure X :=
-    { measureOf' := m
-      empty' := (hm .empty).trans (by rw [Set.indicator_empty]; exact hL_zero)
-      not_measurable' := fun w hw ↦ ite_eq_right_iff.2 fun h ↦ absurd h hw
-      m_iUnion' := fun w hw hd ↦ by
-        have hsum (s : Finset ℕ) :
-            ∑ i ∈ s, m (w i) = L ((⋃ i ∈ s, w i).indicator 1) := by
-          rw [Finset.indicator_biUnion _ _ fun i _ j _ hij ↦ hd hij]
-          simp_rw [hm (hw _)]
-          rw [← hL_sum s fun i _ ↦ hB_one (hw i)]
-          congr 1
-          ext x
-          simp
-        rw [hm (.iUnion hw), HasSum]
-        simp_rw [hsum]
-        refine tendsto_of_seq_tendsto fun u hu ↦ hlim _ _ 1
-          (fun n ↦ measurable_one.indicator (Finset.measurableSet_biUnion _ fun i _ ↦ hw i))
-          (fun n x ↦ ?_) fun x ↦ ?_
-        · simpa using norm_indicator_le_norm_self (1 : X → ℂ) x
-        · exact ((tendsto_indicator_biUnion_finset w 1 x).comp hu).mono_right (pure_le_nhds _) }
-  have hsimple (s : SimpleFunc X ℂ) : ∫ᶜ x, s x ∂μ = L s := by
-    have hs : (s : X → ℂ) = ∑ c ∈ s.range, (s ⁻¹' {c}).indicator fun _ ↦ c := by
-      funext x
-      rw [Finset.sum_apply, Finset.sum_eq_single (s x)]
-      · simp
-      · intro c _ hc
-        simp [Ne.symm hc]
-      · exact fun h ↦ absurd (s.mem_range_self x) h
-    rw [integral_simpleFunc]
-    conv_rhs => rw [hs, hL_sum _ fun c _ ↦ hB_ind (s.measurableSet_preimage _) c]
-    refine Finset.sum_congr rfl fun c _ ↦ ?_
-    have hc : ((s ⁻¹' {c}).indicator fun _ ↦ c) = c • (s ⁻¹' {c}).indicator 1 := by
-      ext x
-      by_cases hx : s x = c <;> simp [hx]
-    obtain ⟨hc₁, hc₂⟩ := hB_one (s.measurableSet_preimage {c})
-    rw [hc, hsmul _ _ hc₁ hc₂]
-    exact congrArg (c * ·) (hm (s.measurableSet_preimage _))
-  refine ⟨μ, fun f hf ⟨C, hC⟩ ↦ ?_⟩
-  have hC' (x : X) : ‖f x‖ ≤ max C 0 := (hC x).trans (le_max_left _ _)
-  let s := hf.stronglyMeasurable.approxBounded (max C 0)
-  have hs_le : ∀ n x, ‖s n x‖ ≤ max C 0 :=
-    hf.stronglyMeasurable.norm_approxBounded_le (le_max_right _ _)
-  have hs_lim (x : X) : Tendsto (fun n ↦ s n x) atTop (𝓝 (f x)) :=
-    hf.stronglyMeasurable.tendsto_approxBounded_of_norm_le (hC' x)
-  refine tendsto_nhds_unique ?_ (hlim (fun n ↦ s n) f _ (fun n ↦ (s n).measurable) hs_le hs_lim)
-  simp_rw [← hsimple]
-  exact VectorMeasure.tendsto_integral_filter_of_norm_le_const
-    (.of_forall fun n ↦ (s n).aestronglyMeasurable) ⟨_, .of_forall fun n ↦ ae_of_all _ (hs_le n)⟩
-    (ae_of_all _ hs_lim)
-
-end MeasureTheory.ComplexMeasure
 
 namespace IsStarNormal
 
@@ -328,6 +240,17 @@ instance isStarNormal_bfc (f : ℂ → ℂ) : IsStarNormal (ha.bfc f) := by
   · rw [ha.bfc_of_not_memLp hf]
     exact .zero
 
+/-- The bounded convergence theorem: if `fᵢ → g` `E`-a.e. on `σ(a)` with `|fᵢ| ≤ C` `E`-a.e., then
+`fᵢ(a) x → g(a) x` for every `x`, i.e. `fᵢ(a) → g(a)` in the strong operator topology. -/
+theorem tendsto_bfc_apply_of_ae {ι : Type*} {l : Filter ι} [l.IsCountablyGenerated]
+    {f : ι → ℂ → ℂ} (hf : ∀ i, MemLp (fun z : spectrum ℂ a ↦ f i z) ∞ ha.spectralMeasure.measure)
+    (hg : MemLp (fun z : spectrum ℂ a ↦ g z) ∞ ha.spectralMeasure.measure)
+    {C : ℝ} (hC : ∀ᶠ i in l, ∀ᵐ z : spectrum ℂ a ∂ha.spectralMeasure.measure, ‖f i z‖ ≤ C)
+    (hlim : ∀ᵐ z : spectrum ℂ a ∂ha.spectralMeasure.measure, Tendsto (f · z) l (𝓝 (g z)))
+    (x : H) : Tendsto (fun i ↦ ha.bfc (f i) x) l (𝓝 (ha.bfc g x)) := by
+  simp_rw [ha.bfc_eq_integral (hf _), ha.bfc_eq_integral hg]
+  exact ha.spectralMeasure.tendsto_integral_toLp_apply hf hg hC hlim x
+
 /-- The bounded convergence theorem: if `fᵢ → g` pointwise on `σ(a)` with `|fᵢ| ≤ C`, then
 `fᵢ(a) x → g(a) x` for every `x`, i.e. `fᵢ(a) → g(a)` in the strong operator topology. -/
 theorem tendsto_bfc_apply {ι : Type*} {l : Filter ι} [l.IsCountablyGenerated] {f : ι → ℂ → ℂ}
@@ -335,10 +258,20 @@ theorem tendsto_bfc_apply {ι : Type*} {l : Filter ι} [l.IsCountablyGenerated] 
     (hg : MemLp (fun z : spectrum ℂ a ↦ g z) ∞ ha.spectralMeasure.measure)
     {C : ℝ} (hC : ∀ᶠ i in l, ∀ z ∈ spectrum ℂ a, ‖f i z‖ ≤ C)
     (hlim : ∀ z ∈ spectrum ℂ a, Tendsto (f · z) l (𝓝 (g z))) (x : H) :
-    Tendsto (fun i ↦ ha.bfc (f i) x) l (𝓝 (ha.bfc g x)) := by
-  simp_rw [ha.bfc_eq_integral (hf _), ha.bfc_eq_integral hg]
-  exact ha.spectralMeasure.tendsto_integral_toLp_apply hf hg
-    (hC.mono fun i hi ↦ ae_of_all _ fun z ↦ hi z z.2) (ae_of_all _ fun z ↦ hlim z z.2) x
+    Tendsto (fun i ↦ ha.bfc (f i) x) l (𝓝 (ha.bfc g x)) :=
+  ha.tendsto_bfc_apply_of_ae hf hg (hC.mono fun _ hi ↦ ae_of_all _ fun z ↦ hi z z.2)
+    (ae_of_all _ fun z ↦ hlim z z.2) x
+
+/-- The bounded convergence theorem as convergence in `H →Lₚₜ[ℂ] H`, the space of operators with
+the topology of pointwise convergence (the strong operator topology). -/
+theorem tendsto_toPointwiseConvergenceCLM_bfc {ι : Type*} {l : Filter ι} [l.IsCountablyGenerated]
+    {f : ι → ℂ → ℂ} (hf : ∀ i, MemLp (fun z : spectrum ℂ a ↦ f i z) ∞ ha.spectralMeasure.measure)
+    (hg : MemLp (fun z : spectrum ℂ a ↦ g z) ∞ ha.spectralMeasure.measure)
+    {C : ℝ} (hC : ∀ᶠ i in l, ∀ z ∈ spectrum ℂ a, ‖f i z‖ ≤ C)
+    (hlim : ∀ z ∈ spectrum ℂ a, Tendsto (f · z) l (𝓝 (g z))) :
+    Tendsto (fun i ↦ toPointwiseConvergenceCLM ℂ (RingHom.id ℂ) H H (ha.bfc (f i))) l
+      (𝓝 (toPointwiseConvergenceCLM ℂ (RingHom.id ℂ) H H (ha.bfc g))) :=
+  PointwiseConvergenceCLM.tendsto_iff_forall_tendsto.2 (ha.tendsto_bfc_apply hf hg hC hlim)
 
 /-! ### Self-adjointness, positivity and projections -/
 
