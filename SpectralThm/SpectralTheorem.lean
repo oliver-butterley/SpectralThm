@@ -5,11 +5,16 @@ Authors: Oliver Butterley, Yoh Tanimoto
 -/
 module
 
-public import Mathlib
-public import SpectralThm.RieszMarkovKakutani.Complex
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Commute
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.InnerProductSpace.WeakOperatorTopology
+public import SpectralThm.Mathlib.MeasureTheory.Integral.RieszMarkovKakutani.Complex
+public import SpectralThm.Mathlib.MeasureTheory.Measure.Complex.Conj
+public import SpectralThm.Mathlib.MeasureTheory.Measure.Complex.Integral
+public import SpectralThm.Mathlib.MeasureTheory.Measure.Complex.Operations
+public import SpectralThm.Mathlib.Topology.ContinuousMap.ZeroAtInfty
 public import SpectralThm.ProjectionValuedMeasure.Integral
-public import SpectralThm.ComplexMeasure.Operations
-public import SpectralThm.ComplexMeasure.Conj
 
 /-!
 # The spectral theorem for normal operators
@@ -44,11 +49,24 @@ sesquilinear in `(x, y)`, and `E(w)` with `⟪x, E(w) y⟫ = E_{x,y}(w)` defines
 
 The general results of 12.21 (the integral is an isometric `*`-homomorphism of `L^∞(E)` with closed
 commutative range) are in `SpectralThm/ProjectionValuedMeasure/Integral.lean`.
+
+## Implementation notes
+
+The operator `E(w)` is first built as `IsStarNormal.spectralMeasureAux w`, the operator
+representing the bounded sesquilinear form `(x, y) ↦ E_{x,y}(w)`
+(`InnerProductSpace.continuousLinearMapOfBilin`); its properties (idempotent, self-adjoint,
+multiplicative, countably additive in the weak operator topology) are deduced from the uniqueness
+of `E_{x,y}` (`IsStarNormal.eq_cfcMeasure`). Only `IsStarNormal.spectralMeasure` and its API should
+be used afterwards.
+
+## References
+
+* [W. Rudin, *Functional Analysis*][rudin1991], 12.22–12.23.
 -/
 
 @[expose] public section
 
-open MeasureTheory ContinuousLinearMap ZeroAtInftyContinuousMap ZeroAtInfty
+open MeasureTheory ContinuousLinearMap ContinuousLinearMapWOT ZeroAtInftyContinuousMap ZeroAtInfty
 open scoped InnerProductSpace MeasureTheory.ComplexMeasure ENNReal
 
 noncomputable section
@@ -60,6 +78,13 @@ variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteS
 
 /-! ### The complex measures `E_{x,y}` -/
 
+/-- `|⟪x, f(a) y⟫| ≤ ‖x‖ ‖y‖ ‖f‖`. -/
+lemma norm_inner_cfcHom_apply_le (x y : H) (f : C(spectrum ℂ a, ℂ)) :
+    ‖⟪x, cfcHom ha f y⟫_ℂ‖ ≤ ‖x‖ * ‖y‖ * ‖f‖ :=
+  calc ‖⟪x, cfcHom ha f y⟫_ℂ‖ ≤ ‖x‖ * (‖cfcHom ha f‖ * ‖y‖) :=
+        (norm_inner_le_norm _ _).trans (by gcongr; exact le_opNorm _ _)
+    _ = ‖x‖ * ‖y‖ * ‖f‖ := by rw [norm_cfcHom a]; ring
+
 /-- The functional `f ↦ ⟪x, f(a) y⟫` on `C₀(σ(a), ℂ)` (which is `C(σ(a), ℂ)`, as `σ(a)` is
 compact). -/
 noncomputable def cfcInnerFunctional (x y : H) : C₀(spectrum ℂ a, ℂ) →L[ℂ] ℂ :=
@@ -69,15 +94,9 @@ noncomputable def cfcInnerFunctional (x y : H) : C₀(spectrum ℂ a, ℂ) →L[
       map_smul' c f := by
         simp only [map_smul, _root_.smul_apply, inner_smul_right, RingHom.id_apply,
           smul_eq_mul] }
-    (‖x‖ * ‖y‖) fun f ↦ calc
-      ‖⟪x, cfcHom ha ((ContinuousMap.liftZeroAtInftyCLE (R := ℂ)).symm f) y⟫_ℂ‖
-        ≤ ‖x‖ * (‖cfcHom ha ((ContinuousMap.liftZeroAtInftyCLE (R := ℂ)).symm f)‖ * ‖y‖) :=
-          (norm_inner_le_norm _ _).trans (by gcongr; exact le_opNorm _ _)
-      _ = ‖x‖ * ‖y‖ * ‖f‖ := by
-        rw [norm_cfcHom a]
-        change ‖x‖ * (‖f‖ * ‖y‖) = _
-        ring
+    (‖x‖ * ‖y‖) fun f ↦ ha.norm_inner_cfcHom_apply_le x y _
 
+@[simp]
 lemma cfcInnerFunctional_apply (x y : H) (f : C₀(spectrum ℂ a, ℂ)) :
     ha.cfcInnerFunctional x y f = ⟪x, cfcHom ha (f : C(spectrum ℂ a, ℂ)) y⟫_ℂ := rfl
 
@@ -103,11 +122,8 @@ lemma eq_cfcMeasure {x y : H} {μ : ComplexMeasure (spectrum ℂ a)}
 
 /-- `|∫ f dE_{x,y}| ≤ ‖x‖ ‖y‖ ‖f‖` for continuous `f`. -/
 lemma norm_integral_cfcMeasure_le (x y : H) (f : C(spectrum ℂ a, ℂ)) :
-    ‖∫ᶜ z, f z ∂(ha.cfcMeasure x y)‖ ≤ ‖x‖ * ‖y‖ * ‖f‖ := by
-  rw [ha.integral_cfcMeasure]
-  calc ‖⟪x, cfcHom ha f y⟫_ℂ‖ ≤ ‖x‖ * (‖cfcHom ha f‖ * ‖y‖) :=
-        (norm_inner_le_norm _ _).trans (by gcongr; exact le_opNorm _ _)
-    _ = ‖x‖ * ‖y‖ * ‖f‖ := by rw [norm_cfcHom a]; ring
+    ‖∫ᶜ z, f z ∂(ha.cfcMeasure x y)‖ ≤ ‖x‖ * ‖y‖ * ‖f‖ :=
+  ha.integral_cfcMeasure x y f ▸ ha.norm_inner_cfcHom_apply_le x y f
 
 /-- `|E_{x,y}|(σ(a)) ≤ ‖x‖ ‖y‖` (Rudin, *Real and Complex Analysis*, 6.19). -/
 lemma variation_cfcMeasure_univ_le (x y : H) :
@@ -125,15 +141,15 @@ lemma norm_cfcMeasure_apply_le (x y : H) (w : Set (spectrum ℂ a)) :
   rw [ENNReal.ofReal_mul (norm_nonneg _), ofReal_norm, ofReal_norm]
   exact ha.variation_cfcMeasure_univ_le x y
 
-lemma cfcMeasure_add_left (x x' y : H) :
-    ha.cfcMeasure (x + x') y = ha.cfcMeasure x y + ha.cfcMeasure x' y :=
+lemma cfcMeasure_add_left (x₁ x₂ y : H) :
+    ha.cfcMeasure (x₁ + x₂) y = ha.cfcMeasure x₁ y + ha.cfcMeasure x₂ y :=
   (ha.eq_cfcMeasure fun f ↦ by
     rw [VectorMeasure.integral_add_vectorMeasure (ComplexMeasure.integrable_continuousMap _ f)
       (ComplexMeasure.integrable_continuousMap _ f), integral_cfcMeasure, integral_cfcMeasure,
       inner_add_left]).symm
 
-lemma cfcMeasure_add_right (x y y' : H) :
-    ha.cfcMeasure x (y + y') = ha.cfcMeasure x y + ha.cfcMeasure x y' :=
+lemma cfcMeasure_add_right (x y₁ y₂ : H) :
+    ha.cfcMeasure x (y₁ + y₂) = ha.cfcMeasure x y₁ + ha.cfcMeasure x y₂ :=
   (ha.eq_cfcMeasure fun f ↦ by
     rw [VectorMeasure.integral_add_vectorMeasure (ComplexMeasure.integrable_continuousMap _ f)
       (ComplexMeasure.integrable_continuousMap _ f), integral_cfcMeasure, integral_cfcMeasure,
@@ -149,31 +165,6 @@ lemma cfcMeasure_smul_right (c : ℂ) (x y : H) :
   (ha.eq_cfcMeasure fun f ↦ by
     rw [ComplexMeasure.integral_smul_measure, integral_cfcMeasure, map_smul,
       inner_smul_right]).symm
-
-/-! ### The spectral measure -/
-
-/-- For a set `w`, the bounded sesquilinear form `(x, y) ↦ E_{x,y}(w)`. -/
-noncomputable def cfcMeasureForm (w : Set (spectrum ℂ a)) : H →L⋆[ℂ] H →L[ℂ] ℂ :=
-  LinearMap.mkContinuous₂
-    (LinearMap.mk₂'ₛₗ (starRingEnd ℂ) (RingHom.id ℂ) (fun x y ↦ ha.cfcMeasure x y w)
-      (fun x x' y ↦ by simp [cfcMeasure_add_left])
-      (fun c x y ↦ by simp [cfcMeasure_smul_left])
-      (fun x y y' ↦ by simp [cfcMeasure_add_right])
-      (fun c x y ↦ by simp [cfcMeasure_smul_right]))
-    1 fun x y ↦ (ha.norm_cfcMeasure_apply_le x y w).trans_eq (by rw [one_mul])
-
-/-- The operator `E(w)` with `⟪x, E(w) y⟫ = E_{x,y}(w)` (`inner_spectralMeasureAux_apply`). -/
-noncomputable def spectralMeasureAux (w : Set (spectrum ℂ a)) : H →L[ℂ] H :=
-  adjoint (InnerProductSpace.continuousLinearMapOfBilin (ha.cfcMeasureForm w))
-
-lemma inner_spectralMeasureAux_apply (w : Set (spectrum ℂ a)) (x y : H) :
-    ⟪x, ha.spectralMeasureAux w y⟫_ℂ = ha.cfcMeasure x y w := by
-  rw [spectralMeasureAux, adjoint_inner_right, InnerProductSpace.continuousLinearMapOfBilin_apply]
-  rfl
-
-lemma spectralMeasureAux_eq_zero {w : Set (spectrum ℂ a)}
-    (h : ∀ x y, ha.cfcMeasure x y w = 0) : ha.spectralMeasureAux w = 0 :=
-  ext fun y ↦ ext_inner_left ℂ fun x ↦ by simp [inner_spectralMeasureAux_apply, h]
 
 /-- `E_{y,x} = conj E_{x,y}`. -/
 lemma cfcMeasure_swap (x y : H) : ha.cfcMeasure y x = (ha.cfcMeasure x y).conj :=
@@ -191,8 +182,32 @@ lemma withDensity_cfcMeasure (f : C(spectrum ℂ a, ℂ)) (x y : H) :
     rw [ComplexMeasure.integral_withDensity hf (ComplexMeasure.integrable_withDensity_of_bound hf
       g.continuous.aestronglyMeasurable ‖g‖ (ae_of_all _ g.norm_coe_le_norm))]
     change ∫ᶜ z, (g * f) z ∂(ha.cfcMeasure x y) = _
-    rw [integral_cfcMeasure, map_star, star_eq_adjoint, adjoint_inner_left, ← mul_apply_eq_comp,
-      ← map_mul, mul_comm]
+    rw [integral_cfcMeasure, map_star, star_eq_adjoint, adjoint_inner_left,
+      ← mul_apply_eq_comp, ← map_mul, mul_comm]
+
+/-! ### The spectral measure -/
+
+/-- The operator `E(w)` with `⟪x, E(w) y⟫ = E_{x,y}(w)`: the operator associated, by the Riesz
+representation theorem, to the bounded sesquilinear form `(x, y) ↦ E_{x,y}(w)`. This is an
+auxiliary definition for `IsStarNormal.spectralMeasure`, use that instead. -/
+noncomputable def spectralMeasureAux (w : Set (spectrum ℂ a)) : H →L[ℂ] H :=
+  adjoint <| InnerProductSpace.continuousLinearMapOfBilin <| LinearMap.mkContinuous₂
+    (LinearMap.mk₂'ₛₗ (starRingEnd ℂ) (RingHom.id ℂ) (fun x y ↦ ha.cfcMeasure x y w)
+      (fun x x' y ↦ by simp [cfcMeasure_add_left])
+      (fun c x y ↦ by simp [cfcMeasure_smul_left])
+      (fun x y y' ↦ by simp [cfcMeasure_add_right])
+      (fun c x y ↦ by simp [cfcMeasure_smul_right]))
+    1 fun x y ↦ (ha.norm_cfcMeasure_apply_le x y w).trans_eq (by ring)
+
+/-- `⟪x, E(w) y⟫ = E_{x,y}(w)`; use `IsStarNormal.inner_spectralMeasure_apply` instead. -/
+lemma inner_spectralMeasureAux_apply (w : Set (spectrum ℂ a)) (x y : H) :
+    ⟪x, ha.spectralMeasureAux w y⟫_ℂ = ha.cfcMeasure x y w := by
+  rw [spectralMeasureAux, adjoint_inner_right, InnerProductSpace.continuousLinearMapOfBilin_apply]
+  rfl
+
+lemma spectralMeasureAux_eq_zero {w : Set (spectrum ℂ a)}
+    (h : ∀ x y, ha.cfcMeasure x y w = 0) : ha.spectralMeasureAux w = 0 :=
+  ext fun y ↦ ext_inner_left ℂ fun x ↦ by simp [inner_spectralMeasureAux_apply, h]
 
 /-- `w ↦ ⟪x, E(w) E(w') y⟫` is the restriction of `E_{x,y}` to `w'`. -/
 lemma cfcMeasure_spectralMeasureAux (w' : Set (spectrum ℂ a)) (x y : H) :
@@ -205,57 +220,44 @@ lemma cfcMeasure_spectralMeasureAux (w' : Set (spectrum ℂ a)) (x y : H) :
 lemma spectralMeasureAux_inter {w₁ w₂ : Set (spectrum ℂ a)} (h₁ : MeasurableSet w₁)
     (h₂ : MeasurableSet w₂) :
     ha.spectralMeasureAux (w₁ ∩ w₂) = ha.spectralMeasureAux w₁ * ha.spectralMeasureAux w₂ :=
-  ContinuousLinearMap.ext fun y ↦ ext_inner_left ℂ fun x ↦ by
+  ext fun y ↦ ext_inner_left ℂ fun x ↦ by
     rw [mul_apply_eq_comp, inner_spectralMeasureAux_apply, inner_spectralMeasureAux_apply,
       cfcMeasure_spectralMeasureAux, VectorMeasure.restrict_apply _ h₂ h₁]
-
-lemma isSelfAdjoint_spectralMeasureAux (w : Set (spectrum ℂ a)) :
-    IsSelfAdjoint (ha.spectralMeasureAux w) := by
-  refine ContinuousLinearMap.ext fun y ↦ ext_inner_left ℂ fun x ↦ ?_
-  rw [star_eq_adjoint, adjoint_inner_right, ← inner_conj_symm, inner_spectralMeasureAux_apply,
-    inner_spectralMeasureAux_apply, cfcMeasure_swap, ComplexMeasure.conj_apply,
-    starRingEnd_self_apply]
 
 lemma isStarProjection_spectralMeasureAux (w : Set (spectrum ℂ a)) :
     IsStarProjection (ha.spectralMeasureAux w) := by
   by_cases hw : MeasurableSet w
-  · refine ⟨?_, ha.isSelfAdjoint_spectralMeasureAux w⟩
-    rw [IsIdempotentElem, ← ha.spectralMeasureAux_inter hw hw, Set.inter_self]
+  · refine ⟨?_, ext fun y ↦ ext_inner_left ℂ fun x ↦ ?_⟩
+    · rw [IsIdempotentElem, ← ha.spectralMeasureAux_inter hw hw, Set.inter_self]
+    · rw [star_eq_adjoint, adjoint_inner_right, ← inner_conj_symm, inner_spectralMeasureAux_apply,
+        inner_spectralMeasureAux_apply, cfcMeasure_swap, ComplexMeasure.conj_apply,
+        starRingEnd_self_apply]
   · rw [ha.spectralMeasureAux_eq_zero fun x y ↦ VectorMeasure.not_measurable _ hw]
-    exact IsStarProjection.zero _
+    exact .zero _
 
 /-- The spectral measure of a normal operator `a`: the projection-valued measure `E` on `σ(a)` with
 `⟪x, E(w) y⟫ = E_{x,y}(w)` (Rudin, *Functional Analysis*, 12.22). -/
 noncomputable def spectralMeasure : ProjectionValuedMeasure (spectrum ℂ a) H where
-  measureOf' w := ContinuousLinearMapWOT.ofCLM (ha.spectralMeasureAux w)
+  measureOf' w := ofCLM (ha.spectralMeasureAux w)
   empty' := by
-    rw [ha.spectralMeasureAux_eq_zero fun x y ↦ VectorMeasure.empty _]
-    rfl
+    rw [ha.spectralMeasureAux_eq_zero fun x y ↦ VectorMeasure.empty _, ofCLM_zero]
   not_measurable' w hw := by
-    rw [ha.spectralMeasureAux_eq_zero fun x y ↦ VectorMeasure.not_measurable _ hw]
-    rfl
+    rw [ha.spectralMeasureAux_eq_zero fun x y ↦ VectorMeasure.not_measurable _ hw, ofCLM_zero]
   m_iUnion' w hw hd := by
     refine ContinuousLinearMapWOT.tendsto_iff_forall_inner_apply_tendsto.2 fun x y ↦ ?_
-    have h : (fun s : Finset ℕ ↦ ⟪y, (∑ i ∈ s, ContinuousLinearMapWOT.ofCLM
-        (ha.spectralMeasureAux (w i))) x⟫_ℂ) = fun s ↦ ∑ i ∈ s, ha.cfcMeasure y x (w i) := by
-      funext s
-      change ⟪y, (ContinuousLinearMapWOT.addEquiv (∑ i ∈ s, _)) x⟫_ℂ = _
-      rw [map_sum, sum_apply, inner_sum]
+    have h (s : Finset ℕ) : ⟪y, (∑ i ∈ s, ofCLM (ha.spectralMeasureAux (w i))) x⟫_ℂ =
+        ∑ i ∈ s, ha.cfcMeasure y x (w i) := by
+      change ⟪y, addEquiv (∑ i ∈ s, _) x⟫_ℂ = _
+      simp only [map_sum, sum_apply, inner_sum]
       exact Finset.sum_congr rfl fun i _ ↦ ha.inner_spectralMeasureAux_apply _ y x
-    rw [h, show ⟪y, ContinuousLinearMapWOT.ofCLM (ha.spectralMeasureAux (⋃ i, w i)) x⟫_ℂ =
-      ha.cfcMeasure y x (⋃ i, w i) from ha.inner_spectralMeasureAux_apply _ y x]
+    rw [funext h, ofCLM_apply, inner_spectralMeasureAux_apply]
     exact (ha.cfcMeasure y x).m_iUnion hw hd
   isStarProjection' := ha.isStarProjection_spectralMeasureAux
-  measureOf_inter' w₁ w₂ h₁ h₂ := by
-    rw [ha.spectralMeasureAux_inter h₁ h₂]
-    rfl
+  measureOf_inter' w₁ w₂ h₁ h₂ := by rw [ha.spectralMeasureAux_inter h₁ h₂, ofCLM_mul]
   measureOf_univ' := by
-    refine ContinuousLinearMapWOT.toCLM_injective (ext fun y ↦ ext_inner_left ℂ fun x ↦ ?_)
-    change ⟪x, ha.spectralMeasureAux _ y⟫_ℂ = ⟪x, y⟫_ℂ
-    have h := ha.integral_cfcMeasure x y 1
-    simp only [ContinuousMap.one_apply] at h
-    rw [VectorMeasure.integral_const] at h
-    simpa [inner_spectralMeasureAux_apply] using h
+    refine congrArg ofCLM (ext fun y ↦ ext_inner_left ℂ fun x ↦ ?_)
+    simpa [inner_spectralMeasureAux_apply, VectorMeasure.integral_const] using
+      ha.integral_cfcMeasure x y 1
 
 /-! ### The spectral measure and the continuous functional calculus -/
 
@@ -266,32 +268,11 @@ lemma inner_spectralMeasure_apply (w : Set (spectrum ℂ a)) (x y : H) :
 
 /-- The complex measures `E_{x,y}` of the spectral measure are the measures `cfcMeasure x y`. -/
 @[simp]
-lemma toComplexMeasure_spectralMeasure (x y : H) :
-    ha.spectralMeasure.toComplexMeasure x y = ha.cfcMeasure x y :=
+lemma complexMeasure_spectralMeasure (x y : H) :
+    ha.spectralMeasure.complexMeasure x y = ha.cfcMeasure x y :=
   VectorMeasure.ext fun w _ ↦ by simp
 
 end IsStarNormal
-
-namespace ProjectionValuedMeasure
-
-variable {X : Type*} [TopologicalSpace X] [CompactSpace X] [MeasurableSpace X] [BorelSpace X]
-  {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-
-/-- A continuous function on a compact space as an element of `L^∞(E)`. -/
-lemma memLp_continuousMap (E : ProjectionValuedMeasure X H) (f : C(X, ℂ)) :
-    MemLp f ∞ E.measure :=
-  (BoundedContinuousFunction.mkOfCompact f).memLp_top
-
-/-- `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` for continuous `f`. -/
-lemma inner_integral_toLp_continuousMap (E : ProjectionValuedMeasure X H) (f : C(X, ℂ))
-    (x y : H) :
-    ⟪x, E.integral ((E.memLp_continuousMap f).toLp f) y⟫_ℂ =
-      ∫ᶜ z, f z ∂(E.toComplexMeasure x y) := by
-  rw [E.inner_integral]
-  exact VectorMeasure.integral_congr_ae
-    ((E.variation_toComplexMeasure_absolutelyContinuous x y).ae_le (MemLp.coeFn_toLp _))
-
-end ProjectionValuedMeasure
 
 namespace IsStarNormal
 
@@ -303,7 +284,7 @@ variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteS
 theorem integral_spectralMeasure_toLp (f : C(spectrum ℂ a, ℂ)) :
     ha.spectralMeasure.integral ((ha.spectralMeasure.memLp_continuousMap f).toLp f) = cfcHom ha f :=
   ContinuousLinearMap.ext fun y ↦ ext_inner_left ℂ fun x ↦ by
-    rw [ProjectionValuedMeasure.inner_integral_toLp_continuousMap, toComplexMeasure_spectralMeasure,
+    rw [ProjectionValuedMeasure.inner_integral_toLp_continuousMap, complexMeasure_spectralMeasure,
       integral_cfcMeasure]
 
 /-- The spectral decomposition `a = ∫ z dE(z)` (Rudin 12.23). -/
@@ -317,11 +298,11 @@ continuous functional calculus (Rudin 12.22 (a)). -/
 theorem eq_spectralMeasure {E : ProjectionValuedMeasure (spectrum ℂ a) H}
     (h : ∀ f : C(spectrum ℂ a, ℂ), E.integral ((E.memLp_continuousMap f).toLp f) = cfcHom ha f) :
     E = ha.spectralMeasure := by
-  have hE (x y : H) : E.toComplexMeasure x y = ha.cfcMeasure x y :=
+  have hE (x y : H) : E.complexMeasure x y = ha.cfcMeasure x y :=
     ha.eq_cfcMeasure fun f ↦ by rw [← E.inner_integral_toLp_continuousMap, h]
-  refine DFunLike.ext _ _ fun w ↦ ContinuousLinearMap.ext fun y ↦ ext_inner_left ℂ fun x ↦ ?_
-  rw [inner_spectralMeasure_apply, ← hE, ProjectionValuedMeasure.toComplexMeasure_apply]
-
+  ext w - y
+  refine ext_inner_left ℂ fun x ↦ ?_
+  rw [inner_spectralMeasure_apply, ← hE, ProjectionValuedMeasure.complexMeasure_apply]
 
 /-- An operator commutes with every `E(w)` iff it commutes with `a` (Rudin 12.22 (e)). By the
 Fuglede–Putnam–Rosenblum theorem, commuting with `a` implies commuting with `a⋆`. -/
@@ -348,19 +329,12 @@ theorem spectralMeasure_ne_zero {w : Set (spectrum ℂ a)} (hw : IsOpen w) (hne 
   obtain ⟨f, hfw, hfz, -⟩ := exists_continuous_zero_one_of_isClosed hw.isClosed_compl
     isClosed_singleton (Set.disjoint_singleton_right.2 (not_not.2 hz))
   let g : C(spectrum ℂ a, ℂ) := ⟨fun t ↦ (f t : ℂ), by fun_prop⟩
-  have hg0 : (ha.spectralMeasure.memLp_continuousMap g).toLp g = 0 := by
-    have hnull : ha.spectralMeasure.measure w = 0 :=
-      (ha.spectralMeasure.measure_eq_zero_iff hw.measurableSet).2 h0
-    refine Lp.ext ((MemLp.coeFn_toLp _).trans ?_ |>.trans (Lp.coeFn_zero _ _ _).symm)
-    filter_upwards [measure_eq_zero_iff_ae_notMem.1 hnull] with t ht
-    simp [g, hfw ht]
-  have h := ha.integral_spectralMeasure_toLp g
-  rw [hg0, map_zero] at h
-  have hn := norm_cfcHom a g
-  rw [← h, norm_zero] at hn
-  have hgz : g z = 1 := by simp [g, hfz (Set.mem_singleton z)]
-  have := g.norm_coe_le_norm z
-  rw [hgz, norm_one, ← hn] at this
-  norm_num at this
+  have hg : g = 0 := cfcHom_injective ha <| by
+    have hae : g =ᵐ[ha.spectralMeasure.measure] 0 :=
+      ha.spectralMeasure.ae_iff.2 ⟨w, hw.measurableSet, h0, fun t ht ↦ by simp [g, hfw ht]⟩
+    rw [← integral_spectralMeasure_toLp, map_zero,
+      ((ha.spectralMeasure.memLp_continuousMap g).toLp_eq_toLp_iff (.zero)).2 hae,
+      MemLp.toLp_zero, map_zero]
+  simpa [g, hfz (Set.mem_singleton z)] using DFunLike.congr_fun hg z
 
 end IsStarNormal

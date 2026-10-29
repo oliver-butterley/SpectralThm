@@ -4,22 +4,37 @@ The repository is organized as follows:
 
 - [`SpectralThm`](SpectralThm) contains the Lean code; [`SpectralThm.lean`](SpectralThm.lean)
   imports all of it.
-    - [`ComplexMeasure`](SpectralThm/ComplexMeasure): the integral `∫ᶜ` of complex functions against
-      complex measures, conjugate measures, finite measures as complex measures.
-    - [`VectorMeasure/FiniteDimensional.lean`](SpectralThm/VectorMeasure/FiniteDimensional.lean):
-      finiteness of the variation of finite-dimensional vector measures.
-    - [`RieszMarkovKakutani/Complex.lean`](SpectralThm/RieszMarkovKakutani/Complex.lean): the
-      Riesz–Markov–Kakutani theorem for complex functionals on `C₀(X, ℂ)`.
-    - [`Linfty.lean`](SpectralThm/Linfty.lean): density of simple functions in `L^∞` and
-      `setToLinfty`, the `L^∞` analogue of `setToL1`.
-    - [`Linfty/Algebra.lean`](SpectralThm/Linfty/Algebra.lean): `L^∞` as a commutative
-      C⋆-algebra.
+    - [`Mathlib`](SpectralThm/Mathlib): general prerequisites missing from Mathlib, each at the path
+      it would have in Mathlib (so that it can be upstreamed file by file):
+        - [`MeasureTheory/Measure/Complex`](SpectralThm/Mathlib/MeasureTheory/Measure/Complex):
+          the integral `∫ᶜ` of complex functions against complex measures, conjugate measures,
+          finite measures as complex measures, polar decomposition.
+        - [`MeasureTheory/VectorMeasure/Variation`](SpectralThm/Mathlib/MeasureTheory/VectorMeasure/Variation):
+          finiteness of the variation in finite dimensions; the variation (pseudo)metric.
+        - [`MeasureTheory/Measure/Regular.lean`](SpectralThm/Mathlib/MeasureTheory/Measure/Regular.lean):
+          sums of regular measures are regular.
+        - [`MeasureTheory/Integral/SetToLinfty.lean`](SpectralThm/Mathlib/MeasureTheory/Integral/SetToLinfty.lean):
+          `setToLinfty`, the `L^∞` analogue of `setToL1`.
+        - [`MeasureTheory/Function/LInfty.lean`](SpectralThm/Mathlib/MeasureTheory/Function/LInfty.lean)
+          and [`LInfty/Spectrum.lean`](SpectralThm/Mathlib/MeasureTheory/Function/LInfty/Spectrum.lean):
+          `L^∞` as a commutative C⋆-algebra; its spectrum is the essential range.
+        - [`MeasureTheory/Function`](SpectralThm/Mathlib/MeasureTheory/Function): additions to
+          `AEEqFun`, `LpSpace/Basic` (star structure on `Lp`), `SimpleFuncDenseLp` (density of
+          simple functions in `L^∞`) and `EssRange` (the essential range).
+        - [`Topology/ContinuousMap`](SpectralThm/Mathlib/Topology/ContinuousMap) (`C₀` and `C_c`
+          helpers), [`Analysis/Normed/Module/Ball/Retraction.lean`](SpectralThm/Mathlib/Analysis/Normed/Module/Ball/Retraction.lean)
+          (the retraction onto the unit ball) and
+          [`Analysis/InnerProductSpace/Adjoint.lean`](SpectralThm/Mathlib/Analysis/InnerProductSpace/Adjoint.lean)
+          (inner products with star projections).
+        - [`MeasureTheory/Integral/RieszMarkovKakutani/Complex.lean`](SpectralThm/Mathlib/MeasureTheory/Integral/RieszMarkovKakutani/Complex.lean):
+          the Riesz–Markov–Kakutani theorem for complex functionals on `C₀(X, ℂ)`.
     - [`ProjectionValuedMeasure`](SpectralThm/ProjectionValuedMeasure): projection-valued
       measures and the integral `L^∞(E) → H →L[ℂ] H` (Rudin, *Functional Analysis*, 12.17–12.21).
     - [`SpectralTheorem.lean`](SpectralThm/SpectralTheorem.lean): the spectral measure of a normal
       operator (Rudin 12.22–12.23).
-    - [`BorelFunctionalCalculus.lean`](SpectralThm/BorelFunctionalCalculus.lean): the Borel
-      functional calculus of a normal operator.
+    - [`BorelFunctionalCalculus.lean`](SpectralThm/BorelFunctionalCalculus.lean) and
+      [`BorelFunctionalCalculus/Spectrum.lean`](SpectralThm/BorelFunctionalCalculus/Spectrum.lean):
+      the Borel functional calculus of a normal operator, spectral mapping and composition.
 - [`.github`](.github) contains GitHub-specific configuration files and workflows.
     - [`workflows`](.github/workflows) contains GitHub Actions workflow files.
         - [`ci.yml`](.github/workflows/ci.yml) builds the Lean project on pushes, pull requests

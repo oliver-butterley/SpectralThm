@@ -5,6 +5,13 @@ Authors: Oliver Butterley, Yoh Tanimoto
 -/
 module
 
+public import Mathlib.Analysis.Complex.Tietze
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.InnerProductSpace.StarOrder
+public import Mathlib.Analysis.VonNeumannAlgebra.Basic
+public import Mathlib.MeasureTheory.Measure.Complex
+public import Mathlib.MeasureTheory.VectorMeasure.Integral
+public import Mathlib.Topology.Algebra.Module.Spaces.PointwiseConvergenceCLM
 public import SpectralThm.SpectralTheorem
 
 /-!
@@ -23,10 +30,11 @@ restriction of `f` to `σ(a)` is not in `L^∞(E)`.
 
 * `IsStarNormal.bfc_eq_cfc`: the Borel functional calculus extends the continuous one.
 * `IsStarNormal.bfc_id`: `id(a) = a`.
-* `IsStarNormal.bfc_add`, `IsStarNormal.bfc_mul`, `IsStarNormal.bfc_star`, ...: it is a
-  `*`-homomorphism.
+* `IsStarNormal.bfc_add`, `IsStarNormal.bfc_mul`, `IsStarNormal.bfc_star`, `IsStarNormal.bfc_pow`,
+  `IsStarNormal.bfc_sum`, ...: it is a `*`-homomorphism on functions in `L^∞(E)`.
 * `IsStarNormal.bfc_indicator`: the indicator of `s` gives the spectral projection `E(s)`.
-* `IsStarNormal.bfc_congr_ae`: `f(a)` only depends on `f` up to `E`-null sets.
+* `IsStarNormal.bfc_congr_ae`, `IsStarNormal.bfc_eq_bfc_iff_ae_eq`: `f(a)` only depends on, and
+  determines, `f` up to `E`-null sets.
 * `IsStarNormal.norm_bfc_le`: `‖f(a)‖ ≤ sup_{σ(a)} |f|`.
 * `IsStarNormal.inner_bfc`: `⟪x, f(a) y⟫ = ∫ f dE_{x,y}`.
 * `IsStarNormal.commute_bfc`: an operator commuting with `a` commutes with `f(a)` (by
@@ -47,9 +55,17 @@ restriction of `f` to `σ(a)` is not in `L^∞(E)`.
 
 ## Implementation notes
 
+The hypothesis that `f` is in the domain of the calculus is stated as
+`MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure`, so that the `MemLp` API applies
+directly; `IsStarNormal.memLp_of_bound` and `IsStarNormal.memLp_of_continuousOn` produce it.
+
 The generic names `bfc` / `bfcHom` (without namespace, in the style of `cfc` / `cfcHom`) are
 reserved for an abstract Borel functional calculus class, of which this would be the instance for
 `H →L[ℂ] H`. The `*`-homomorphism on `L^∞(E)` is `ha.spectralMeasure.integral`.
+
+## References
+
+* [W. Rudin, *Functional Analysis*][rudin1991], 12.20–12.24.
 -/
 
 @[expose] public section
@@ -89,6 +105,11 @@ lemma memLp_of_bound (hf : Measurable f) {C : ℝ} (hC : ∀ z ∈ spectrum ℂ 
     MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure :=
   memLp_top_of_bound (hf.comp measurable_subtype_coe).aestronglyMeasurable C
     (ae_of_all _ fun z ↦ hC z z.2)
+
+/-- A function which is continuous on `σ(a)` is in `L^∞(E)`. -/
+lemma memLp_of_continuousOn (hf : ContinuousOn f (spectrum ℂ a)) :
+    MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure :=
+  ha.spectralMeasure.memLp_continuousMap ⟨_, hf.domRestrict⟩
 
 /-- `f(a)` only depends on `f` up to `E`-null sets. -/
 lemma bfc_congr_ae
@@ -139,6 +160,12 @@ lemma bfc_zero : ha.bfc 0 = 0 := by
 lemma bfc_const_zero : ha.bfc (fun _ ↦ 0) = 0 :=
   ha.bfc_zero
 
+lemma bfc_pow_id (n : ℕ) : ha.bfc (· ^ n) = a ^ n := by
+  rw [ha.bfc_eq_cfc (continuous_pow n).continuousOn, cfc_pow_id a n]
+
+lemma bfc_polynomial (q : Polynomial ℂ) : ha.bfc q.eval = Polynomial.aeval a q := by
+  rw [ha.bfc_eq_cfc q.continuous.continuousOn, cfc_polynomial q a]
+
 variable (hf : MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure)
 include hf
 
@@ -164,8 +191,33 @@ lemma bfc_mul (hg : MemLp (fun z : spectrum ℂ a ↦ g z) ∞ ha.spectralMeasur
   rw [ha.bfc_eq_integral hf, ha.bfc_eq_integral hg, ← map_mul, ← Linfty.toLp_mul,
     ha.bfc_eq_integral_of_eq (hf.mul hg) rfl]
 
+lemma bfc_const_mul (c : ℂ) : ha.bfc (fun z ↦ c * f z) = c • ha.bfc f :=
+  ha.bfc_smul hf c
+
 lemma bfc_star : ha.bfc (fun z ↦ star (f z)) = star (ha.bfc f) := by
   rw [ha.bfc_eq_integral hf, ← map_star, ← MemLp.toLp_star, ha.bfc_eq_integral_of_eq hf.star rfl]
+
+lemma bfc_pow (n : ℕ) : ha.bfc (fun z ↦ f z ^ n) = ha.bfc f ^ n := by
+  have hpow (n : ℕ) : MemLp (fun z : spectrum ℂ a ↦ f z ^ n) ∞ ha.spectralMeasure.measure := by
+    induction n with
+    | zero => simpa using memLp_top_const (1 : ℂ)
+    | succ n ih =>
+      simp_rw [pow_succ]
+      exact ih.mul hf
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    simp_rw [pow_succ]
+    rw [ha.bfc_mul (f := fun z ↦ f z ^ n) (hpow n) hf, ih]
+
+/-- Two functions in `L^∞(E)` have the same image under the Borel functional calculus iff they
+agree `E`-almost everywhere on `σ(a)`. -/
+lemma bfc_eq_bfc_iff_ae_eq (hg : MemLp (fun z : spectrum ℂ a ↦ g z) ∞ ha.spectralMeasure.measure) :
+    ha.bfc f = ha.bfc g ↔
+      (fun z : spectrum ℂ a ↦ f z) =ᵐ[ha.spectralMeasure.measure] fun z ↦ g z := by
+  refine ⟨fun h ↦ ?_, ha.bfc_congr_ae⟩
+  rw [ha.bfc_eq_integral hf, ha.bfc_eq_integral hg] at h
+  exact (hf.toLp_eq_toLp_iff hg).1 (ha.spectralMeasure.isometry_integral.injective h)
 
 /-- `‖f(a)‖ = ‖f‖_{L^∞(E)}`. -/
 lemma norm_bfc : ‖ha.bfc f‖ = ‖hf.toLp _‖ := by
@@ -174,21 +226,31 @@ lemma norm_bfc : ‖ha.bfc f‖ = ‖hf.toLp _‖ := by
 /-- `⟪x, f(a) y⟫ = ∫ f dE_{x,y}` (Rudin 12.21 (1)). -/
 lemma inner_bfc (x y : H) : ⟪x, ha.bfc f y⟫_ℂ = ∫ᶜ z, f z ∂(ha.cfcMeasure x y) := by
   rw [ha.bfc_eq_integral hf, ProjectionValuedMeasure.inner_integral,
-    toComplexMeasure_spectralMeasure]
+    complexMeasure_spectralMeasure]
   refine VectorMeasure.integral_congr_ae ?_
-  rw [← toComplexMeasure_spectralMeasure]
-  exact (ha.spectralMeasure.variation_toComplexMeasure_absolutelyContinuous x y).ae_le
+  rw [← complexMeasure_spectralMeasure]
+  exact (ha.spectralMeasure.variation_complexMeasure_absolutelyContinuous x y).ae_le
     hf.coeFn_toLp
 
 /-- `‖f(a) x‖² = ∫ |f|² dE_{x,x}` (Rudin 12.21 (2)). -/
 lemma norm_bfc_apply_sq (x : H) :
-    ‖ha.bfc f x‖ ^ 2 = ∫ z, ‖f z‖ ^ 2 ∂(ha.spectralMeasure.toMeasure x) := by
+    ‖ha.bfc f x‖ ^ 2 = ∫ z, ‖f z‖ ^ 2 ∂(ha.spectralMeasure.measureOf x) := by
   rw [ha.bfc_eq_integral hf, ProjectionValuedMeasure.norm_integral_apply_sq_eq_integral]
-  refine integral_congr_ae ((ha.spectralMeasure.toMeasure_absolutelyContinuous x).ae_le ?_)
+  refine integral_congr_ae ((ha.spectralMeasure.measureOf_absolutelyContinuous x).ae_le ?_)
   filter_upwards [hf.coeFn_toLp] with z hz
   rw [hz]
 
 omit hf
+
+lemma bfc_sum {ι : Type*} (f : ι → ℂ → ℂ) (s : Finset ι)
+    (hf : ∀ i ∈ s, MemLp (fun z : spectrum ℂ a ↦ f i z) ∞ ha.spectralMeasure.measure) :
+    ha.bfc (fun z ↦ ∑ i ∈ s, f i z) = ∑ i ∈ s, ha.bfc (f i) := by
+  induction s using Finset.cons_induction with
+  | empty => simp
+  | cons i s hi ih =>
+    rw [Finset.forall_mem_cons] at hf
+    simp_rw [Finset.sum_cons]
+    rw [ha.bfc_add hf.1 (memLp_finsetSum s hf.2), ih hf.2]
 
 /-- `‖f(a)‖ ≤ C` if `|f| ≤ C` on `σ(a)`. -/
 lemma norm_bfc_le {C : ℝ} (hC₀ : 0 ≤ C) (hC : ∀ z ∈ spectrum ℂ a, ‖f z‖ ≤ C) :
@@ -222,7 +284,7 @@ theorem commute_bfc {S : H →L[ℂ] H} (h : Commute S a) (f : ℂ → ℂ) :
   · rw [ha.bfc_of_not_memLp hf]
     exact Commute.zero_right S
 
-lemma commute_bfc_bfc (f g : ℂ → ℂ) : Commute (ha.bfc f) (ha.bfc g) := by
+lemma bfc_commute_bfc (f g : ℂ → ℂ) : Commute (ha.bfc f) (ha.bfc g) := by
   by_cases hf : MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure
   · by_cases hg : MemLp (fun z : spectrum ℂ a ↦ g z) ∞ ha.spectralMeasure.measure
     · rw [ha.bfc_eq_integral hf, ha.bfc_eq_integral hg]
@@ -236,7 +298,7 @@ lemma commute_bfc_bfc (f g : ℂ → ℂ) : Commute (ha.bfc f) (ha.bfc g) := by
 instance isStarNormal_bfc (f : ℂ → ℂ) : IsStarNormal (ha.bfc f) := by
   by_cases hf : MemLp (fun z : spectrum ℂ a ↦ f z) ∞ ha.spectralMeasure.measure
   · rw [isStarNormal_iff, ← ha.bfc_star hf]
-    exact ha.commute_bfc_bfc _ _
+    exact ha.bfc_commute_bfc _ _
   · rw [ha.bfc_of_not_memLp hf]
     exact .zero
 
@@ -295,13 +357,10 @@ lemma bfc_nonneg (hf : ∀ z ∈ spectrum ℂ a, 0 ≤ f z) : 0 ≤ ha.bfc f := 
     refine ((memLp_top_const (1 : ℂ)).add hfm).of_le ?_ (ae_of_all _ fun z ↦ ?_)
     · exact (by fun_prop : Continuous fun w : ℂ ↦ (Real.sqrt w.re : ℂ)).comp_aestronglyMeasurable
         hfm.aestronglyMeasurable
-    · obtain ⟨hre, him⟩ := Complex.nonneg_iff.1 (hf z z.2)
-      have hfz : f z = ((f z).re : ℂ) := Complex.ext rfl (by simp [him])
-      simp only [g, Pi.add_apply]
-      rw [hfz, ← Complex.ofReal_one, ← Complex.ofReal_add, Complex.norm_real, Complex.norm_real,
-        Complex.ofReal_re, Real.norm_of_nonneg (Real.sqrt_nonneg _),
-        Real.norm_of_nonneg (by positivity)]
-      nlinarith [Real.sq_sqrt hre, Real.sqrt_nonneg (f z).re]
+    · have h0 := hf z z.2
+      rw [Pi.add_apply, ← Complex.re_eq_norm.2 (add_nonneg zero_le_one h0), Complex.norm_real,
+        Real.norm_of_nonneg (Real.sqrt_nonneg _), Complex.add_re, Complex.one_re]
+      nlinarith [Real.sq_sqrt (Complex.nonneg_iff.1 h0).1, Real.sqrt_nonneg (f z).re]
   have hfg : ha.bfc f = star (ha.bfc g) * ha.bfc g := by
     rw [← ha.bfc_star hg, ← ha.bfc_mul hg.star hg]
     refine ha.bfc_congr fun z hz ↦ ?_

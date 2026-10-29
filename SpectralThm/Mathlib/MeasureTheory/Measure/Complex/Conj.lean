@@ -5,7 +5,10 @@ Authors: Oliver Butterley, Yoh Tanimoto
 -/
 module
 
-public import SpectralThm.ComplexMeasure.Integral
+public import Mathlib.MeasureTheory.VectorMeasure.WithDensityVec
+public import SpectralThm.Mathlib.MeasureTheory.Measure.Complex.Integral
+
+import Mathlib.MeasureTheory.VectorMeasure.SetIntegral
 
 /-!
 # Conjugate of a complex measure, and complex measures with density
@@ -80,8 +83,7 @@ theorem integral_conj (f : X → ℂ) :
   simp only [variation_conj]
   refine setToFun_congr_left' _ _ (fun s hs _ ↦ ?_) f
   ext z
-  change z * starRingEnd ℂ (μ s) = starRingEnd ℂ (starRingEnd ℂ z * μ s)
-  simp
+  simp [c, transpose_eq_cbmApplyMeasure]
 
 end Conj
 
@@ -100,21 +102,8 @@ lemma variation_withDensity (hf : μ.Integrable f) :
 /-- If `g` is integrable against `f dμ`, then `g f` is integrable against `μ`. -/
 lemma integrable_mul_of_integrable_withDensity (hf : μ.Integrable f)
     (hg : (μ.withDensity f (mul ℝ ℂ)).Integrable g) : μ.Integrable fun x ↦ g x * f x := by
-  have hfm : AEMeasurable (fun x ↦ ‖f x‖₊) μ.variation :=
-    hf.aestronglyMeasurable.nnnorm.aemeasurable
   rw [VectorMeasure.Integrable, variation_withDensity hf] at hg
-  simp_rw [enorm_eq_nnnorm] at hg
-  rw [integrable_withDensity_iff_integrable_smul₀ hfm] at hg
-  have hs : AEStronglyMeasurable (fun x ↦ f x / (‖f x‖ : ℂ)) μ.variation :=
-    (hf.aemeasurable.div
-      (Complex.measurable_ofReal.comp_aemeasurable hf.aemeasurable.norm)).aestronglyMeasurable
-  refine (hg.bdd_mul (c := 1) hs (.of_forall fun x ↦ ?_)).congr (.of_forall fun x ↦ ?_)
-  · simpa [norm_div] using div_self_le_one ‖f x‖
-  · rcases eq_or_ne (f x) 0 with h | h
-    · simp [h]
-    · have : (‖f x‖ : ℂ) ≠ 0 := by simpa using h
-      simp only [NNReal.smul_def, coe_nnnorm, Complex.real_smul]
-      field_simp
+  simpa only [mul_comm] using hg.mul_of_withDensity_enorm hf.aestronglyMeasurable
 
 /-- A bounded function which is a.e.-strongly measurable for `|μ|` is integrable against `f dμ`. -/
 lemma integrable_withDensity_of_bound (hf : μ.Integrable f)

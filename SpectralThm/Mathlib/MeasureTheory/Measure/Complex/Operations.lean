@@ -5,7 +5,9 @@ Authors: Oliver Butterley, Yoh Tanimoto
 -/
 module
 
-public import SpectralThm.ComplexMeasure.Integral
+public import SpectralThm.Mathlib.MeasureTheory.Measure.Complex.Integral
+
+import Mathlib.MeasureTheory.VectorMeasure.SetIntegral
 
 /-!
 # Operations on complex measures and the integral
@@ -36,12 +38,12 @@ variable (μ : Measure X) [IsFiniteMeasure μ]
 noncomputable def toComplexMeasure : ComplexMeasure X :=
   VectorMeasure.mapRangeL Complex.ofRealCLM μ.toSignedMeasure
 
+@[simp]
 lemma toComplexMeasure_apply {s : Set X} (hs : MeasurableSet s) :
     μ.toComplexMeasure s = μ.real s := by
-  change Complex.ofRealCLM (μ.toSignedMeasure s) = _
-  rw [toSignedMeasure_apply_measurable hs]
-  rfl
+  simp [toComplexMeasure, VectorMeasure.mapRangeL, toSignedMeasure_apply_measurable hs]
 
+/-- The variation of a finite measure seen as a complex measure is the measure itself. -/
 @[simp]
 lemma variation_toComplexMeasure : μ.toComplexMeasure.variation = μ := by
   have h {s : Set X} (hs : MeasurableSet s) : ‖μ.toComplexMeasure s‖ₑ = μ s := by
@@ -59,14 +61,13 @@ lemma integral_toComplexMeasure (f : X → ℂ) :
   simp only [variation_toComplexMeasure]
   refine setToFun_congr_left' _ _ (fun s hs _ ↦ ?_) f
   ext z
-  rw [weightedSMul_apply]
-  change z * μ.toComplexMeasure s = μ.real s • z
-  rw [toComplexMeasure_apply μ hs, Complex.real_smul, mul_comm]
+  simp [weightedSMul_apply, transpose_eq_cbmApplyMeasure, toComplexMeasure_apply μ hs, mul_comm]
 
 end MeasureTheory.Measure
 
 namespace MeasureTheory.ComplexMeasure
 
+/-- A function integrable against `μ` is integrable against `c • μ`. -/
 lemma Integrable.smul_measure {μ : ComplexMeasure X} {f : X → ℂ} (h : μ.Integrable f) (c : ℂ) :
     (c • μ).Integrable f := by
   rw [VectorMeasure.Integrable, VectorMeasure.variation_smul]
@@ -76,8 +77,7 @@ lemma Integrable.smul_measure {μ : ComplexMeasure X} {f : X → ℂ} (h : μ.In
 lemma integral_smul_measure (c : ℂ) (μ : ComplexMeasure X) (f : X → ℂ) :
     ∫ᶜ x, f x ∂(c • μ) = c * ∫ᶜ x, f x ∂μ := by
   rcases eq_or_ne c 0 with rfl | hc
-  · rw [show (0 : ℂ) • μ = 0 from zero_smul ℂ μ, VectorMeasure.integral_zero_vectorMeasure,
-      zero_mul]
+  · simp
   have hvar : (c • μ).variation = ‖c‖₊ • μ.variation := VectorMeasure.variation_smul
   have hint {g : X → ℂ} : (c • μ).Integrable g ↔ μ.Integrable g := by
     rw [VectorMeasure.Integrable, VectorMeasure.Integrable, hvar]

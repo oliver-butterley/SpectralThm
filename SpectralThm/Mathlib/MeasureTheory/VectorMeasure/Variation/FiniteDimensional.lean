@@ -18,16 +18,23 @@ import Mathlib.Topology.Algebra.Module.FiniteDimension
 /-!
 # Finiteness of the variation of a vector measure in a finite-dimensional space
 
+The variation of a vector measure with values in a finite-dimensional real normed space is a
+finite measure. In particular, the variation of a signed or complex measure is finite.
+
 ## Main results
 
+* `MeasureTheory.VectorMeasure.variation_mapRangeL_le`: `|f ∘ μ| ≤ ‖f‖ |μ|` for a continuous
+  linear map `f`.
 * instance `IsFiniteMeasure μ.variation` for a signed measure `μ`.
 * instance `IsFiniteMeasure μ.variation` for a vector measure `μ` with values in a
   finite-dimensional real normed space. In particular this covers complex measures.
 
-## Notes
+## Implementation notes
 
-This is a shorter version of Mathlib PR #42103, which uses coordinates with respect to a Schauder
-basis. -/
+We write `μ = ∑ i, (b.coord i ∘ μ) • b i` in a basis `b` of the codomain, so that the variation of
+`μ` is bounded by a finite sum of variations of signed measures, which are finite by the Jordan
+decomposition.
+-/
 
 @[expose] public section
 
@@ -43,11 +50,11 @@ instance (s : SignedMeasure X) : IsFiniteMeasure s.variation :=
 
 /-- Composing a vector measure with a continuous linear map `f` multiplies its variation by at
 most `‖f‖`. -/
-lemma variation_mapRangeL {𝕜 V W : Type*} [NontriviallyNormedField 𝕜] [NormedAddCommGroup V]
+lemma variation_mapRangeL_le {𝕜 V W : Type*} [NontriviallyNormedField 𝕜] [NormedAddCommGroup V]
     [NormedSpace 𝕜 V] [NormedAddCommGroup W] [NormedSpace 𝕜 W] (μ : VectorMeasure X V)
-    (f : V →L[𝕜] W) : (mapRangeL f μ).variation ≤ ‖f‖₊ • μ.variation := by
-  apply variation_le_of_forall_enorm_le; intro s _
-  exact (f.le_opENorm _).trans (mul_le_mul_right (enorm_measure_le_variation μ s) _)
+    (f : V →L[𝕜] W) : (mapRangeL f μ).variation ≤ ‖f‖₊ • μ.variation :=
+  variation_le_of_forall_enorm_le fun s _ ↦
+    (f.le_opENorm _).trans (mul_le_mul_right (enorm_measure_le_variation μ s) _)
 
 /-- The variation of a vector measure with values in a finite-dimensional real normed space is
 finite. -/
@@ -60,7 +67,7 @@ instance {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V] [FiniteDimension
     rw [← hμ]
     refine (variation_finsetSum_le _ _).trans ?_
     gcongr
-    exact variation_mapRangeL _ _
+    exact variation_mapRangeL_le _ _
   ext
   rw [FunLike.coe_sum, Finset.sum_apply]
   exact b.sum_repr _

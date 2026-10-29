@@ -5,9 +5,16 @@ Authors: Oliver Butterley, Yoh Tanimoto
 -/
 module
 
+public import Mathlib.Analysis.CStarAlgebra.ContinuousLinearMap
+public import SpectralThm.Mathlib.MeasureTheory.Function.EssRange
+public import SpectralThm.Mathlib.MeasureTheory.Function.LInfty
+public import SpectralThm.Mathlib.MeasureTheory.Integral.SetToLinfty
+public import SpectralThm.Mathlib.MeasureTheory.Measure.Complex.Operations
 public import SpectralThm.ProjectionValuedMeasure.Basic
-public import SpectralThm.ComplexMeasure.Operations
-public import SpectralThm.Linfty.Spectrum
+
+import Mathlib.Analysis.CStarAlgebra.Spectrum
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+import SpectralThm.Mathlib.MeasureTheory.Function.LInfty.Spectrum
 
 /-!
 # Integral against a projection-valued measure
@@ -19,7 +26,7 @@ range.
 
 The construction follows Mathlib's Bochner integral: on simple functions it is
 `SimpleFunc.setToSimpleFunc` applied to `w ↦ (c ↦ c • E w)` (compare `SimpleFunc.integral`), and it
-is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue of `setToL1`.
+is extended to `L^∞(E)` by `MeasureTheory.Linfty.setToLinfty'`, the `L^∞` analogue of `setToL1'`.
 
 ## Main definitions
 
@@ -47,7 +54,9 @@ is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue o
 * `ProjectionValuedMeasure.inner_integral`: `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` (Rudin 12.21 (1)).
 * `ProjectionValuedMeasure.norm_integral_apply_sq`: `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}`
   (Rudin 12.21 (2)); `norm_integral_apply_sq_eq_integral` states it for the finite measure
-  `E.toMeasure x`.
+  `E.measureOf x`.
+* `ProjectionValuedMeasure.inner_integral_toLp_continuousMap`: `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` for
+  continuous `f` on a compact space.
 * `ProjectionValuedMeasure.spectrum_integral`, `spectrum_integral_eq_essRange`: the spectrum of
   `∫ f dE` is the spectrum of `f` in `L^∞(E)`, i.e. the essential range of `f`.
 * `ProjectionValuedMeasure.tendsto_integral_toLp_apply`: the bounded convergence theorem, if
@@ -58,6 +67,14 @@ is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue o
 `SimpleFunc.setToSimpleFunc` lemmas are stated relative to a measure `μ` and require
 `FinMeasAdditive μ T` and integrability with respect to `μ`; we use the zero measure, for which
 both hold trivially since `E` is additive on all measurable sets.
+
+The integral is built from the `ℂ`-linear extension `Linfty.setToLinfty' ℂ` rather than the
+`ℝ`-linear `Linfty.setToLinfty`, as Mathlib's `L1.integralCLM' 𝕜` is built from `setToL1'`:
+`ℂ`-linearity is needed for `E.integral` to be a `ℂ`-algebra homomorphism.
+
+## References
+
+* [W. Rudin, *Functional Analysis*][rudin1991], 12.21–12.22.
 -/
 
 @[expose] public section
@@ -71,6 +88,8 @@ variable {X : Type*} {mX : MeasurableSpace X}
   {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
   (E : ProjectionValuedMeasure X H)
 
+/-! ### The integral of simple functions -/
+
 /-- The set function `w ↦ (c ↦ c • E w)`, analogous to `MeasureTheory.weightedSMul`. -/
 noncomputable def weightedSMul (w : Set X) : ℂ →L[ℝ] H →L[ℂ] H :=
   (ContinuousLinearMap.id ℝ ℂ).smulRight (E w)
@@ -78,11 +97,21 @@ noncomputable def weightedSMul (w : Set X) : ℂ →L[ℝ] H →L[ℂ] H :=
 @[simp]
 lemma weightedSMul_apply (w : Set X) (c : ℂ) : E.weightedSMul w c = c • E w := rfl
 
+@[simp]
 lemma weightedSMul_empty : E.weightedSMul ∅ = 0 := by
   ext; simp
 
+lemma weightedSMul_union {w₁ w₂ : Set X} (h : Disjoint w₁ w₂) (h₁ : MeasurableSet w₁)
+    (h₂ : MeasurableSet w₂) : E.weightedSMul (w₁ ∪ w₂) = E.weightedSMul w₁ + E.weightedSMul w₂ := by
+  ext c : 1
+  simp [E.apply_union h h₁ h₂, smul_add]
+
+lemma weightedSMul_smul (c : ℂ) (w : Set X) (z : ℂ) :
+    E.weightedSMul w (c • z) = c • E.weightedSMul w z := by
+  simp [mul_smul]
+
 lemma finMeasAdditive_weightedSMul (μ : Measure X) : FinMeasAdditive μ E.weightedSMul :=
-  fun _ _ h₁ h₂ _ _ h ↦ by ext c : 1; simp [E.apply_union h₁ h₂ h, smul_add]
+  fun _ _ h₁ h₂ _ _ h ↦ E.weightedSMul_union h h₁ h₂
 
 private lemma setToSimpleFunc_map {β : Type*} [NormedAddCommGroup β] (s : SimpleFunc X β)
     {g : β → ℂ} (hg : g 0 = 0) :
@@ -104,8 +133,8 @@ private lemma setToSimpleFunc_pair_map (s t : SimpleFunc X ℂ) {g : ℂ × ℂ 
   · simp [(SimpleFunc.preimage_eq_empty_iff _ _).2 hp]
   · rw [← SimpleFunc.pair_preimage_singleton]
 
-/-- `Ψ(s) = ∑ a • E (s ⁻¹' {a})` for a simple function `s` (Rudin 12.21). It is a unital
-`*`-homomorphism. -/
+/-- The integral `∑ a • E (s ⁻¹' {a})` of a simple function `s` against `E` (Rudin 12.21, where it
+is called `Ψ`). It is a unital `*`-homomorphism. -/
 noncomputable def simpleIntegral : SimpleFunc X ℂ →⋆ₐ[ℂ] H →L[ℂ] H where
   toFun s := s.setToSimpleFunc E.weightedSMul
   map_zero' := SimpleFunc.setToSimpleFunc_zero_apply _
@@ -127,8 +156,8 @@ noncomputable def simpleIntegral : SimpleFunc X ℂ →⋆ₐ[ℂ] H →L[ℂ] H
       Algebra.algebraMap_eq_smul_one]
   map_star' s := by
     rw [show star s = s.map star from rfl, E.setToSimpleFunc_map s (star_zero _)]
-    have h (w : Set X) : star (E w) = E w := (E.isStarProjection w).isSelfAdjoint.star_eq
-    simp [SimpleFunc.setToSimpleFunc, star_sum, star_smul, h]
+    simp [SimpleFunc.setToSimpleFunc, star_sum, star_smul,
+      fun w ↦ (E.isStarProjection w).isSelfAdjoint.star_eq]
 
 lemma simpleIntegral_apply (s : SimpleFunc X ℂ) :
     E.simpleIntegral s = ∑ a ∈ s.range, a • E (s ⁻¹' {a}) := rfl
@@ -137,7 +166,7 @@ lemma simpleIntegral_apply_apply (s : SimpleFunc X ℂ) (x : H) :
     E.simpleIntegral s x = ∑ a ∈ s.range, a • E (s ⁻¹' {a}) x := by
   simp [simpleIntegral_apply]
 
-/-- `Ψ(g ∘ s) = ∑ g b • E (s ⁻¹' {b})`, for `g` with `g 0 = 0`. -/
+/-- `∫ (g ∘ s) dE = ∑ g b • E (s ⁻¹' {b})`, for `g` with `g 0 = 0`. -/
 lemma simpleIntegral_map {β : Type*} [NormedAddCommGroup β] (s : SimpleFunc X β) {g : β → ℂ}
     (hg : g 0 = 0) : E.simpleIntegral (s.map g) = ∑ b ∈ s.range, g b • E (s ⁻¹' {b}) :=
   E.setToSimpleFunc_map s hg
@@ -147,43 +176,29 @@ lemma simpleIntegral_const (c : ℂ) : E.simpleIntegral (SimpleFunc.const X c) =
   rw [← Algebra.algebraMap_eq_smul_one, ← E.simpleIntegral.commutes c]
   rfl
 
-/-- `Ψ(𝟙_w) = E w`. -/
+/-- `∫ 𝟙_w dE = E w`. -/
 lemma simpleIntegral_indicator {w : Set X} (hw : MeasurableSet w) :
     E.simpleIntegral ((SimpleFunc.const X (1 : ℂ)).piecewise w hw (SimpleFunc.const X 0)) =
       E w := by
   rw [← one_smul ℂ (E w), ← weightedSMul_apply]
   exact SimpleFunc.setToSimpleFunc_indicator _ E.weightedSMul_empty hw 1
 
-/-- `Ψ(s)` only depends on the class of `s` modulo `E`-null sets. -/
-lemma simpleIntegral_congr_ae {s t : SimpleFunc X ℂ} (h : s =ᵐ[E.measure] t) :
-    E.simpleIntegral s = E.simpleIntegral t := by
-  refine SimpleFunc.setToSimpleFunc_congr' _ (E.finMeasAdditive_weightedSMul 0)
-    integrable_zero_measure integrable_zero_measure fun a b hab ↦ ?_
-  have hw := (SimpleFunc.measurableSet_fiber s a).inter (SimpleFunc.measurableSet_fiber t b)
-  have h0 : E (s ⁻¹' {a} ∩ t ⁻¹' {b}) = 0 := by
-    refine (E.measure_eq_zero_iff hw).1 (measure_mono_null ?_ (MeasureTheory.ae_iff.1 h))
-    rintro z ⟨hza, hzb⟩ hst
-    exact hab (hza.symm.trans (hst.trans hzb))
-  ext c : 1
-  simp [h0]
-
-/-- `Ψ(s)` acts on the range of `E (s ⁻¹' {a})` as multiplication by `a`. -/
+/-- `∫ s dE` acts on the range of `E (s ⁻¹' {a})` as multiplication by `a`. -/
 lemma simpleIntegral_apply_fiber (s : SimpleFunc X ℂ) (a : ℂ) (x : H) :
     E.simpleIntegral s (E (s ⁻¹' {a}) x) = a • E (s ⁻¹' {a}) x := by
-  have hp := E.isStarProjection (s ⁻¹' {a})
   by_cases ha : a ∈ s.range
   · rw [simpleIntegral_apply_apply, Finset.sum_eq_single_of_mem a ha fun b _ hba ↦ ?_,
-      ← mul_apply_eq_comp, hp.isIdempotentElem.eq]
+      ← mul_apply_eq_comp, (E.isStarProjection _).isIdempotentElem.eq]
     rw [← mul_apply_eq_comp, E.mul_eq_zero_of_disjoint ((Set.disjoint_singleton.2 hba).preimage s),
       zero_apply, smul_zero]
   · simp [(SimpleFunc.preimage_eq_empty_iff _ _).2 ha]
 
-/-- `⟪x, Ψ(s) y⟫ = ∑ a * E_{x,y}(s ⁻¹' {a})`. -/
+/-- `⟪x, (∫ s dE) y⟫ = ∑ a * E_{x,y}(s ⁻¹' {a})`. -/
 lemma inner_simpleIntegral (s : SimpleFunc X ℂ) (x y : H) :
-    ⟪x, E.simpleIntegral s y⟫_ℂ = ∑ a ∈ s.range, a * E.toComplexMeasure x y (s ⁻¹' {a}) := by
-  simp [simpleIntegral_apply_apply]
+    ⟪x, E.simpleIntegral s y⟫_ℂ = ∑ a ∈ s.range, a * E.complexMeasure x y (s ⁻¹' {a}) := by
+  simp [simpleIntegral_apply_apply, inner_sum, inner_smul_right]
 
-/-- `‖Ψ(s) x‖² = ∑ ‖a‖² ‖E (s ⁻¹' {a}) x‖²`. -/
+/-- `‖(∫ s dE) x‖² = ∑ ‖a‖² ‖E (s ⁻¹' {a}) x‖²`. -/
 lemma norm_simpleIntegral_apply_sq (s : SimpleFunc X ℂ) (x : H) :
     ‖E.simpleIntegral s x‖ ^ 2 = ∑ a ∈ s.range, ‖a‖ ^ 2 * ‖E (s ⁻¹' {a}) x‖ ^ 2 := by
   have hs : star s * s = s.map fun a ↦ ((‖a‖ ^ 2 : ℝ) : ℂ) :=
@@ -199,21 +214,20 @@ lemma norm_simpleIntegral_apply_sq (s : SimpleFunc X ℂ) (x : H) :
 /-- `∑ ‖E (s ⁻¹' {a}) x‖² = ‖x‖²`: the fibres of `s` partition `X`. -/
 lemma sum_norm_apply_fiber_sq (s : SimpleFunc X ℂ) (x : H) :
     ∑ a ∈ s.range, ‖E (s ⁻¹' {a}) x‖ ^ 2 = ‖x‖ ^ 2 := by
-  have h := s.sum_range_measure_preimage_singleton (E.toMeasure x)
-  simp only [E.toMeasure_apply _ (s.measurableSet_fiber _), toMeasure_univ] at h
+  have h := s.sum_range_measure_preimage_singleton (E.measureOf x)
+  simp only [E.measureOf_apply _ (s.measurableSet_fiber _), measureOf_univ] at h
   rw [← ENNReal.ofReal_sum_of_nonneg fun _ _ ↦ by positivity, ← ofReal_norm,
     ← ENNReal.ofReal_pow (norm_nonneg _)] at h
   exact (ENNReal.ofReal_eq_ofReal_iff (by positivity) (by positivity)).1 h
 
-/-- `‖Ψ(s)‖ = ‖s‖_∞` (Rudin 12.21 (14)). -/
+/-- `‖∫ s dE‖ = ‖s‖_∞` (Rudin 12.21 (14)). -/
 lemma norm_simpleIntegral (s : SimpleFunc X ℂ) :
     ‖E.simpleIntegral s‖ = (eLpNorm s ∞ E.measure).toReal := by
   rcases subsingleton_or_nontrivial H with hH | hH
   · have hμ : E.measure = 0 := by
       rw [← Measure.measure_univ_eq_zero, E.measure_eq_zero_iff .univ]
-      exact ContinuousLinearMap.ext fun _ ↦ Subsingleton.elim _ _
-    have h0 : E.simpleIntegral s = 0 := ContinuousLinearMap.ext fun _ ↦ Subsingleton.elim _ _
-    simp [hμ, h0]
+      exact Subsingleton.elim _ _
+    simp [hμ, Subsingleton.elim (E.simpleIntegral s) 0]
   obtain ⟨a, ha, heq⟩ := E.exists_eLpNorm_top_eq s
   rw [heq, toReal_enorm]
   refine le_antisymm (opNorm_le_bound _ (norm_nonneg a) fun x ↦ ?_) ?_
@@ -235,36 +249,38 @@ lemma norm_simpleIntegral (s : SimpleFunc X ℂ) :
           rw [simpleIntegral_apply_fiber, norm_smul]
       _ ≤ ‖E.simpleIntegral s‖ * ‖E (s ⁻¹' {a}) y‖ := le_opNorm _ _
 
-/-- If `Q` commutes with every `E w`, it commutes with every `Ψ(s)` (Rudin 12.21). -/
+/-- If `Q` commutes with every `E w`, it commutes with every `∫ s dE` (Rudin 12.21). -/
 lemma commute_simpleIntegral {Q : H →L[ℂ] H} (h : ∀ w, Commute Q (E w)) (s : SimpleFunc X ℂ) :
     Commute Q (E.simpleIntegral s) := by
   rw [simpleIntegral_apply]
   exact Commute.sum_right _ _ _ fun a _ ↦ (h _).smul_right a
 
-/-! ### The integral of `L^∞(E)` functions -/
-
-lemma weightedSMul_smul (c : ℂ) (w : Set X) (z : ℂ) :
-    E.weightedSMul w (c • z) = c • E.weightedSMul w z := by
-  simp [mul_smul]
-
 lemma dominatedLinftyAdditive_weightedSMul :
     DominatedLinftyAdditive E.measure E.weightedSMul 1 where
-  add s t hs ht h := (E.finMeasAdditive_weightedSMul 0) s t hs ht (by simp) (by simp) h
+  add _ _ h₁ h₂ h := E.weightedSMul_union h h₁ h₂
   eq_zero_of_measure_zero w hw h := by
     ext c : 1
     simp [(E.measure_eq_zero_iff hw).1 h]
   norm_setToSimpleFunc_le s := (E.norm_simpleIntegral s).trans_le (one_mul _).symm.le
 
-/-- The integral against `E` as a continuous linear map `L^∞(E) →L[ℂ] H →L[ℂ] H`. -/
+/-- `∫ s dE` only depends on the class of `s` modulo `E`-null sets. -/
+lemma simpleIntegral_congr_ae {s t : SimpleFunc X ℂ} (h : s =ᵐ[E.measure] t) :
+    E.simpleIntegral s = E.simpleIntegral t :=
+  E.dominatedLinftyAdditive_weightedSMul.setToSimpleFunc_congr h
+
+/-! ### The integral of `L^∞(E)` functions -/
+
+/-- The integral against `E` as a continuous linear map `L^∞(E) →L[ℂ] H →L[ℂ] H`. Use
+`ProjectionValuedMeasure.integral` instead, which bundles it as a `*`-homomorphism. -/
 noncomputable def integralCLM : E.Linfty →L[ℂ] H →L[ℂ] H :=
-  setToLinfty ℂ E.dominatedLinftyAdditive_weightedSMul E.weightedSMul_smul
+  Linfty.setToLinfty' ℂ E.dominatedLinftyAdditive_weightedSMul E.weightedSMul_smul
 
 lemma integralCLM_eq_simpleIntegral {f : E.Linfty} {s : SimpleFunc X ℂ}
     (h : f =ᵐ[E.measure] s) : E.integralCLM f = E.simpleIntegral s := by
   rw [show f = (s.memLp_top _).toLp s from Lp.ext (h.trans (MemLp.coeFn_toLp _).symm)]
-  exact setToLinfty_toLp _ _ s
+  exact Linfty.setToLinfty'_toLp _ _ s
 
-lemma integralCLM_coe (f : Lp.simpleFunc ℂ ∞ E.measure) :
+private lemma integralCLM_simpleFunc (f : Lp.simpleFunc ℂ ∞ E.measure) :
     E.integralCLM f = E.simpleIntegral (Lp.simpleFunc.toSimpleFunc f) :=
   E.integralCLM_eq_simpleIntegral (Lp.simpleFunc.toSimpleFunc_eq_toFun f).symm
 
@@ -280,10 +296,8 @@ noncomputable def integral : E.Linfty →⋆ₐ[ℂ] H →L[ℂ] H where
   map_mul' f g := by
     refine Lp.simpleFunc.denseRange_top.induction_on₂ (p := fun f g ↦
       E.integralCLM (f * g) = E.integralCLM f * E.integralCLM g) ?_ (fun a b ↦ ?_) f g
-    · exact isClosed_eq (E.integralCLM.continuous.comp continuous_mul)
-        ((E.integralCLM.continuous.comp continuous_fst).mul
-          (E.integralCLM.continuous.comp continuous_snd))
-    · rw [E.integralCLM_coe, E.integralCLM_coe, ← map_mul,
+    · exact isClosed_eq (by fun_prop) (by fun_prop)
+    · rw [E.integralCLM_simpleFunc, E.integralCLM_simpleFunc, ← map_mul,
         E.integralCLM_eq_simpleIntegral]
       filter_upwards [Linfty.coeFn_mul (a : E.Linfty) b, Lp.simpleFunc.toSimpleFunc_eq_toFun a,
         Lp.simpleFunc.toSimpleFunc_eq_toFun b] with x h hx hy
@@ -294,14 +308,18 @@ noncomputable def integral : E.Linfty →⋆ₐ[ℂ] H →L[ℂ] H where
   map_star' f := by
     refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f ↦
       E.integralCLM (star f) = star (E.integralCLM f)) f ?_ fun a ↦ ?_
-    · exact isClosed_eq (E.integralCLM.continuous.comp continuous_star)
-        (continuous_star.comp E.integralCLM.continuous)
-    · rw [E.integralCLM_coe, ← map_star, E.integralCLM_eq_simpleIntegral]
+    · exact isClosed_eq (by fun_prop) (by fun_prop)
+    · rw [E.integralCLM_simpleFunc, ← map_star, E.integralCLM_eq_simpleIntegral]
       filter_upwards [Lp.coeFn_star (a : E.Linfty), Lp.simpleFunc.toSimpleFunc_eq_toFun a]
         with x h hx
       simp [h, hx]
 
-lemma integral_apply (f : E.Linfty) : E.integral f = E.integralCLM f := rfl
+@[simp]
+lemma integralCLM_apply (f : E.Linfty) : E.integralCLM f = E.integral f := rfl
+
+@[continuity, fun_prop]
+lemma continuous_integral : Continuous E.integral :=
+  E.integralCLM.continuous
 
 /-- On the class of a simple function, the integral is `E.simpleIntegral`. -/
 lemma integral_eq_simpleIntegral {f : E.Linfty} {s : SimpleFunc X ℂ} (h : f =ᵐ[E.measure] s) :
@@ -316,7 +334,7 @@ lemma integral_toLp (s : SimpleFunc X ℂ) :
 /-- The integral is an isometry: `‖∫ f dE‖ = ‖f‖_∞` (Rudin 12.21 (15)). -/
 @[simp]
 lemma norm_integral (f : E.Linfty) : ‖E.integral f‖ = ‖f‖ :=
-  norm_setToLinfty_apply _ _ E.norm_simpleIntegral f
+  Linfty.norm_setToLinfty'_apply _ _ E.norm_simpleIntegral f
 
 /-- `‖(∫ f dE) x‖ ≤ ‖f‖_∞ ‖x‖`. -/
 lemma norm_integral_apply_le (f : E.Linfty) (x : H) : ‖E.integral f x‖ ≤ ‖f‖ * ‖x‖ :=
@@ -344,8 +362,7 @@ lemma commute_integral (f g : E.Linfty) : Commute (E.integral f) (E.integral g) 
 lemma commute_integral_of_forall_commute {Q : H →L[ℂ] H} (h : ∀ w, Commute Q (E w))
     (f : E.Linfty) : Commute Q (E.integral f) := by
   refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f ↦ Commute Q (E.integral f)) f
-    (isClosed_eq (continuous_const.mul (E.integralCLM.continuous))
-      ((E.integralCLM.continuous).mul continuous_const)) fun a ↦ ?_
+    (isClosed_eq (by fun_prop) (by fun_prop)) fun a ↦ ?_
   rw [E.integral_eq_simpleIntegral (Lp.simpleFunc.toSimpleFunc_eq_toFun a).symm]
   exact E.commute_simpleIntegral h _
 
@@ -359,64 +376,6 @@ lemma forall_commute_integral_iff {Q : H →L[ℂ] H} :
     rwa [integral_toLp, simpleIntegral_indicator] at this
   · simp [E.apply_of_not_measurableSet hw]
 
-/-! ### The integral against the complex measures `E_{x,y}` -/
-
-/-- An element of `L^∞(E)` is integrable with respect to `|E_{x,y}|`. -/
-lemma integrable_toComplexMeasure (f : E.Linfty) (x y : H) :
-    (E.toComplexMeasure x y).Integrable f :=
-  .of_bound (Lp.stronglyMeasurable f).aestronglyMeasurable ‖f‖
-    ((E.variation_toComplexMeasure_absolutelyContinuous x y).ae_le (Lp.ae_norm_le_norm f))
-
-/-- `|∫ f dE_{x,y}| ≤ ‖f‖_∞ ‖x‖ ‖y‖`. -/
-lemma norm_integral_toComplexMeasure_le (f : E.Linfty) (x y : H) :
-    ‖∫ᶜ z, f z ∂(E.toComplexMeasure x y)‖ ≤ ‖f‖ * (‖x‖ * ‖y‖) := by
-  refine (VectorMeasure.norm_integral_le_of_norm_le_const
-    ((E.variation_toComplexMeasure_absolutelyContinuous x y).ae_le (Lp.ae_norm_le_norm f))).trans ?_
-  rw [mul_assoc]
-  refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg _)
-  calc ‖ContinuousLinearMap.mul ℝ ℂ‖ * (E.toComplexMeasure x y).variation.real Set.univ
-      ≤ 1 * (‖x‖ * ‖y‖) := by
-        gcongr
-        · exact ContinuousLinearMap.opNorm_mul_le ℝ ℂ
-        · refine ENNReal.toReal_le_of_le_ofReal (by positivity) ?_
-          rw [ENNReal.ofReal_mul (norm_nonneg _), ofReal_norm, ofReal_norm]
-          exact E.variation_toComplexMeasure_univ_le x y
-    _ = ‖x‖ * ‖y‖ := one_mul _
-
-/-- `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` (Rudin 12.21 (1)). -/
-theorem inner_integral (f : E.Linfty) (x y : H) :
-    ⟪x, E.integral f y⟫_ℂ = ∫ᶜ z, f z ∂(E.toComplexMeasure x y) := by
-  have hae {u v : X → ℂ} (h : u =ᵐ[E.measure] v) : u =ᵐ[(E.toComplexMeasure x y).variation] v :=
-    (E.variation_toComplexMeasure_absolutelyContinuous x y).ae_le h
-  refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f : E.Linfty ↦
-    ⟪x, E.integral f y⟫_ℂ = ∫ᶜ z, f z ∂(E.toComplexMeasure x y)) f
-    (isClosed_eq ?_ ?_) fun a ↦ ?_
-  · exact continuous_const.inner
-      ((ContinuousLinearMap.apply ℂ H y).continuous.comp E.integralCLM.continuous)
-  · refine (LipschitzWith.of_dist_le_mul (K := ⟨‖x‖ * ‖y‖, by positivity⟩) fun f g ↦ ?_).continuous
-    rw [dist_eq_norm, dist_eq_norm,
-      ← VectorMeasure.integral_sub (E.integrable_toComplexMeasure f x y)
-        (E.integrable_toComplexMeasure g x y),
-      VectorMeasure.integral_congr_ae (hae (Lp.coeFn_sub f g)).symm, mul_comm]
-    exact E.norm_integral_toComplexMeasure_le (f - g) x y
-  · have h := Lp.simpleFunc.toSimpleFunc_eq_toFun a
-    rw [E.integral_eq_simpleIntegral h.symm, inner_simpleIntegral,
-      VectorMeasure.integral_congr_ae (hae h).symm, ComplexMeasure.integral_simpleFunc]
-
-/-- `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}` (Rudin 12.21 (2)). -/
-theorem norm_integral_apply_sq (f : E.Linfty) (x : H) :
-    ((‖E.integral f x‖ ^ 2 : ℝ) : ℂ) =
-      ∫ᶜ z, ((‖f z‖ ^ 2 : ℝ) : ℂ) ∂(E.toComplexMeasure x x) := by
-  have h : ((‖E.integral f x‖ ^ 2 : ℝ) : ℂ) = ⟪x, E.integral (star f * f) x⟫_ℂ := by
-    rw [map_mul, map_star, star_eq_adjoint, mul_apply_eq_comp, adjoint_inner_right,
-      inner_self_eq_norm_sq_to_K]
-    norm_cast
-  rw [h, inner_integral]
-  refine VectorMeasure.integral_congr_ae
-    ((E.variation_toComplexMeasure_absolutelyContinuous x x).ae_le ?_)
-  filter_upwards [Linfty.coeFn_mul (star f) f, Lp.coeFn_star f] with z h₁ h₂
-  simp [h₁, h₂, Complex.conj_mul']
-
 /-- The range of the integral is the closure of the span of the projections `E w`
 (Rudin 12.22 (c)). -/
 theorem range_integralCLM_eq_topologicalClosure_span :
@@ -427,36 +386,89 @@ theorem range_integralCLM_eq_topologicalClosure_span :
     refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f : E.Linfty ↦
       E.integralCLM f ∈ (Submodule.span ℂ (Set.range E)).topologicalClosure) f
       ((Submodule.isClosed_topologicalClosure _).preimage E.integralCLM.continuous) fun g ↦ ?_
-    rw [E.integralCLM_coe, simpleIntegral_apply]
+    rw [E.integralCLM_simpleFunc, simpleIntegral_apply]
     exact Submodule.le_topologicalClosure _ (Submodule.sum_mem _ fun c _ ↦
       Submodule.smul_mem _ c (Submodule.subset_span ⟨_, rfl⟩))
   · refine Submodule.span_le.2 ?_
     rintro _ ⟨w, rfl⟩
     by_cases hw : MeasurableSet w
-    · refine ⟨((((SimpleFunc.const X (1 : ℂ)).piecewise w hw (SimpleFunc.const X 0)).memLp_top
-        E.measure).toLp _), ?_⟩
-      exact (E.integral_toLp _).trans (E.simpleIntegral_indicator hw)
-    · rw [E.apply_of_not_measurableSet hw]
-      exact zero_mem _
+    · exact ⟨(((SimpleFunc.const X (1 : ℂ)).piecewise w hw (SimpleFunc.const X 0)).memLp_top
+        E.measure).toLp _, (E.integral_toLp _).trans (E.simpleIntegral_indicator hw)⟩
+    · simp [E.apply_of_not_measurableSet hw]
   · rw [LinearMap.coe_range]
     exact E.isClosed_range_integral
 
-/-! ### The bounded convergence theorem -/
+/-! ### The integral against the complex measures `E_{x,y}` -/
 
-lemma toComplexMeasure_self (x : H) :
-    E.toComplexMeasure x x = (E.toMeasure x).toComplexMeasure :=
+/-- An element of `L^∞(E)` is integrable with respect to `|E_{x,y}|`. -/
+lemma integrable_complexMeasure (f : E.Linfty) (x y : H) :
+    (E.complexMeasure x y).Integrable f :=
+  .of_bound (Lp.stronglyMeasurable f).aestronglyMeasurable ‖f‖
+    ((E.variation_complexMeasure_absolutelyContinuous x y).ae_le (Lp.ae_norm_le_norm f))
+
+/-- `|∫ f dE_{x,y}| ≤ ‖f‖_∞ ‖x‖ ‖y‖`. -/
+lemma norm_integral_complexMeasure_le (f : E.Linfty) (x y : H) :
+    ‖∫ᶜ z, f z ∂(E.complexMeasure x y)‖ ≤ ‖f‖ * (‖x‖ * ‖y‖) := by
+  refine (VectorMeasure.norm_integral_le_of_norm_le_const
+    ((E.variation_complexMeasure_absolutelyContinuous x y).ae_le (Lp.ae_norm_le_norm f))).trans ?_
+  rw [mul_assoc]
+  refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg _)
+  refine (mul_le_of_le_one_left measureReal_nonneg (opNorm_mul_le ℝ ℂ)).trans ?_
+  refine ENNReal.toReal_le_of_le_ofReal (by positivity) ?_
+  rw [ENNReal.ofReal_mul (norm_nonneg _), ofReal_norm, ofReal_norm]
+  exact E.variation_complexMeasure_univ_le x y
+
+/-- `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` (Rudin 12.21 (1)). -/
+theorem inner_integral (f : E.Linfty) (x y : H) :
+    ⟪x, E.integral f y⟫_ℂ = ∫ᶜ z, f z ∂(E.complexMeasure x y) := by
+  have hae {u v : X → ℂ} (h : u =ᵐ[E.measure] v) : u =ᵐ[(E.complexMeasure x y).variation] v :=
+    (E.variation_complexMeasure_absolutelyContinuous x y).ae_le h
+  refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f : E.Linfty ↦
+    ⟪x, E.integral f y⟫_ℂ = ∫ᶜ z, f z ∂(E.complexMeasure x y)) f
+    (isClosed_eq ?_ ?_) fun a ↦ ?_
+  · exact continuous_const.inner ((ContinuousLinearMap.apply ℂ H y).continuous.comp
+      E.continuous_integral)
+  · refine (LipschitzWith.of_dist_le_mul (K := ⟨‖x‖ * ‖y‖, by positivity⟩) fun f g ↦ ?_).continuous
+    rw [dist_eq_norm, dist_eq_norm,
+      ← VectorMeasure.integral_sub (E.integrable_complexMeasure f x y)
+        (E.integrable_complexMeasure g x y),
+      VectorMeasure.integral_congr_ae (hae (Lp.coeFn_sub f g)).symm, mul_comm]
+    exact E.norm_integral_complexMeasure_le (f - g) x y
+  · have h := Lp.simpleFunc.toSimpleFunc_eq_toFun a
+    rw [E.integral_eq_simpleIntegral h.symm, inner_simpleIntegral,
+      VectorMeasure.integral_congr_ae (hae h).symm, ComplexMeasure.integral_simpleFunc]
+
+/-- `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}` (Rudin 12.21 (2)). -/
+theorem norm_integral_apply_sq (f : E.Linfty) (x : H) :
+    ((‖E.integral f x‖ ^ 2 : ℝ) : ℂ) =
+      ∫ᶜ z, ((‖f z‖ ^ 2 : ℝ) : ℂ) ∂(E.complexMeasure x x) := by
+  have h : ((‖E.integral f x‖ ^ 2 : ℝ) : ℂ) = ⟪x, E.integral (star f * f) x⟫_ℂ := by
+    rw [map_mul, map_star, star_eq_adjoint, mul_apply_eq_comp, adjoint_inner_right,
+      inner_self_eq_norm_sq_to_K]
+    norm_cast
+  rw [h, inner_integral]
+  refine VectorMeasure.integral_congr_ae
+    ((E.variation_complexMeasure_absolutelyContinuous x x).ae_le ?_)
+  filter_upwards [Linfty.coeFn_mul (star f) f, Lp.coeFn_star f] with z h₁ h₂
+  simp [h₁, h₂, Complex.conj_mul']
+
+/-- `E_{x,x}` is the complex measure `E.complexMeasure x x`. -/
+lemma complexMeasure_self (x : H) :
+    E.complexMeasure x x = (E.measureOf x).toComplexMeasure :=
   VectorMeasure.ext fun w hw ↦ by
-    rw [toComplexMeasure_apply, Measure.toComplexMeasure_apply _ hw, measureReal_def,
-      toMeasure_apply E w hw, ENNReal.toReal_ofReal (by positivity), inner_apply_self]
+    rw [complexMeasure_apply, Measure.toComplexMeasure_apply _ hw, ← E.norm_apply_sq hw,
+      inner_apply_self]
     push_cast
     rfl
 
-/-- `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}`, with `E_{x,x}` the finite measure `E.toMeasure x`. -/
+/-- `‖(∫ f dE) x‖² = ∫ |f|² dE_{x,x}`, with `E_{x,x}` the finite measure `E.measureOf x`. -/
 theorem norm_integral_apply_sq_eq_integral (f : E.Linfty) (x : H) :
-    ‖E.integral f x‖ ^ 2 = ∫ z, ‖f z‖ ^ 2 ∂(E.toMeasure x) := by
+    ‖E.integral f x‖ ^ 2 = ∫ z, ‖f z‖ ^ 2 ∂(E.measureOf x) := by
   have h := E.norm_integral_apply_sq f x
-  rw [toComplexMeasure_self, Measure.integral_toComplexMeasure, integral_complex_ofReal] at h
+  rw [complexMeasure_self, Measure.integral_toComplexMeasure, integral_complex_ofReal] at h
   exact_mod_cast h
+
+/-! ### The bounded convergence theorem -/
 
 /-- The bounded convergence theorem: if `fᵢ → g` `E`-a.e. with `‖fᵢ‖ ≤ C`, then
 `(∫ fᵢ dE) x → (∫ g dE) x` for every `x`, i.e. `∫ fᵢ dE → ∫ g dE` in the strong operator
@@ -470,15 +482,15 @@ theorem tendsto_integral_toLp_apply {ι : Type*} {l : Filter ι} [l.IsCountablyG
   have hgD : ∀ᵐ z ∂E.measure, ‖g z‖ ≤ D := by
     filter_upwards [Lp.ae_norm_le_norm (hg.toLp g), hg.coeFn_toLp] with z h₁ h₂
     rwa [← h₂]
-  have hac := E.toMeasure_absolutelyContinuous x
+  have hac := E.measureOf_absolutelyContinuous x
   have heq (i : ι) : ‖E.integral ((hf i).toLp (f i)) x - E.integral (hg.toLp g) x‖ ^ 2 =
-      ∫ z, ‖f i z - g z‖ ^ 2 ∂(E.toMeasure x) := by
+      ∫ z, ‖f i z - g z‖ ^ 2 ∂(E.measureOf x) := by
     rw [← sub_apply, ← map_sub, ← MemLp.toLp_sub, norm_integral_apply_sq_eq_integral]
     refine integral_congr_ae (hac.ae_le ?_)
     filter_upwards [((hf i).sub hg).coeFn_toLp] with z hz
     simp [hz]
-  have hsq : Tendsto (fun i ↦ ∫ z, ‖f i z - g z‖ ^ 2 ∂(E.toMeasure x)) l
-      (𝓝 (∫ z, ‖(0 : ℂ)‖ ^ 2 ∂(E.toMeasure x))) := by
+  have hsq : Tendsto (fun i ↦ ∫ z, ‖f i z - g z‖ ^ 2 ∂(E.measureOf x)) l
+      (𝓝 (∫ z, ‖(0 : ℂ)‖ ^ 2 ∂(E.measureOf x))) := by
     refine tendsto_integral_filter_of_dominated_convergence (fun _ ↦ (C + D) ^ 2)
       (.of_forall fun i ↦
         (((hf i).aestronglyMeasurable.sub hg.aestronglyMeasurable).norm.pow 2).mono_ac hac)
@@ -505,8 +517,31 @@ theorem spectrum_integral (f : E.Linfty) : spectrum ℂ (E.integral f) = spectru
 
 /-- The spectrum of `∫ f dE` is the essential range of `f` with respect to `E`. -/
 theorem spectrum_integral_eq_essRange (f : E.Linfty) :
-    spectrum ℂ (E.integral f) = E.measure.essRange f := by
+    spectrum ℂ (E.integral f) = essRange f E.measure := by
   rw [spectrum_integral, Linfty.spectrum_eq_essRange]
 
 end ProjectionValuedMeasure
 
+/-! ### Continuous functions -/
+
+namespace ProjectionValuedMeasure
+
+variable {X : Type*} [TopologicalSpace X] [CompactSpace X] [MeasurableSpace X]
+  [OpensMeasurableSpace X]
+  {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
+
+/-- A continuous function on a compact space as an element of `L^∞(E)`. -/
+lemma memLp_continuousMap (E : ProjectionValuedMeasure X H) (f : C(X, ℂ)) :
+    MemLp f ∞ E.measure :=
+  memLp_top_of_bound f.continuous.aestronglyMeasurable ‖f‖ (ae_of_all _ f.norm_coe_le_norm)
+
+/-- `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` for continuous `f`. -/
+lemma inner_integral_toLp_continuousMap (E : ProjectionValuedMeasure X H) (f : C(X, ℂ))
+    (x y : H) :
+    ⟪x, E.integral ((E.memLp_continuousMap f).toLp f) y⟫_ℂ =
+      ∫ᶜ z, f z ∂(E.complexMeasure x y) := by
+  rw [E.inner_integral]
+  exact VectorMeasure.integral_congr_ae
+    ((E.variation_complexMeasure_absolutelyContinuous x y).ae_le (MemLp.coeFn_toLp _))
+
+end ProjectionValuedMeasure

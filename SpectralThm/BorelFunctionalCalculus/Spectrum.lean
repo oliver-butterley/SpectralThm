@@ -20,6 +20,8 @@ consequence, the continuous functional calculus of `f(a)` is the Borel functiona
 * `IsStarNormal.spectrum_bfc`: `σ(f(a))` is the essential range of `f` on `σ(a)` with respect
   to `E`.
 * `IsStarNormal.spectrum_bfc_subset_closure_image`: `σ(f(a)) ⊆ closure (f '' σ(a))`.
+* `IsStarNormal.isUnit_bfc_iff`, `IsStarNormal.bfc_inv`: `f(a)` is invertible iff `|f|` is
+  essentially bounded below on `σ(a)`, and then `f(a)⁻¹ = f⁻¹(a)`.
 * `IsStarNormal.cfc_bfc`: `g(f(a)) = (g ∘ f)(a)` for `g` continuous on `σ(f(a))`.
 * `IsStarNormal.bfc_comp`: `(g ∘ f)(a) = g(f(a))` for `f` bounded measurable on `σ(a)` and `g`
   bounded measurable on `σ(f(a))`, both in the Borel functional calculus.
@@ -43,21 +45,44 @@ include hf
 `f` on `σ(a)` with respect to the spectral measure. -/
 theorem spectrum_bfc :
     spectrum ℂ (ha.bfc f) =
-      ha.spectralMeasure.measure.essRange (fun z : spectrum ℂ a ↦ f z) := by
+      essRange (fun z : spectrum ℂ a ↦ f z) ha.spectralMeasure.measure := by
   rw [ha.bfc_eq_integral hf, ProjectionValuedMeasure.spectrum_integral_eq_essRange,
-    Measure.essRange_eq_of_ae_eq _ _ hf.coeFn_toLp]
+    essRange_congr_ae hf.coeFn_toLp]
 
 /-- `f` takes values in `σ(f(a))` almost everywhere with respect to the spectral measure. -/
 lemma ae_mem_spectrum_bfc :
     ∀ᵐ z : spectrum ℂ a ∂ha.spectralMeasure.measure, f z ∈ spectrum ℂ (ha.bfc f) := by
   rw [ha.spectrum_bfc hf]
-  exact Measure.ae_mem_essRange hf.aestronglyMeasurable.aemeasurable
+  exact ae_mem_essRange hf.aestronglyMeasurable.aemeasurable
 
 /-- `σ(f(a))` is contained in the closure of `f(σ(a))`. -/
 lemma spectrum_bfc_subset_closure_image :
     spectrum ℂ (ha.bfc f) ⊆ closure (f '' spectrum ℂ a) := by
   rw [ha.spectrum_bfc hf, Set.image_eq_range]
-  exact Measure.essRange_subset_closure_range hf.aestronglyMeasurable.aemeasurable
+  exact essRange_subset_closure_range hf.aestronglyMeasurable.aemeasurable
+
+/-- `f(a)` is invertible iff `|f|` is `E`-a.e. bounded below by a positive constant on `σ(a)`. -/
+lemma isUnit_bfc_iff :
+    IsUnit (ha.bfc f) ↔ ∃ δ > 0, ∀ᵐ z : spectrum ℂ a ∂ha.spectralMeasure.measure, δ ≤ ‖f z‖ := by
+  rw [← spectrum.zero_notMem_iff ℂ, ha.spectrum_bfc hf,
+    notMem_essRange_iff hf.aestronglyMeasurable.aemeasurable]
+  simp
+
+/-- If `f(a)` is invertible, its inverse is `f⁻¹(a)`. -/
+lemma bfc_inv (h : IsUnit (ha.bfc f)) :
+    ha.bfc (fun z ↦ (f z)⁻¹) = Ring.inverse (ha.bfc f) := by
+  obtain ⟨δ, hδ, hfδ⟩ := (ha.isUnit_bfc_iff hf).1 h
+  have hinv : MemLp (fun z : spectrum ℂ a ↦ (f z)⁻¹) ∞ ha.spectralMeasure.measure := by
+    refine memLp_top_of_bound hf.aestronglyMeasurable.aemeasurable.inv.aestronglyMeasurable δ⁻¹ ?_
+    filter_upwards [hfδ] with z hz
+    rw [norm_inv]
+    exact inv_anti₀ hδ hz
+  have hmul : ha.bfc (fun z ↦ (f z)⁻¹) * ha.bfc f = 1 := by
+    rw [← ha.bfc_mul hinv hf, ← ha.bfc_const_one]
+    refine ha.bfc_congr_ae ?_
+    filter_upwards [hfδ] with z hz
+    exact inv_mul_cancel₀ (norm_pos_iff.1 (hδ.trans_le hz))
+  rw [← one_mul (Ring.inverse _), ← hmul, mul_assoc, Ring.mul_inverse_cancel _ h, mul_one]
 
 /-! ### Composition with the continuous functional calculus -/
 

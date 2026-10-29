@@ -5,8 +5,14 @@ Authors: Oliver Butterley, Yoh Tanimoto
 -/
 module
 
-public import Mathlib
-public import SpectralThm.VectorMeasure.FiniteDimensional
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+public import Mathlib.MeasureTheory.Measure.Complex
+public import Mathlib.MeasureTheory.VectorMeasure.Integral
+public import SpectralThm.Mathlib.MeasureTheory.VectorMeasure.Variation.FiniteDimensional
+
+import Mathlib.MeasureTheory.Function.SpecialFunctions.Basic
+import Mathlib.MeasureTheory.Integral.BoundedContinuousFunction
+import Mathlib.MeasureTheory.VectorMeasure.SetIntegral
 
 /-!
 # Integral of a complex function against a complex measure
@@ -23,6 +29,8 @@ is multiplication, `ContinuousLinearMap.mul ℝ ℂ`.
 
 ## Main results
 
+* `MeasureTheory.Integrable.mul_of_withDensity_enorm`: if `g` is integrable against `‖k‖ ν`, then
+  `k g` is integrable against `ν`.
 * `MeasureTheory.ComplexMeasure.integral_const_mul`: the integral is `ℂ`-linear in `f`.
 * `MeasureTheory.ComplexMeasure.norm_integral_le_integral_norm`: `‖∫ f dμ‖ ≤ ∫ ‖f‖ d|μ|`.
 * `MeasureTheory.ComplexMeasure.integral_simpleFunc`: `∫ s dμ = ∑ a * μ (s ⁻¹' {a})`.
@@ -33,9 +41,9 @@ is multiplication, `ContinuousLinearMap.mul ℝ ℂ`.
 
 The relation with the polar decomposition, `∫ f dμ = ∫ (dμ/d|μ|) f d|μ|`, is
 `MeasureTheory.ComplexMeasure.integral_eq_integral_rnDeriv` in
-`SpectralThm/ComplexMeasure/RadonNikodym.lean`.
+`Mathlib/MeasureTheory/Measure/Complex/RadonNikodym.lean`.
 
-## Notes
+## Implementation notes
 
 The notation `∫ᶜ` is a stopgap. Mathlib already has notations for fixed pairings next to the
 definition of the integral (`Mathlib/MeasureTheory/VectorMeasure/Integral.lean`):
@@ -48,6 +56,27 @@ removed in favour of it, and the lemmas here stated for `∂•` and moved to Ma
 -/
 
 @[expose] public section
+
+namespace MeasureTheory
+
+/-- If `g` is integrable against `‖k‖ ν`, then `k g` is integrable against `ν`. -/
+lemma Integrable.mul_of_withDensity_enorm {X : Type*} {mX : MeasurableSpace X}
+    {ν : Measure X} {k g : X → ℂ} (hk : AEStronglyMeasurable k ν)
+    (hg : Integrable g (ν.withDensity fun x ↦ ‖k x‖ₑ)) : Integrable (fun x ↦ k x * g x) ν := by
+  simp_rw [enorm_eq_nnnorm] at hg
+  rw [integrable_withDensity_iff_integrable_smul₀ hk.nnnorm.aemeasurable] at hg
+  have hs : AEStronglyMeasurable (fun x ↦ k x / (‖k x‖ : ℂ)) ν :=
+    (hk.aemeasurable.div (Complex.measurable_ofReal.comp_aemeasurable
+      hk.aemeasurable.norm)).aestronglyMeasurable
+  refine (hg.bdd_mul (c := 1) hs (.of_forall fun x ↦ ?_)).congr (.of_forall fun x ↦ ?_)
+  · simpa [norm_div] using div_self_le_one ‖k x‖
+  · rcases eq_or_ne (k x) 0 with h | h
+    · simp [h]
+    · have : (‖k x‖ : ℂ) ≠ 0 := by simpa using h
+      simp only [NNReal.smul_def, coe_nnnorm, Complex.real_smul]
+      field_simp
+
+end MeasureTheory
 
 namespace MeasureTheory.ComplexMeasure
 
@@ -129,12 +158,11 @@ theorem exists_integral_eq_of_tendsto {X : Type*} [MeasurableSpace X] {L : (X �
       obtain ⟨hsum, hsumC⟩ := hB_sum s hs
       rw [Finset.sum_insert hi, Finset.sum_insert hi, hadd _ _ hfi hsum hfiC hsumC, ih hs]
   let m : Set X → ℂ := fun w ↦ if MeasurableSet w then L (w.indicator 1) else 0
-  have hm {w : Set X} (hw : MeasurableSet w) : m w = L (w.indicator 1) :=
-    ite_eq_left_iff.2 fun h ↦ absurd hw h
+  have hm {w : Set X} (hw : MeasurableSet w) : m w = L (w.indicator 1) := ite_eq_left hw
   let μ : ComplexMeasure X :=
     { measureOf' := m
       empty' := (hm .empty).trans (by rw [Set.indicator_empty]; exact hL_zero)
-      not_measurable' := fun w hw ↦ ite_eq_right_iff.2 fun h ↦ absurd h hw
+      not_measurable' := fun _ hw ↦ ite_eq_right hw
       m_iUnion' := fun w hw hd ↦ by
         have hsum (s : Finset ℕ) :
             ∑ i ∈ s, m (w i) = L ((⋃ i ∈ s, w i).indicator 1) := by
