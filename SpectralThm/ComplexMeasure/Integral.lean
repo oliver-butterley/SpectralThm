@@ -28,6 +28,17 @@ is multiplication, `ContinuousLinearMap.mul ℝ ℂ`.
 
 The relation with the polar decomposition, `∫ f dμ = ∫ (dμ/d|μ|) f d|μ|`, is
 `ComplexRMK.integral_eq_integral_rnDeriv` in `SpectralThm/RieszMarkovKakutani/Complex.lean`.
+
+## Notes
+
+The notation `∫ᶜ` is a stopgap. Mathlib already has notations for fixed pairings next to the
+definition of the integral (`Mathlib/MeasureTheory/VectorMeasure/Integral.lean`):
+`∫ᵛ x, f x ∂•μ` for a real function against a vector measure (pairing `lsmul ℝ ℝ`) and
+`∫ᵛ x, f x ∂<•μ` for a vector function against a signed measure. The plan is to generalise `∂•` in
+Mathlib from `ℝ` to any scalar field `𝕜`, using the pairing `lsmul ℝ 𝕜` (`f x • dμ`). Since
+`lsmul ℝ ℂ = mul ℝ ℂ` as pairings on `ℂ`, `∫ᵛ x, f x ∂•μ` would then cover this file, and also
+complex functions against any complex-Banach-valued measure. Once that is in Mathlib, `∫ᶜ` should be
+removed in favour of it, and the lemmas here stated for `∂•` and moved to Mathlib.
 -/
 
 @[expose] public section
