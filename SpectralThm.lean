@@ -4,4 +4,6 @@ import SpectralThm.Linfty
 import SpectralThm.RieszMarkovKakutani.Complex
 import SpectralThm.Projections
 import SpectralThm.Resolutions
+import SpectralThm.SimpleIntegral
 import SpectralThm.SpectralTheorem
+import SpectralThm.WStarAlgebra.BorelFunctionalCalculus

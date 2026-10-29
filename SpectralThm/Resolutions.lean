@@ -2,7 +2,7 @@ module
 
 public import Mathlib
 public import SpectralThm.Linfty
--- public import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
+public import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
 /-!
 # Resoltuions of the identity

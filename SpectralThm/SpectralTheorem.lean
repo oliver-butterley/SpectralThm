@@ -3,7 +3,6 @@ module
 public import Mathlib
 public import SpectralThm.RieszMarkovKakutani.Complex
 public import SpectralThm.Resolutions
--- public import SpectralThm.WStarAlgebra.BorelFunctionalCalculus
 
 /-!
 # The Spectral Theorem

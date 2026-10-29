@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.CStarAlgebra.Classes
 public import Mathlib.MeasureTheory.Function.Holder
+public import SpectralThm.Linfty
 
 /-!
 # Borel Functional Calculus Class
@@ -33,43 +34,19 @@ namespace Measure
 
 open scoped Topology
 
-section Support
-
-variable {X : Type*} [TopologicalSpace X] [MeasurableSpace X]
-
-def support (μ : Measure X) : Set X := {x : X | ∀ U ∈ 𝓝 x, 0 < μ U}
-
-variable {μ : Measure X}
-
-theorem _root_.Filter.HasBasis.mem_measureSupport {ι : Sort*} {p : ι → Prop}
-    {s : ι → Set X} {x : X} (hl : (𝓝 x).HasBasis p s) :
-    x ∈ μ.support ↔ ∀ (i : ι), p i → 0 < μ (s i) := by
-  simp [support, hl.forall_iff (fun s t hst hs ↦ (hs.trans_le (μ.mono hst) : 0 < μ t))]
-
-theorem support_eq_forall_isOpen : μ.support = {x : X | ∀ u : Set X, x ∈ u → IsOpen u → 0 < μ u} := by
-  simp [Set.ext_iff, (nhds_basis_opens _).mem_measureSupport]
-
-lemma isClosed_support (μ : Measure X) : IsClosed μ.support := by
-  simp only [support_eq_forall_isOpen, isClosed_iff_frequently, Set.mem_setOf_eq,
-    (nhds_basis_opens _).frequently_iff, and_imp]
-  intro x h u hxu hu
-  obtain ⟨y, hyu, hy⟩ := h u hxu hu
-  exact hy u hyu hu
-
-end Support
-
 section essRange
 
 variable {X : Type*} [MeasurableSpace X]
 
 variable {Y : Type*} [TopologicalSpace Y] [MeasurableSpace Y]
 
-def essRange (μ : Measure X) (f : X → Y) : Set Y :=
-  support (map f μ)
+/-- The essential range of `f` with respect to `μ`: the support of the push-forward `map f μ`. -/
+noncomputable def essRange (μ : Measure X) (f : X → Y) : Set Y :=
+  (map f μ).support
 
-theorem essRange_eq_of_ae_eq {μ : Measure X} (f g : X → Y) (hfg : f =ᵐ[μ] g) : essRange μ f = essRange μ g := by
-  dsimp [essRange, support]; ext ; congr! 6
-  exact congrFun (congrArg DFunLike.coe <| Measure.map_congr hfg) _
+theorem essRange_eq_of_ae_eq {μ : Measure X} (f g : X → Y) (hfg : f =ᵐ[μ] g) :
+    essRange μ f = essRange μ g := by
+  rw [essRange, essRange, Measure.map_congr hfg]
 
 end essRange
 
@@ -80,67 +57,6 @@ end BorelSpace
 open ENNReal
 
 variable {α : Type*} {m : MeasurableSpace α} {μ : Measure α}
-
-section Star
-
-local infixr:25 " →ₛ " => SimpleFunc
-
-variable {R : Type*} [Star R]
-
-instance : Star (α →ₛ R) where
-  star f := f.map Star.star
-
-lemma star_apply (f : α →ₛ R) (x : α) : (star f) x = star (f x) := rfl
-
-variable [TopologicalSpace R] [ContinuousStar R]
-
-variable {R : Type*} [TopologicalSpace R] [Star R] [ContinuousStar R]
-
-instance : Star (α →ₘ[μ] R) where
-  star f := (AEEqFun.comp _ continuous_star f)
-
-end Star
-
-section NormStar
-
-variable {R : Type*} [NormedAddCommGroup R] [StarAddMonoid R] [NormedStarGroup R]
-
-protected noncomputable instance {p : ℝ≥0∞} : Star (Lp R p μ) where
-  star f := ⟨star (f : α →ₘ[μ] R), by simpa [Lp.mem_Lp_iff_eLpNorm_lt_top] using Lp.eLpNorm_lt_top f⟩
-
-end NormStar
-
-section InvolutiveStar
-
-section AEEqFun
-
-local infixr:25 " →ₛ " => SimpleFunc
-
-variable {R : Type*} [TopologicalSpace R] [InvolutiveStar R] [ContinuousStar R]
-
-instance : InvolutiveStar (α →ₛ R) where
-  star_involutive := by
-    intro f
-    ext x
-    simp only [star_apply (star f), star_apply f, star_star]
-
-instance : InvolutiveStar (α →ₘ[μ] R) where
-  star_involutive f := by
-    ext
-    filter_upwards [AEEqFun.coeFn_star (star f), AEEqFun.coeFn_star f] with x hx hy
-    simp only [hx, Pi.star_apply, hy, star_star]
-
-end AEEqFun
-
-variable {R : Type*} [NormedAddCommGroup R] [StarAddMonoid R] [NormedStarGroup R]
-
-noncomputable instance {p : ℝ≥0∞} : InvolutiveStar (Lp R p μ) where
-  star_involutive f := by
-     ext
-     filter_upwards
-     exact congrFun (congrArg AEEqFun.cast <| star_involutive f.1)
-
-end InvolutiveStar
 
 section NormedRing
 
@@ -158,17 +74,9 @@ end Mul
 
 section Const
 
-/-- Note: Unlike for general Lp, this does not require `IsFiniteMeasure` instance. -/
-theorem memLinfty_const (c : R) : MemLp (fun _ : α => c) ∞ μ := by
-  refine ⟨aestronglyMeasurable_const, ?_⟩
-  by_cases hμ : μ = 0
-  · simp [hμ]
-  · rw [eLpNorm_const c (ENNReal.top_ne_zero) hμ]
-    simp
-
 theorem const_mem_Linfty (c : R) :
     @AEEqFun.const α _ _ μ _ c ∈ Lp R ∞ μ :=
-  (memLinfty_const c).eLpNorm_mk_lt_top
+  (memLp_top_const c).eLpNorm_mk_lt_top
 
 def Linfty.const : R →+ Lp R ∞ μ where
   toFun c := ⟨AEEqFun.const α c, const_mem_Linfty c⟩
@@ -299,14 +207,6 @@ section AEEqFun
 
 variable [StarRing R] [NormedStarGroup R]
 
-local infixr:25 " →ₛ " => SimpleFunc
-
-instance : StarMul (α →ₛ R) where
-  star_mul := by
-    intro f g
-    ext
-    simp [star_apply, SimpleFunc.coe_mul, Pi.mul_apply, star_mul]
-
 instance : StarMul (α →ₘ[μ] R) where
   star_mul f g := by
     ext
@@ -350,22 +250,6 @@ end StarRing
 
 open scoped NNReal
 
-lemma enorm_le_of_ae_enorm_le (f : Lp R ∞ μ) (c : ℝ≥0∞) (hf : ∀ᵐ(x : α) ∂μ, ‖f x‖ₑ ≤ c) : ‖f‖ₑ ≤ c := by
-  have := essSup_le_of_ae_le _ hf
-  simpa [Lp.enorm_def, eLpNorm_exponent_top, ge_iff_le]
-
-lemma nnnorm_le_of_ae_nnnorm_le (f : Lp R ∞ μ) (c : ℝ≥0) (hf : ∀ᵐ(x : α) ∂μ, ‖f x‖₊ ≤ c) : ‖f‖₊ ≤ c := by
-  have hf' : ∀ᵐ x ∂μ, ‖f x‖ₑ ≤ c := by filter_upwards [hf]; simp
-  simpa only [enorm_le_coe] using enorm_le_of_ae_enorm_le f c hf'
-
-lemma norm_le_of_ae_norm_le (f : Lp R ∞ μ) (c : ℝ) (hc : 0 ≤ c) (hf : ∀ᵐ(x : α) ∂μ, ‖f x‖ ≤ c) : ‖f‖ ≤ c :=
-  nnnorm_le_of_ae_nnnorm_le f ⟨c, hc⟩ hf
-
-lemma ae_norm_le_norm (f : Lp R ∞ μ) : ∀ᵐ(x : α) ∂μ, ‖f x‖ ≤ ‖f‖ := by
-  have : Filter.IsBoundedUnder (· ≤ ·) (ae μ) (fun t => ‖f t‖ₑ) := by isBoundedDefault
-  convert _root_.ae_le_essSup
-  rw [← eLpNormEssSup, ← eLpNorm_exponent_top, ←Lp.enorm_def]
-  exact enorm_le_iff_norm_le.symm
 section IsBoundedSMul
 
 variable [IsBoundedSMul R R]
@@ -396,8 +280,8 @@ section CStarRing
 instance [StarRing R] [CStarRing R] : CStarRing (Lp R ∞ μ) where
   norm_mul_self_le f := by
     rw [← sq, ← Real.le_sqrt (by positivity) (by positivity), Real.sqrt_eq_rpow]
-    apply norm_le_of_ae_norm_le _ _ (by positivity)
-    filter_upwards [ae_norm_le_norm (star f * f), Lp.coeFn_star f, Linfty.coeFn_mul (star f) f] with x hx hx_star hx_mul
+    apply Lp.norm_le_of_ae_bound_top (by positivity)
+    filter_upwards [Lp.ae_norm_le_norm (star f * f), Lp.coeFn_star f, Linfty.coeFn_mul (star f) f] with x hx hx_star hx_mul
     refine Real.rpow_inv_le_iff_of_pos (norm_nonneg _) (norm_nonneg _) (by norm_num)|>.mp ?_
     simp only [one_div, inv_inv, Real.rpow_two]
     convert hx
@@ -429,9 +313,27 @@ end StarModule
 end IsBoundedSMul
 
 end NormedRing
+section CommRing
+
+variable {R : Type*} [NormedCommRing R]
+
+noncomputable instance : CommRing (Lp R ∞ μ) where
+  mul_comm f g := by
+    ext
+    filter_upwards [Linfty.coeFn_mul f g, Linfty.coeFn_mul g f] with x h₁ h₂
+    rw [h₁, h₂, Pi.mul_apply, Pi.mul_apply, mul_comm]
+
+noncomputable instance [IsBoundedSMul R R] : NormedCommRing (Lp R ∞ μ) where
+  mul_comm := mul_comm
+
+end CommRing
+
 section CStarAlgebra
 
 noncomputable instance {R : Type*} [CStarAlgebra R] : CStarAlgebra (Lp R ∞ μ) where
+
+noncomputable instance {R : Type*} [CommCStarAlgebra R] : CommCStarAlgebra (Lp R ∞ μ) where
+  mul_comm := mul_comm
 
 end CStarAlgebra
 
