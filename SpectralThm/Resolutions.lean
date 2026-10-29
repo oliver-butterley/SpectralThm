@@ -130,6 +130,48 @@ lemma subset_iff_le (w₁ w₂ : Set X) (h1 : MeasurableSet w₁) (h2 : Measurab
   rw [apply, apply, ← Set.union_sdiff_cancel h, E.m_Union' h1 (h2.diff h1) Set.disjoint_sdiff_right]
   simpa using (E.IsStarProjection' (w₂ \ w₁)).nonneg
 
+lemma apply_of_not_measurableSet {w : Set X} (hw : ¬MeasurableSet w) : E w = 0 :=
+  E.not_measurable' hw
+
+lemma apply_union {w₁ w₂ : Set X} (h₁ : MeasurableSet w₁) (h₂ : MeasurableSet w₂)
+    (h : Disjoint w₁ w₂) : E (w₁ ∪ w₂) = E w₁ + E w₂ :=
+  E.m_Union' h₁ h₂ h
+
+lemma apply_inter {w₁ w₂ : Set X} (h₁ : MeasurableSet w₁) (h₂ : MeasurableSet w₂) :
+    E (w₁ ∩ w₂) = E w₁ * E w₂ :=
+  E.m_Inter' h₁ h₂
+
+/-- The projections `E w` commute with each other (Rudin 12.17). -/
+lemma commute (w₁ w₂ : Set X) : Commute (E w₁) (E w₂) := by
+  by_cases h₁ : MeasurableSet w₁
+  · by_cases h₂ : MeasurableSet w₂
+    · rw [Commute, SemiconjBy, ← E.apply_inter h₁ h₂, ← E.apply_inter h₂ h₁, Set.inter_comm]
+    · simp [E.apply_of_not_measurableSet h₂]
+  · simp [E.apply_of_not_measurableSet h₁]
+
+/-- The projections on disjoint sets have orthogonal ranges (Rudin 12.17). -/
+lemma mul_eq_zero_of_disjoint {w₁ w₂ : Set X} (h : Disjoint w₁ w₂) : E w₁ * E w₂ = 0 := by
+  by_cases h₁ : MeasurableSet w₁
+  · by_cases h₂ : MeasurableSet w₂
+    · rw [← E.apply_inter h₁ h₂, Set.disjoint_iff_inter_eq_empty.1 h, apply, E.empty']
+    · simp [E.apply_of_not_measurableSet h₂]
+  · simp [E.apply_of_not_measurableSet h₁]
+
+/-- `E` is finitely additive on measurable sets (Rudin 12.17). -/
+lemma apply_biUnion_finset {ι : Type*} {s : Finset ι} {w : ι → Set X}
+    (hw : ∀ i ∈ s, MeasurableSet (w i)) (hd : (s : Set ι).PairwiseDisjoint w) :
+    E (⋃ i ∈ s, w i) = ∑ i ∈ s, E (w i) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty => simp [apply, E.empty']
+  | insert i s hi ih =>
+    have hws : ∀ j ∈ s, MeasurableSet (w j) := fun j hj ↦ hw j (Finset.mem_insert_of_mem hj)
+    have hdisj : Disjoint (w i) (⋃ j ∈ s, w j) :=
+      Set.disjoint_iUnion₂_right.2 fun j hj ↦ hd (by simp) (by simp [hj]) fun h ↦ hi (h ▸ hj)
+    rw [Finset.set_biUnion_insert, Finset.sum_insert hi,
+      E.apply_union (hw i (Finset.mem_insert_self i s)) (Finset.measurableSet_biUnion s hws) hdisj,
+      ih hws (hd.subset (by simp))]
+
 noncomputable def toComplexMeasure (x y : H) : ComplexMeasure X where
   measureOf' w := ⟪x, E.measureOf' w y⟫_ℂ
   empty' := by simp [E.empty', zero_apply, inner_zero_right]

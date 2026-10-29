@@ -61,33 +61,42 @@
 
 \begin{lemma}
   \label{lem:resId_comm}
+  \lean{ResolutionOfIdentity.commute}
+  \leanok
   For two $\omega_1, \omega_2$, \( E(\omega_1), E(\omega_2) \) commute.
 \end{lemma}
 
 \begin{proof}
   \uses{def:resId}
+  \leanok
   By (\ref{itm:Rc}), any two of the projections \( E(\omega) \) commute with each other.
 \end{proof}
 
 \begin{lemma}
   \label{lem:orthogonal_of_emptyset}
+  \lean{ResolutionOfIdentity.mul_eq_zero_of_disjoint}
+  \leanok
   If \( \omega' \cap \omega'' = \emptyset \),
   then the ranges of \( E(\omega') \) and \( E(\omega'') \) are orthogonal to each other
 \end{lemma}
 
 \begin{proof}
   \uses{def:resId}
+  \leanok
   By (\ref{itm:Ra}), (\ref{itm:Rc}) and Theorem 12.14.
 \end{proof}
 
 \begin{lemma}
   \label{lem:resId_iUnion}
+  \lean{ResolutionOfIdentity.apply_biUnion_finset}
+  \leanok
   If $\{\omega_j\}$ is a finite family of mutually disjoint Borel sets, then
   $E(\bigcup_j \omega_j) = \sum_j E(\omega_j)$.
 \end{lemma}
 
 \begin{proof}
   \uses{def:resId}
+  \leanok
   By (\ref{itm:Rd}) and induction.
 \end{proof}
 
