@@ -39,6 +39,8 @@ is extended to `L^∞(E)` by `MeasureTheory.setToLinfty`, the `L^∞` analogue o
   `‖∫ f dE‖ = ‖f‖_∞`.
 * `ProjectionValuedMeasure.isClosed_range_integral`, `ProjectionValuedMeasure.commute_integral`:
   the range is closed and commutative.
+* `ProjectionValuedMeasure.range_integralCLM_eq_topologicalClosure_span`: the range of the
+  integral is the closure of the span of the projections `E w`.
 * `ProjectionValuedMeasure.forall_commute_integral_iff`: an operator commutes with every
   `∫ f dE` iff it commutes with every `E w`.
 * `ProjectionValuedMeasure.inner_integral`: `⟪x, (∫ f dE) y⟫ = ∫ f dE_{x,y}` (Rudin 12.21 (1)).
@@ -412,6 +414,30 @@ theorem norm_integral_apply_sq (f : E.Linfty) (x : H) :
     ((E.variation_toComplexMeasure_absolutelyContinuous x x).ae_le ?_)
   filter_upwards [Linfty.coeFn_mul (star f) f, Lp.coeFn_star f] with z h₁ h₂
   simp [h₁, h₂, Complex.conj_mul']
+
+/-- The range of the integral is the closure of the span of the projections `E w`
+(Rudin 12.22 (c)). -/
+theorem range_integralCLM_eq_topologicalClosure_span :
+    LinearMap.range E.integralCLM.toLinearMap =
+      (Submodule.span ℂ (Set.range E)).topologicalClosure := by
+  refine le_antisymm ?_ (Submodule.topologicalClosure_minimal _ ?_ ?_)
+  · rintro _ ⟨f, rfl⟩
+    refine Lp.simpleFunc.denseRange_top.induction_on (p := fun f : E.Linfty ↦
+      E.integralCLM f ∈ (Submodule.span ℂ (Set.range E)).topologicalClosure) f
+      ((Submodule.isClosed_topologicalClosure _).preimage E.integralCLM.continuous) fun g ↦ ?_
+    rw [E.integralCLM_coe, simpleIntegral_apply]
+    exact Submodule.le_topologicalClosure _ (Submodule.sum_mem _ fun c _ ↦
+      Submodule.smul_mem _ c (Submodule.subset_span ⟨_, rfl⟩))
+  · refine Submodule.span_le.2 ?_
+    rintro _ ⟨w, rfl⟩
+    by_cases hw : MeasurableSet w
+    · refine ⟨((((SimpleFunc.const X (1 : ℂ)).piecewise w hw (SimpleFunc.const X 0)).memLp_top
+        E.measure).toLp _), ?_⟩
+      exact (E.integral_toLp _).trans (E.simpleIntegral_indicator hw)
+    · rw [E.apply_of_not_measurableSet hw]
+      exact zero_mem _
+  · rw [LinearMap.coe_range]
+    exact E.isClosed_range_integral
 
 end ProjectionValuedMeasure
 
