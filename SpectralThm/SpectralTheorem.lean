@@ -9,6 +9,7 @@ public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
 public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Commute
 public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
 public import Mathlib.Analysis.InnerProductSpace.WeakOperatorTopology
+public import SpectralThm.Mathlib.Analysis.LocallyConvex.WeakOperatorTopology
 public import SpectralThm.Mathlib.MeasureTheory.Integral.RieszMarkovKakutani.Complex
 public import SpectralThm.Mathlib.MeasureTheory.Measure.Complex.Conj
 public import SpectralThm.Mathlib.MeasureTheory.Measure.Complex.Integral
@@ -247,9 +248,7 @@ noncomputable def spectralMeasure : ProjectionValuedMeasure (spectrum ℂ a) H w
     refine ContinuousLinearMapWOT.tendsto_iff_forall_inner_apply_tendsto.2 fun x y ↦ ?_
     have h (s : Finset ℕ) : ⟪y, (∑ i ∈ s, ofCLM (ha.spectralMeasureAux (w i))) x⟫_ℂ =
         ∑ i ∈ s, ha.cfcMeasure y x (w i) := by
-      change ⟪y, addEquiv (∑ i ∈ s, _) x⟫_ℂ = _
-      simp only [map_sum, sum_apply, inner_sum]
-      exact Finset.sum_congr rfl fun i _ ↦ ha.inner_spectralMeasureAux_apply _ y x
+      simp [ContinuousLinearMapWOT.sum_apply, inner_spectralMeasureAux_apply]
     rw [funext h, ofCLM_apply, inner_spectralMeasureAux_apply]
     exact (ha.cfcMeasure y x).m_iUnion hw hd
   isStarProjection' := ha.isStarProjection_spectralMeasureAux

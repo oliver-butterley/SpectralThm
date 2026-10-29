@@ -1,6 +1,7 @@
 import SpectralThm.BorelFunctionalCalculus
 import SpectralThm.BorelFunctionalCalculus.Spectrum
 import SpectralThm.Mathlib.Analysis.InnerProductSpace.Adjoint
+import SpectralThm.Mathlib.Analysis.LocallyConvex.WeakOperatorTopology
 import SpectralThm.Mathlib.Analysis.Normed.Module.Ball.Retraction
 import SpectralThm.Mathlib.MeasureTheory.Function.AEEqFun
 import SpectralThm.Mathlib.MeasureTheory.Function.EssRange
